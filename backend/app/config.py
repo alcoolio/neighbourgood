@@ -12,6 +12,10 @@ class Settings(BaseSettings):
     # Dual-state: "blue" (normal) or "red" (crisis)
     platform_mode: str = "blue"
 
+    # Auth
+    secret_key: str = "change-me-in-production-use-a-real-secret"
+    access_token_expire_minutes: int = 60 * 24  # 24 hours
+
     # CORS
     cors_origins: list[str] = ["http://localhost:3000", "http://localhost:5173"]
 
