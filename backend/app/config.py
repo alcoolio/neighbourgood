@@ -20,6 +20,14 @@ class Settings(BaseSettings):
     upload_dir: str = "uploads"
     max_image_size: int = 5 * 1024 * 1024  # 5 MB
 
+    # Email / SMTP (optional – logs to console when unconfigured)
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_tls: bool = True
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = "noreply@neighbourgood.local"
+
     # CORS
     cors_origins: list[str] = ["http://localhost:3000", "http://localhost:5173"]
 

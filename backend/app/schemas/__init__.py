@@ -17,6 +17,13 @@ from app.schemas.booking import (
     BookingList,
     VALID_BOOKING_STATUSES,
 )
+from app.schemas.message import (
+    MessageCreate,
+    MessageOut,
+    MessageList,
+    ConversationSummary,
+    UnreadCount,
+)
 
 __all__ = [
     "UserRegister",
@@ -37,4 +44,9 @@ __all__ = [
     "BookingOut",
     "BookingList",
     "VALID_BOOKING_STATUSES",
+    "MessageCreate",
+    "MessageOut",
+    "MessageList",
+    "ConversationSummary",
+    "UnreadCount",
 ]
