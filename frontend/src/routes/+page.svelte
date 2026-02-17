@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { isLoggedIn } from '$lib/stores/auth';
 
 	interface PlatformStatus {
 		status: string;
@@ -29,174 +30,167 @@
 	const modeLabel = $derived(
 		platformStatus?.mode === 'red' ? 'Red Sky (Crisis)' : 'Blue Sky (Normal)'
 	);
-
 	const modeClass = $derived(platformStatus?.mode === 'red' ? 'mode-red' : 'mode-blue');
 </script>
 
-<main class="container">
-	<header>
-		<h1>NeighbourGood</h1>
-		<p class="tagline">Share more. Own less. Help each other.</p>
-	</header>
-
-	<section class="status-card">
-		<h2>Platform Status</h2>
-		{#if error}
-			<p class="error">{error}</p>
-			<p class="hint">Make sure the backend is running on port 8000.</p>
-		{:else if platformStatus}
-			<div class="status-grid">
-				<div class="status-item">
-					<span class="label">Status</span>
-					<span class="value">
-						<span class="status-dot"></span>
-						{platformStatus.status}
-					</span>
-				</div>
-				<div class="status-item">
-					<span class="label">Version</span>
-					<span class="value">{platformStatus.version}</span>
-				</div>
-				<div class="status-item">
-					<span class="label">Mode</span>
-					<span class="value {modeClass}">{modeLabel}</span>
-				</div>
-			</div>
-		{:else}
-			<p class="loading">Connecting to backend...</p>
-		{/if}
+<main class="landing">
+	<section class="hero slide-up">
+		<div class="hero-badge">Community Resource Sharing</div>
+		<h1>Share more.<br />Own less.<br /><span class="hero-accent">Help each other.</span></h1>
+		<p class="hero-subtitle">
+			NeighbourGood connects neighbours to share tools, skills, and resources.
+			When a crisis hits, the same network becomes a lifeline.
+		</p>
+		<div class="hero-actions">
+			{#if $isLoggedIn}
+				<a href="/resources" class="btn-hero">Browse Resources</a>
+			{:else}
+				<a href="/register" class="btn-hero">Get Started</a>
+				<a href="/login" class="btn-hero-secondary">Login</a>
+			{/if}
+		</div>
 	</section>
 
 	<section class="features">
-		<h2>What is NeighbourGood?</h2>
 		<div class="feature-grid">
-			<div class="feature-card">
+			<div class="feature-card slide-up" style="animation-delay: 0.05s">
+				<div class="feature-icon">&#128295;</div>
 				<h3>Share Resources</h3>
-				<p>
-					Lend and borrow tools, vehicles, equipment, and more within your
-					neighbourhood.
-				</p>
+				<p>Lend and borrow tools, vehicles, equipment, and more within your neighbourhood.</p>
 			</div>
-			<div class="feature-card">
+			<div class="feature-card slide-up" style="animation-delay: 0.1s">
+				<div class="feature-icon">&#128161;</div>
 				<h3>Exchange Skills</h3>
-				<p>
-					Offer your expertise and learn from neighbours — from cooking to
-					carpentry.
-				</p>
+				<p>Offer your expertise and learn from neighbours — from cooking to carpentry.</p>
 			</div>
-			<div class="feature-card">
+			<div class="feature-card slide-up" style="animation-delay: 0.15s">
+				<div class="feature-icon">&#128680;</div>
 				<h3>Crisis Ready</h3>
-				<p>
-					When disaster strikes, the platform switches to emergency mode for
-					rapid coordination.
-				</p>
+				<p>When disaster strikes, switch to emergency mode for rapid community coordination.</p>
 			</div>
-			<div class="feature-card">
+			<div class="feature-card slide-up" style="animation-delay: 0.2s">
+				<div class="feature-icon">&#128274;</div>
 				<h3>Self-Hosted</h3>
-				<p>
-					Run it on your own server. Your community's data stays in your
-					community.
-				</p>
+				<p>Run it on your own server. Your community's data stays in your community.</p>
 			</div>
 		</div>
 	</section>
+
+	{#if error}
+		<section class="status-banner status-error fade-in">
+			<span class="status-icon">!</span>
+			<div>
+				<p class="status-text">{error}</p>
+				<p class="status-hint">Make sure the backend is running on port 8300.</p>
+			</div>
+		</section>
+	{:else if platformStatus}
+		<section class="status-banner status-ok fade-in">
+			<span class="status-dot"></span>
+			<span class="status-text">
+				v{platformStatus.version} &middot; <span class={modeClass}>{modeLabel}</span>
+			</span>
+		</section>
+	{/if}
 </main>
 
 <style>
-	.container {
+	.landing {
 		max-width: 800px;
 		margin: 0 auto;
-		padding: 2rem 1rem;
 	}
 
-	header {
+	.hero {
 		text-align: center;
-		margin-bottom: 3rem;
+		padding: 3rem 0 2.5rem;
 	}
 
-	header h1 {
-		font-size: 2.5rem;
+	.hero-badge {
+		display: inline-block;
+		font-size: 0.75rem;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
 		color: var(--color-primary);
-		margin-bottom: 0.5rem;
+		background: var(--color-primary-light);
+		padding: 0.3rem 0.9rem;
+		border-radius: 999px;
+		margin-bottom: 1.25rem;
 	}
 
-	.tagline {
-		font-size: 1.2rem;
+	.hero h1 {
+		font-size: 2.75rem;
+		font-weight: 700;
+		line-height: 1.15;
+		letter-spacing: -0.03em;
+		color: var(--color-text);
+		margin-bottom: 1.25rem;
+	}
+
+	.hero-accent {
+		background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+		background-clip: text;
+	}
+
+	.hero-subtitle {
+		font-size: 1.1rem;
 		color: var(--color-text-muted);
+		max-width: 500px;
+		margin: 0 auto 2rem;
+		line-height: 1.7;
 	}
 
-	.status-card,
-	.features {
-		background: var(--color-surface);
-		border: 1px solid var(--color-border);
+	.hero-actions {
+		display: flex;
+		justify-content: center;
+		gap: 0.75rem;
+	}
+
+	.btn-hero {
+		display: inline-flex;
+		align-items: center;
+		padding: 0.7rem 1.5rem;
+		background: var(--color-primary);
+		color: white;
 		border-radius: var(--radius);
-		padding: 1.5rem;
-		margin-bottom: 2rem;
+		font-size: 0.95rem;
+		font-weight: 600;
+		text-decoration: none;
+		transition: all var(--transition-fast);
 		box-shadow: var(--shadow);
 	}
 
-	h2 {
-		font-size: 1.25rem;
-		margin-bottom: 1rem;
-		color: var(--color-text);
+	.btn-hero:hover {
+		background: var(--color-primary-hover);
+		box-shadow: var(--shadow-lg);
+		transform: translateY(-2px);
+		text-decoration: none;
 	}
 
-	.status-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-		gap: 1rem;
-	}
-
-	.status-item {
-		display: flex;
-		flex-direction: column;
-		gap: 0.25rem;
-	}
-
-	.label {
-		font-size: 0.8rem;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		color: var(--color-text-muted);
-	}
-
-	.value {
-		font-size: 1.1rem;
-		font-weight: 600;
-		display: flex;
+	.btn-hero-secondary {
+		display: inline-flex;
 		align-items: center;
-		gap: 0.5rem;
+		padding: 0.7rem 1.5rem;
+		background: var(--color-surface);
+		color: var(--color-text);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius);
+		font-size: 0.95rem;
+		font-weight: 500;
+		text-decoration: none;
+		transition: all var(--transition-fast);
 	}
 
-	.status-dot {
-		width: 8px;
-		height: 8px;
-		border-radius: 50%;
-		background-color: var(--color-status-dot);
-		display: inline-block;
-	}
-
-	.mode-blue {
+	.btn-hero-secondary:hover {
+		border-color: var(--color-primary);
 		color: var(--color-primary);
+		text-decoration: none;
 	}
 
-	.mode-red {
-		color: #ef4444;
-	}
-
-	.error {
-		color: #ef4444;
-		font-weight: 600;
-	}
-
-	.hint {
-		color: var(--color-text-muted);
-		font-size: 0.9rem;
-		margin-top: 0.5rem;
-	}
-
-	.loading {
-		color: var(--color-text-muted);
+	.features {
+		margin-bottom: 2rem;
 	}
 
 	.feature-grid {
@@ -206,19 +200,83 @@
 	}
 
 	.feature-card {
-		padding: 1rem;
+		background: var(--color-surface);
 		border: 1px solid var(--color-border);
-		border-radius: var(--radius);
+		border-radius: var(--radius-lg);
+		padding: 1.5rem;
+		transition: all var(--transition);
+		box-shadow: var(--shadow-sm);
+	}
+
+	.feature-card:hover {
+		box-shadow: var(--shadow-md);
+		border-color: var(--color-border-hover);
+		transform: translateY(-2px);
+	}
+
+	.feature-icon {
+		font-size: 1.75rem;
+		margin-bottom: 0.75rem;
 	}
 
 	.feature-card h3 {
-		font-size: 1rem;
-		margin-bottom: 0.5rem;
-		color: var(--color-primary);
+		font-size: 0.95rem;
+		font-weight: 600;
+		margin-bottom: 0.4rem;
+		color: var(--color-text);
 	}
 
 	.feature-card p {
-		font-size: 0.9rem;
+		font-size: 0.85rem;
+		color: var(--color-text-muted);
+		line-height: 1.6;
+	}
+
+	.status-banner {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 0.75rem 1.25rem;
+		border-radius: var(--radius);
+		font-size: 0.85rem;
+	}
+
+	.status-ok {
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
 		color: var(--color-text-muted);
 	}
+
+	.status-error {
+		background: var(--color-error-bg);
+		border: 1px solid var(--color-error);
+		color: var(--color-error);
+	}
+
+	.status-dot {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		background: var(--color-success);
+		flex-shrink: 0;
+	}
+
+	.status-icon {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 22px;
+		height: 22px;
+		border-radius: 50%;
+		background: var(--color-error);
+		color: white;
+		font-weight: 700;
+		font-size: 0.75rem;
+		flex-shrink: 0;
+	}
+
+	.status-text { font-weight: 500; }
+	.status-hint { font-size: 0.8rem; opacity: 0.8; margin-top: 0.15rem; }
+	.mode-blue { color: var(--color-primary); }
+	.mode-red { color: var(--color-error); }
 </style>
