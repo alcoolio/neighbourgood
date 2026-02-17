@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     smtp_from: str = "noreply@neighbourgood.local"
 
     # CORS
-    cors_origins: list[str] = ["http://localhost:3000", "http://localhost:5173"]
+    cors_origins: list[str] = ["http://localhost:3800", "http://localhost:5173"]
 
     model_config = {"env_prefix": "NG_", "env_file": ".env"}
 

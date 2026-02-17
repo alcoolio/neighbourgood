@@ -3,16 +3,16 @@ services:
     build: ./backend
     container_name: ng-backend
     ports:
-      - "8000:8000"
+      - "8300:8300"
     environment:
       - NG_DATABASE_URL=sqlite:///./neighbourgood.db
       - NG_PLATFORM_MODE=blue
-      - NG_CORS_ORIGINS=["http://localhost:3000"]
+      - NG_CORS_ORIGINS=["http://localhost:3800"]
     volumes:
       - backend-data:/app/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/status')"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8300/status')"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -21,9 +21,11 @@ services:
     build: ./frontend
     container_name: ng-frontend
     ports:
-      - "3000:3000"
+      - "3800:3800"
     environment:
-      - ORIGIN=http://localhost:3000
+      - ORIGIN=http://localhost:3800
+      - PORT=3800
+      - API_BACKEND=http://backend:8300
     depends_on:
       backend:
         condition: service_healthy

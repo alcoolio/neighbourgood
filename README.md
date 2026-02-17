@@ -50,9 +50,9 @@ cp .env.example .env
 docker compose up --build
 ```
 
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:8000
-- API docs: http://localhost:8000/docs
+- Frontend: http://localhost:3800
+- Backend API: http://localhost:8300
+- API docs: http://localhost:8300/docs
 
 ### Local Development
 
