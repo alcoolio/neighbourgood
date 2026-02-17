@@ -41,3 +41,28 @@ export async function api<T = unknown>(path: string, opts: RequestOptions = {}):
 	if (res.status === 204) return undefined as T;
 	return res.json();
 }
+
+/**
+ * Upload a file (multipart/form-data) to the backend.
+ */
+export async function apiUpload<T = unknown>(path: string, file: File): Promise<T> {
+	const headers: Record<string, string> = {};
+	const t = get(token);
+	if (t) headers['Authorization'] = `Bearer ${t}`;
+
+	const formData = new FormData();
+	formData.append('file', file);
+
+	const res = await fetch(`${BASE}${path}`, {
+		method: 'POST',
+		headers,
+		body: formData
+	});
+
+	if (!res.ok) {
+		const err = await res.json().catch(() => ({ detail: res.statusText }));
+		throw new Error(err.detail || `Upload failed: ${res.status}`);
+	}
+
+	return res.json();
+}

@@ -84,7 +84,7 @@ neighbourgood/
 │   │   ├── config.py           # Settings and environment config
 │   │   ├── database.py         # SQLAlchemy database setup
 │   │   ├── dependencies.py     # Auth dependencies (get_current_user)
-│   │   ├── models/             # SQLAlchemy models (User, Resource)
+│   │   ├── models/             # SQLAlchemy models (User, Resource, Booking)
 │   │   ├── routers/            # API route handlers
 │   │   ├── schemas/            # Pydantic request/response schemas
 │   │   └── services/           # Business logic (auth, hashing, JWT)
@@ -115,11 +115,19 @@ neighbourgood/
 | `/auth/login`               | POST     | No   | Authenticate, returns JWT            |
 | `/users/me`                 | GET      | Yes  | Get current user profile             |
 | `/users/me`                 | PATCH    | Yes  | Update profile (name, neighbourhood) |
-| `/resources`                | GET      | No   | List resources (filter by category)  |
+| `/resources`                | GET      | No   | List resources (search, filter)      |
 | `/resources`                | POST     | Yes  | Create a new resource listing        |
 | `/resources/{id}`           | GET      | No   | Get resource details                 |
 | `/resources/{id}`           | PATCH    | Yes  | Update resource (owner only)         |
 | `/resources/{id}`           | DELETE   | Yes  | Delete resource (owner only)         |
+| `/resources/categories`     | GET      | No   | List categories with labels/icons    |
+| `/resources/{id}/image`     | POST     | Yes  | Upload resource image (owner only)   |
+| `/resources/{id}/image`     | GET      | No   | Serve resource image                 |
+| `/bookings`                 | POST     | Yes  | Request to borrow a resource         |
+| `/bookings`                 | GET      | Yes  | List your bookings (role/status)     |
+| `/bookings/{id}`            | GET      | Yes  | Get booking details                  |
+| `/bookings/{id}`            | PATCH    | Yes  | Update booking status                |
+| `/bookings/resource/{id}/calendar` | GET | No | Calendar view of resource bookings   |
 
 ## 🗺️ Roadmap
 
@@ -134,13 +142,13 @@ neighbourgood/
 - [x] Resource detail page
 - [x] SQLite database with Alembic migrations
 
-### Phase 2 — Core Sharing
+### Phase 2 — Core Sharing (in progress)
 
-- [ ] Resource categories (tools, vehicles, electronics, furniture, food, clothing)
-- [ ] Image upload for resources
-- [ ] Search and filter resources
-- [ ] Calendar-based booking system
-- [ ] Request/approve flow for borrowing
+- [x] Resource categories (tools, vehicles, electronics, furniture, food, clothing)
+- [x] Image upload for resources
+- [x] Search and filter resources
+- [x] Calendar-based booking system
+- [x] Request/approve flow for borrowing
 - [ ] User messaging (in-app)
 - [ ] Email notifications
 
@@ -149,7 +157,7 @@ neighbourgood/
 - [ ] Skill exchange listings
 - [ ] Reputation/trust score system
 - [ ] Community feed / activity timeline
-- [ ] Neighbourhood groups and boundaries
+- [ ] Neighbourhood groups (Hybrid: PLZ-based with custom names)
 - [ ] Invite system for new members
 - [ ] Rating and review system for transactions
 

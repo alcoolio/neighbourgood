@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.0] - 2026-02-17
+
+### Added
+
+- **Calendar-based booking system** – Request to borrow resources with date ranges, conflict detection
+- **Booking status workflow** – Pending → Approved/Rejected (owner), Cancelled (borrower), Completed
+- **Resource search** – Full-text search across titles and descriptions (case-insensitive)
+- **Image upload** – Upload images for resources with type/size validation (JPEG, PNG, WebP, GIF)
+- **Category metadata** – Categories endpoint with labels and icon names
+- **Availability filter** – Filter resources by availability status
+- **Bookings management page** – Frontend page with role/status filters, approve/reject/cancel/complete actions
+- **Resource calendar view** – API endpoint for month-based booking calendar per resource
+- **Booking form** – Request-to-borrow form on resource detail page with date range and message
+- **Alembic migration** – Bookings table and image_path column for resources
+- **51 tests** – Added 34 tests for search, image upload, categories, bookings CRUD, status transitions, calendar
+
 ## [0.2.0] - 2026-02-17
 
 ### Added
@@ -20,7 +36,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Navigation bar** – Global nav with auth-aware links
 - **API client** – Reusable fetch wrapper with auth header injection
 - **Alembic migrations** – Database schema versioning for users and resources tables
-- **Test suite** – 15 tests covering status, auth, users, and resource endpoints
+- **Test suite** – 17 tests covering status, auth, users, and resource endpoints
 
 ## [0.1.0] - 2026-02-17
 

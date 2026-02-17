@@ -5,8 +5,17 @@ from app.schemas.resource import (
     ResourceUpdate,
     ResourceOut,
     ResourceList,
+    CategoryInfo,
     VALID_CATEGORIES,
     VALID_CONDITIONS,
+    CATEGORY_META,
+)
+from app.schemas.booking import (
+    BookingCreate,
+    BookingStatusUpdate,
+    BookingOut,
+    BookingList,
+    VALID_BOOKING_STATUSES,
 )
 
 __all__ = [
@@ -19,6 +28,13 @@ __all__ = [
     "ResourceUpdate",
     "ResourceOut",
     "ResourceList",
+    "CategoryInfo",
     "VALID_CATEGORIES",
     "VALID_CONDITIONS",
+    "CATEGORY_META",
+    "BookingCreate",
+    "BookingStatusUpdate",
+    "BookingOut",
+    "BookingList",
+    "VALID_BOOKING_STATUSES",
 ]
