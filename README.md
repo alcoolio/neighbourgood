@@ -1,16 +1,16 @@
-# NeighbourGood
+# 🏘️ NeighbourGood
 
 A self-hostable web platform that helps communities share resources and coordinate during crises.
 
-## Vision
+## 💡 Vision
 
 Modern neighbourhoods have everything they need — the problem is that resources sit idle in individual households. NeighbourGood makes it easy to share tools, vehicles, equipment, food, and skills within a community, reducing waste and building real connections between neighbours.
 
 But sharing goes beyond convenience. When a crisis hits — a flood, a power outage, a pandemic — the same network that shared a drill last Tuesday becomes a lifeline. NeighbourGood's **dual-state architecture** switches the platform from everyday comfort mode into emergency coordination mode with a single action.
 
-## Dual-State Architecture
+## 🔄 Dual-State Architecture
 
-### Blue Sky Mode (Normal Operation)
+### 🔵 Blue Sky Mode (Normal Operation)
 
 The default mode focuses on community building and resource sharing:
 
@@ -20,7 +20,7 @@ The default mode focuses on community building and resource sharing:
 - **Gamification** – Earn reputation points for sharing, build trust scores
 - **Community Feed** – Updates, requests, offers in a neighbourhood timeline
 
-### Red Sky Mode (Crisis Operation)
+### 🔴 Red Sky Mode (Crisis Operation)
 
 Activated by an admin or community vote when an emergency occurs:
 
@@ -30,7 +30,7 @@ Activated by an admin or community vote when an emergency occurs:
 - **Neighbourhood Leaders** – Pre-defined coordinators who can triage and assign
 - **Offline-First** – PWA with local caching, mesh networking preparation
 
-## Tech Stack
+## 🛠️ Tech Stack
 
 | Layer      | Technology                     | Why                                              |
 | ---------- | ------------------------------ | ------------------------------------------------ |
@@ -39,7 +39,7 @@ Activated by an admin or community vote when an emergency occurs:
 | Database   | SQLite (default) / PostgreSQL  | Zero-config default, scale up when needed         |
 | Deployment | Docker Compose                 | Single `docker-compose up` to run everything      |
 
-## Quick Start
+## 🚀 Quick Start
 
 ### With Docker (recommended)
 
@@ -74,53 +74,65 @@ npm install
 npm run dev
 ```
 
-## Project Structure
+## 📁 Project Structure
 
 ```
 neighbourgood/
 ├── backend/
 │   ├── app/
-│   │   ├── main.py          # FastAPI application entry point
-│   │   ├── config.py         # Settings and environment config
-│   │   ├── database.py       # SQLAlchemy database setup
-│   │   ├── models/           # Database models
-│   │   ├── routers/          # API route handlers
-│   │   ├── schemas/          # Pydantic request/response schemas
-│   │   └── services/         # Business logic
-│   ├── tests/                # Backend tests
+│   │   ├── main.py            # FastAPI application entry point
+│   │   ├── config.py           # Settings and environment config
+│   │   ├── database.py         # SQLAlchemy database setup
+│   │   ├── dependencies.py     # Auth dependencies (get_current_user)
+│   │   ├── models/             # SQLAlchemy models (User, Resource)
+│   │   ├── routers/            # API route handlers
+│   │   ├── schemas/            # Pydantic request/response schemas
+│   │   └── services/           # Business logic (auth, hashing, JWT)
+│   ├── alembic/                # Database migrations
+│   ├── tests/                  # Backend tests
 │   ├── requirements.txt
 │   └── Dockerfile
 ├── frontend/
 │   ├── src/
-│   │   ├── routes/           # SvelteKit pages
-│   │   ├── lib/              # Shared components and utilities
-│   │   └── app.css           # Global styles (Blue/Red Sky themes)
-│   ├── static/               # Static assets and PWA manifest
+│   │   ├── routes/             # SvelteKit pages
+│   │   ├── lib/                # Shared components, API client, stores
+│   │   └── app.css             # Global styles (Blue/Red Sky themes)
+│   ├── static/                 # Static assets and PWA manifest
 │   ├── package.json
 │   └── Dockerfile
-├── docker-compose.yml        # One-command deployment
-├── .env.example              # Configuration template
+├── docker-compose.yml          # One-command deployment
+├── .env.example                # Configuration template
+├── CHANGELOG.md
 └── README.md
 ```
 
-## API
+## 📡 API
 
-| Endpoint  | Method | Description                              |
-| --------- | ------ | ---------------------------------------- |
-| `/status` | GET    | Health check, version, current mode      |
+| Endpoint                    | Method   | Auth | Description                          |
+| --------------------------- | -------- | ---- | ------------------------------------ |
+| `/status`                   | GET      | No   | Health check, version, current mode  |
+| `/auth/register`            | POST     | No   | Create account, returns JWT          |
+| `/auth/login`               | POST     | No   | Authenticate, returns JWT            |
+| `/users/me`                 | GET      | Yes  | Get current user profile             |
+| `/users/me`                 | PATCH    | Yes  | Update profile (name, neighbourhood) |
+| `/resources`                | GET      | No   | List resources (filter by category)  |
+| `/resources`                | POST     | Yes  | Create a new resource listing        |
+| `/resources/{id}`           | GET      | No   | Get resource details                 |
+| `/resources/{id}`           | PATCH    | Yes  | Update resource (owner only)         |
+| `/resources/{id}`           | DELETE   | Yes  | Delete resource (owner only)         |
 
-## Roadmap
+## 🗺️ Roadmap
 
-### Phase 1 — Foundation (MVP)
+### Phase 1 — Foundation (MVP) ✅
 
 - [x] Project scaffold (FastAPI + SvelteKit + Docker)
 - [x] `/status` endpoint with dual-mode indicator
 - [x] Blue Sky / Red Sky CSS theme system
-- [ ] User registration and authentication (email + password)
-- [ ] User profiles with neighbourhood assignment
-- [ ] Basic resource listing (CRUD for items)
-- [ ] Simple item detail page
-- [ ] SQLite database with Alembic migrations
+- [x] User registration and authentication (JWT)
+- [x] User profiles with neighbourhood assignment
+- [x] Basic resource listing (CRUD for items)
+- [x] Resource detail page
+- [x] SQLite database with Alembic migrations
 
 ### Phase 2 — Core Sharing
 
@@ -141,7 +153,7 @@ neighbourgood/
 - [ ] Invite system for new members
 - [ ] Rating and review system for transactions
 
-### Phase 4 — Red Sky Mode
+### Phase 4 — Red Sky Mode 🚨
 
 - [ ] Admin toggle for crisis mode
 - [ ] Community vote mechanism for mode activation
@@ -168,10 +180,10 @@ neighbourgood/
 - [ ] Admin dashboard with analytics
 - [ ] Webhook integrations (Telegram, Signal, Matrix)
 
-## Contributing
+## 🤝 Contributing
 
 This project is in its early stages. Contributions, ideas, and feedback are welcome.
 
-## License
+## 📄 License
 
 See [LICENSE](LICENSE) for details.
