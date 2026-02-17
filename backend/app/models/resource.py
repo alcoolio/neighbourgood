@@ -16,6 +16,7 @@ class Resource(Base):
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     category: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
     condition: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    image_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
     is_available: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     owner_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
     created_at: Mapped[datetime.datetime] = mapped_column(

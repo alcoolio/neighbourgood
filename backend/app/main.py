@@ -7,8 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import Base, engine
-from app.models import Resource, User  # noqa: F401 – ensure models are registered
-from app.routers import auth, resources, status, users
+from app.models import Booking, Resource, User  # noqa: F401 – ensure models are registered
+from app.routers import auth, bookings, resources, status, users
 
 
 @asynccontextmanager
@@ -36,3 +36,4 @@ app.include_router(status.router)
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(resources.router)
+app.include_router(bookings.router)

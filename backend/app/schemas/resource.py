@@ -13,6 +13,17 @@ VALID_CATEGORIES = [
 
 VALID_CONDITIONS = ["new", "good", "fair", "worn"]
 
+CATEGORY_META = {
+    "tool":        {"label": "Tools",       "icon": "wrench"},
+    "vehicle":     {"label": "Vehicles",    "icon": "car"},
+    "electronics": {"label": "Electronics", "icon": "zap"},
+    "furniture":   {"label": "Furniture",   "icon": "armchair"},
+    "food":        {"label": "Food",        "icon": "utensils"},
+    "clothing":    {"label": "Clothing",    "icon": "shirt"},
+    "skill":       {"label": "Skills",      "icon": "lightbulb"},
+    "other":       {"label": "Other",       "icon": "box"},
+}
+
 
 class ResourceCreate(BaseModel):
     title: str
@@ -35,6 +46,7 @@ class ResourceOut(BaseModel):
     description: str | None
     category: str
     condition: str | None
+    image_url: str | None = None
     is_available: bool
     owner_id: int
     owner: UserProfile
@@ -47,3 +59,9 @@ class ResourceOut(BaseModel):
 class ResourceList(BaseModel):
     items: list[ResourceOut]
     total: int
+
+
+class CategoryInfo(BaseModel):
+    value: str
+    label: str
+    icon: str

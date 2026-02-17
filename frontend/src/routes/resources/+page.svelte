@@ -9,6 +9,7 @@
 		description: string | null;
 		category: string;
 		condition: string | null;
+		image_url: string | null;
 		is_available: boolean;
 		owner: { display_name: string; neighbourhood: string | null };
 		created_at: string;
@@ -26,10 +27,17 @@
 		{ value: 'other', label: 'Other' }
 	];
 
+	const CATEGORY_ICONS: Record<string, string> = {
+		tool: '🔧', vehicle: '🚗', electronics: '⚡', furniture: '🪑',
+		food: '🍎', clothing: '👕', skill: '💡', other: '📦'
+	};
+
 	let resources: Resource[] = $state([]);
 	let total = $state(0);
 	let loading = $state(true);
 	let filterCategory = $state('');
+	let searchQuery = $state('');
+	let searchTimeout: ReturnType<typeof setTimeout> | null = $state(null);
 	let showCreateForm = $state(false);
 
 	// Create form
@@ -44,6 +52,7 @@
 		try {
 			const params = new URLSearchParams();
 			if (filterCategory) params.set('category', filterCategory);
+			if (searchQuery.trim()) params.set('q', searchQuery.trim());
 			const res = await api<{ items: Resource[]; total: number }>(
 				`/resources?${params.toString()}`
 			);
@@ -54,6 +63,11 @@
 		} finally {
 			loading = false;
 		}
+	}
+
+	function handleSearchInput() {
+		if (searchTimeout) clearTimeout(searchTimeout);
+		searchTimeout = setTimeout(loadResources, 300);
 	}
 
 	async function handleCreate(e: Event) {
@@ -142,20 +156,29 @@
 	{/if}
 
 	<div class="filter-bar">
+		<input
+			type="search"
+			class="search-input"
+			placeholder="Search resources..."
+			bind:value={searchQuery}
+			oninput={handleSearchInput}
+		/>
 		<select bind:value={filterCategory}>
 			{#each CATEGORIES as cat}
 				<option value={cat.value}>{cat.label}</option>
 			{/each}
 		</select>
-		<span class="result-count">{total} resource{total !== 1 ? 's' : ''}</span>
+		<span class="result-count">{total} result{total !== 1 ? 's' : ''}</span>
 	</div>
 
 	{#if loading}
 		<p class="loading">Loading resources...</p>
 	{:else if resources.length === 0}
 		<div class="empty-state">
-			<p>No resources shared yet.</p>
-			{#if $isLoggedIn}
+			<p>No resources found.</p>
+			{#if searchQuery || filterCategory}
+				<p>Try adjusting your search or filters.</p>
+			{:else if $isLoggedIn}
 				<p>Be the first to share something with your neighbourhood!</p>
 			{:else}
 				<p><a href="/register">Sign up</a> to start sharing.</p>
@@ -165,21 +188,32 @@
 		<div class="resource-grid">
 			{#each resources as resource}
 				<a href="/resources/{resource.id}" class="resource-card">
-					<div class="card-header">
-						<span class="category-badge">{resource.category}</span>
-						{#if !resource.is_available}
-							<span class="unavailable-badge">Unavailable</span>
-						{/if}
-					</div>
-					<h3>{resource.title}</h3>
-					{#if resource.description}
-						<p class="description">{resource.description}</p>
+					{#if resource.image_url}
+						<div class="card-image">
+							<img src="/api{resource.image_url}" alt={resource.title} />
+						</div>
+					{:else}
+						<div class="card-image card-image-placeholder">
+							<span class="placeholder-icon">{CATEGORY_ICONS[resource.category] ?? '📦'}</span>
+						</div>
 					{/if}
-					<div class="card-footer">
-						<span class="owner">by {resource.owner.display_name}</span>
-						{#if resource.condition}
-							<span class="condition">{resource.condition}</span>
+					<div class="card-body">
+						<div class="card-header">
+							<span class="category-badge">{resource.category}</span>
+							{#if !resource.is_available}
+								<span class="unavailable-badge">Unavailable</span>
+							{/if}
+						</div>
+						<h3>{resource.title}</h3>
+						{#if resource.description}
+							<p class="description">{resource.description}</p>
 						{/if}
+						<div class="card-footer">
+							<span class="owner">by {resource.owner.display_name}</span>
+							{#if resource.condition}
+								<span class="condition">{resource.condition}</span>
+							{/if}
+						</div>
 					</div>
 				</a>
 			{/each}
@@ -189,7 +223,7 @@
 
 <style>
 	.resources-page {
-		max-width: 800px;
+		max-width: 900px;
 	}
 
 	.page-header {
@@ -271,12 +305,17 @@
 	.filter-bar {
 		display: flex;
 		align-items: center;
-		gap: 1rem;
+		gap: 0.75rem;
 		margin-bottom: 1.5rem;
 	}
 
+	.search-input {
+		flex: 1;
+		min-width: 0;
+	}
+
 	.filter-bar select {
-		padding: 0.4rem 0.6rem;
+		padding: 0.5rem 0.75rem;
 		border: 1px solid var(--color-border);
 		border-radius: var(--radius);
 		font-size: 0.85rem;
@@ -287,23 +326,25 @@
 	.result-count {
 		font-size: 0.85rem;
 		color: var(--color-text-muted);
+		white-space: nowrap;
 	}
 
 	.resource-grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+		grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
 		gap: 1rem;
 	}
 
 	.resource-card {
-		display: block;
+		display: flex;
+		flex-direction: column;
 		background: var(--color-surface);
 		border: 1px solid var(--color-border);
 		border-radius: var(--radius);
-		padding: 1rem;
 		text-decoration: none;
 		color: var(--color-text);
 		transition: border-color 0.15s;
+		overflow: hidden;
 	}
 
 	.resource-card:hover {
@@ -311,50 +352,78 @@
 		text-decoration: none;
 	}
 
+	.card-image {
+		width: 100%;
+		height: 140px;
+		overflow: hidden;
+		background: var(--color-bg);
+	}
+
+	.card-image img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+
+	.card-image-placeholder {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.placeholder-icon {
+		font-size: 2.5rem;
+		opacity: 0.5;
+	}
+
+	.card-body {
+		padding: 0.75rem 1rem 1rem;
+	}
+
 	.card-header {
 		display: flex;
 		gap: 0.5rem;
-		margin-bottom: 0.5rem;
+		margin-bottom: 0.35rem;
 	}
 
 	.category-badge {
-		font-size: 0.75rem;
+		font-size: 0.7rem;
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
 		background: var(--color-bg);
-		padding: 0.15rem 0.5rem;
+		padding: 0.1rem 0.45rem;
 		border-radius: 999px;
 		color: var(--color-primary);
 		font-weight: 600;
 	}
 
 	.unavailable-badge {
-		font-size: 0.75rem;
+		font-size: 0.7rem;
 		background: #fef2f2;
 		color: #ef4444;
-		padding: 0.15rem 0.5rem;
+		padding: 0.1rem 0.45rem;
 		border-radius: 999px;
 	}
 
 	.resource-card h3 {
 		font-size: 1rem;
-		margin-bottom: 0.35rem;
+		margin-bottom: 0.25rem;
 	}
 
 	.description {
-		font-size: 0.85rem;
+		font-size: 0.82rem;
 		color: var(--color-text-muted);
 		display: -webkit-box;
 		-webkit-line-clamp: 2;
 		-webkit-box-orient: vertical;
 		overflow: hidden;
-		margin-bottom: 0.5rem;
+		margin-bottom: 0.4rem;
 	}
 
 	.card-footer {
 		display: flex;
 		justify-content: space-between;
-		font-size: 0.8rem;
+		font-size: 0.78rem;
 		color: var(--color-text-muted);
 	}
 

@@ -32,6 +32,7 @@
 	<div class="nav-links">
 		<a href="/resources">Resources</a>
 		{#if $isLoggedIn}
+			<a href="/bookings">Bookings</a>
 			<span class="nav-user">{$user?.display_name ?? 'Account'}</span>
 			<button class="nav-btn" onclick={() => { logout(); window.location.href = '/'; }}>
 				Logout

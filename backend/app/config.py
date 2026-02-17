@@ -16,6 +16,10 @@ class Settings(BaseSettings):
     secret_key: str = "change-me-in-production-use-a-real-secret"
     access_token_expire_minutes: int = 60 * 24  # 24 hours
 
+    # Uploads
+    upload_dir: str = "uploads"
+    max_image_size: int = 5 * 1024 * 1024  # 5 MB
+
     # CORS
     cors_origins: list[str] = ["http://localhost:3000", "http://localhost:5173"]
 
