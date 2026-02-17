@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.0] - 2026-02-17
+
+### Added
+
+- **In-app messaging** – Direct messages between users with conversation threads
+- **Conversation list** – Overview of all conversations with last message preview and unread badges
+- **Unread tracking** – Per-message and per-conversation read status, unread count endpoint
+- **Booking-linked messages** – Attach messages to specific booking requests for context
+- **Mark as read** – Mark individual messages or entire conversations as read
+- **Email notifications** – SMTP-based notifications for new messages, booking requests, and status changes
+- **Graceful fallback** – Logs notifications to console when SMTP is not configured
+- **Messages frontend** – Conversation list with chat-style message thread and compose input
+- **Nav update** – Messages link in navigation bar for logged-in users
+- **Alembic migration** – Messages table with sender/recipient/booking foreign keys
+- **69 tests** – Added 18 tests for messaging, conversations, read status, and notification service
+
 ## [0.3.0] - 2026-02-17
 
 ### Added

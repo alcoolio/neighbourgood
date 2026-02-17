@@ -84,10 +84,10 @@ neighbourgood/
 │   │   ├── config.py           # Settings and environment config
 │   │   ├── database.py         # SQLAlchemy database setup
 │   │   ├── dependencies.py     # Auth dependencies (get_current_user)
-│   │   ├── models/             # SQLAlchemy models (User, Resource, Booking)
+│   │   ├── models/             # SQLAlchemy models (User, Resource, Booking, Message)
 │   │   ├── routers/            # API route handlers
 │   │   ├── schemas/            # Pydantic request/response schemas
-│   │   └── services/           # Business logic (auth, hashing, JWT)
+│   │   └── services/           # Business logic (auth, JWT, email notifications)
 │   ├── alembic/                # Database migrations
 │   ├── tests/                  # Backend tests
 │   ├── requirements.txt
@@ -128,6 +128,12 @@ neighbourgood/
 | `/bookings/{id}`            | GET      | Yes  | Get booking details                  |
 | `/bookings/{id}`            | PATCH    | Yes  | Update booking status                |
 | `/bookings/resource/{id}/calendar` | GET | No | Calendar view of resource bookings   |
+| `/messages`                 | POST     | Yes  | Send a message to another user       |
+| `/messages`                 | GET      | Yes  | List messages (partner/booking filter)|
+| `/messages/conversations`   | GET      | Yes  | List conversation summaries          |
+| `/messages/unread`          | GET      | Yes  | Get unread message count             |
+| `/messages/{id}/read`       | PATCH    | Yes  | Mark a message as read               |
+| `/messages/conversation/{id}/read` | POST | Yes | Mark conversation as read         |
 
 ## 🗺️ Roadmap
 
@@ -142,15 +148,15 @@ neighbourgood/
 - [x] Resource detail page
 - [x] SQLite database with Alembic migrations
 
-### Phase 2 — Core Sharing (in progress)
+### Phase 2 — Core Sharing ✅
 
 - [x] Resource categories (tools, vehicles, electronics, furniture, food, clothing)
 - [x] Image upload for resources
 - [x] Search and filter resources
 - [x] Calendar-based booking system
 - [x] Request/approve flow for borrowing
-- [ ] User messaging (in-app)
-- [ ] Email notifications
+- [x] User messaging (in-app)
+- [x] Email notifications
 
 ### Phase 3 — Community & Trust
 
