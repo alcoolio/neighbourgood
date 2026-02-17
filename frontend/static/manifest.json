@@ -1,0 +1,10 @@
+{
+  "name": "NeighbourGood",
+  "short_name": "NeighbourGood",
+  "description": "Community resource sharing platform with crisis-mode support",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#2563eb",
+  "icons": []
+}
