@@ -31,7 +31,7 @@
 			const profile = await api<UserProfile>('/users/me', { auth: true });
 			user.set(profile);
 
-			goto('/resources');
+			goto('/onboarding');
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Registration failed';
 		} finally {
@@ -141,8 +141,8 @@
 	}
 
 	.error {
-		color: #ef4444;
-		background: #fef2f2;
+		color: var(--color-error);
+		background: var(--color-error-bg);
 		padding: 0.5rem 0.75rem;
 		border-radius: var(--radius);
 		font-size: 0.9rem;

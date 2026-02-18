@@ -12,9 +12,9 @@ class Message(Base):
     __tablename__ = "messages"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    sender_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
-    recipient_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
-    booking_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("bookings.id"), nullable=True)
+    sender_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    recipient_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    booking_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("bookings.id"), nullable=True, index=True)
     body: Mapped[str] = mapped_column(Text, nullable=False)
     is_read: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime.datetime] = mapped_column(

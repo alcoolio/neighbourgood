@@ -58,6 +58,11 @@ def send_email(to: str, subject: str, body_text: str, body_html: str | None = No
 # ── Notification helpers ────────────────────────────────────────────
 
 
+def _url(path: str) -> str:
+    """Build a frontend URL from a path."""
+    return f"{settings.frontend_url}{path}"
+
+
 def notify_new_message(recipient_email: str, sender_name: str):
     """Notify a user about a new in-app message."""
     send_email(
@@ -65,7 +70,7 @@ def notify_new_message(recipient_email: str, sender_name: str):
         subject=f"New message from {sender_name} – NeighbourGood",
         body_text=(
             f"Hi! You have a new message from {sender_name} on NeighbourGood.\n\n"
-            "Log in to read and reply: http://localhost:3000/messages\n"
+            f"Log in to read and reply: {_url('/messages')}\n"
         ),
     )
 
@@ -77,7 +82,7 @@ def notify_booking_request(owner_email: str, borrower_name: str, resource_title:
         subject=f"New booking request for {resource_title} – NeighbourGood",
         body_text=(
             f"Hi! {borrower_name} would like to borrow your \"{resource_title}\".\n\n"
-            "Log in to approve or decline: http://localhost:3000/bookings\n"
+            f"Log in to approve or decline: {_url('/bookings')}\n"
         ),
     )
 
@@ -89,6 +94,6 @@ def notify_booking_status(borrower_email: str, resource_title: str, new_status: 
         subject=f"Booking {new_status}: {resource_title} – NeighbourGood",
         body_text=(
             f"Your booking for \"{resource_title}\" has been {new_status}.\n\n"
-            "Log in to see details: http://localhost:3000/bookings\n"
+            f"Log in to see details: {_url('/bookings')}\n"
         ),
     )

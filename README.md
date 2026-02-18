@@ -50,9 +50,9 @@ cp .env.example .env
 docker compose up --build
 ```
 
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:8000
-- API docs: http://localhost:8000/docs
+- Frontend: http://localhost:3800
+- Backend API: http://localhost:8300
+- API docs: http://localhost:8300/docs
 
 ### Local Development
 
@@ -84,7 +84,7 @@ neighbourgood/
 │   │   ├── config.py           # Settings and environment config
 │   │   ├── database.py         # SQLAlchemy database setup
 │   │   ├── dependencies.py     # Auth dependencies (get_current_user)
-│   │   ├── models/             # SQLAlchemy models (User, Resource, Booking, Message)
+│   │   ├── models/             # SQLAlchemy models (User, Resource, Booking, Message, Community)
 │   │   ├── routers/            # API route handlers
 │   │   ├── schemas/            # Pydantic request/response schemas
 │   │   └── services/           # Business logic (auth, JWT, email notifications)
@@ -134,6 +134,16 @@ neighbourgood/
 | `/messages/unread`          | GET      | Yes  | Get unread message count             |
 | `/messages/{id}/read`       | PATCH    | Yes  | Mark a message as read               |
 | `/messages/conversation/{id}/read` | POST | Yes | Mark conversation as read         |
+| `/communities/search`         | GET      | No   | Search communities (name/PLZ/city) |
+| `/communities`                | POST     | Yes  | Create a new community             |
+| `/communities/{id}`           | GET      | No   | Get community details              |
+| `/communities/{id}`           | PATCH    | Yes  | Update community (admin only)      |
+| `/communities/{id}/join`      | POST     | Yes  | Join a community                   |
+| `/communities/{id}/leave`     | POST     | Yes  | Leave a community                  |
+| `/communities/{id}/members`   | GET      | No   | List community members             |
+| `/communities/my`             | GET      | Yes  | List your communities              |
+| `/communities/{id}/merge`     | POST     | Yes  | Merge community into another       |
+| `/communities/{id}/merge-suggestions` | GET | Yes | Auto-suggest merge candidates   |
 
 ## 🗺️ Roadmap
 
@@ -158,12 +168,14 @@ neighbourgood/
 - [x] User messaging (in-app)
 - [x] Email notifications
 
-### Phase 3 — Community & Trust
+### Phase 3 — Community & Trust (in progress)
 
 - [ ] Skill exchange listings
 - [ ] Reputation/trust score system
 - [ ] Community feed / activity timeline
-- [ ] Neighbourhood groups (Hybrid: PLZ-based with custom names)
+- [x] Neighbourhood groups (Hybrid: PLZ-based with custom names)
+- [x] Community merge function with auto-suggestions
+- [x] Onboarding flow (search/join/create community)
 - [ ] Invite system for new members
 - [ ] Rating and review system for transactions
 

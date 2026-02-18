@@ -297,7 +297,7 @@
 	}
 
 	.error {
-		color: #ef4444;
+		color: var(--color-error);
 		font-size: 0.9rem;
 		margin-bottom: 0.5rem;
 	}
@@ -399,8 +399,8 @@
 
 	.unavailable-badge {
 		font-size: 0.7rem;
-		background: #fef2f2;
-		color: #ef4444;
+		background: var(--color-error-bg);
+		color: var(--color-error);
 		padding: 0.1rem 0.45rem;
 		border-radius: 999px;
 	}

@@ -1,0 +1,373 @@
+"""Community endpoints – neighbourhood groups with PLZ-based discovery and merge."""
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func, or_
+from sqlalchemy.orm import Session, joinedload
+
+from app.database import get_db
+from app.dependencies import get_current_user
+from app.models.community import Community, CommunityMember
+from app.models.user import User
+from app.schemas.community import (
+    CommunityCreate,
+    CommunityList,
+    CommunityMemberOut,
+    CommunityOut,
+    CommunityUpdate,
+    MergeRequest,
+    MergeSuggestion,
+)
+
+router = APIRouter(prefix="/communities", tags=["communities"])
+
+
+def _community_to_out(c: Community, member_count: int | None = None) -> CommunityOut:
+    return CommunityOut(
+        id=c.id,
+        name=c.name,
+        description=c.description,
+        postal_code=c.postal_code,
+        city=c.city,
+        country_code=c.country_code,
+        is_active=c.is_active,
+        member_count=member_count if member_count is not None else len(c.members),
+        created_by=c.created_by,
+        merged_into_id=c.merged_into_id,
+        created_at=c.created_at,
+    )
+
+
+# ── Search / Discovery ──────────────────────────────────────────────
+
+
+@router.get("/search", response_model=CommunityList)
+def search_communities(
+    q: str | None = Query(None, min_length=1, max_length=100, description="Search by name, city, or PLZ"),
+    postal_code: str | None = Query(None, description="Filter by exact postal code"),
+    city: str | None = Query(None, description="Filter by city name"),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    """Search communities by name, city, or postal code. Used during onboarding."""
+    query = db.query(Community).options(
+        joinedload(Community.created_by),
+        joinedload(Community.members),
+    ).filter(
+        Community.is_active == True,  # noqa: E712
+        Community.merged_into_id == None,  # noqa: E711
+    )
+
+    if postal_code:
+        query = query.filter(Community.postal_code == postal_code)
+    if city:
+        query = query.filter(Community.city.ilike(f"%{city}%"))
+    if q:
+        pattern = f"%{q}%"
+        query = query.filter(
+            or_(
+                Community.name.ilike(pattern),
+                Community.city.ilike(pattern),
+                Community.postal_code.ilike(pattern),
+            )
+        )
+
+    total = query.count()
+    items = query.order_by(Community.created_at.desc()).offset(skip).limit(limit).all()
+    return CommunityList(
+        items=[_community_to_out(c) for c in items],
+        total=total,
+    )
+
+
+# ── CRUD ─────────────────────────────────────────────────────────────
+
+
+@router.post("", response_model=CommunityOut, status_code=status.HTTP_201_CREATED)
+def create_community(
+    body: CommunityCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Create a new community group."""
+    community = Community(
+        name=body.name,
+        description=body.description,
+        postal_code=body.postal_code,
+        city=body.city,
+        country_code=body.country_code,
+        created_by_id=current_user.id,
+    )
+    db.add(community)
+    db.flush()
+
+    # Creator becomes admin
+    membership = CommunityMember(
+        community_id=community.id,
+        user_id=current_user.id,
+        role="admin",
+    )
+    db.add(membership)
+    db.commit()
+    db.refresh(community)
+    _ = community.created_by
+    _ = community.members
+    return _community_to_out(community)
+
+
+@router.get("/{community_id}", response_model=CommunityOut)
+def get_community(community_id: int, db: Session = Depends(get_db)):
+    """Get a community by ID."""
+    community = (
+        db.query(Community)
+        .options(joinedload(Community.created_by), joinedload(Community.members))
+        .filter(Community.id == community_id)
+        .first()
+    )
+    if not community:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Community not found")
+    return _community_to_out(community)
+
+
+@router.patch("/{community_id}", response_model=CommunityOut)
+def update_community(
+    community_id: int,
+    body: CommunityUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Update community info (admin only)."""
+    community = (
+        db.query(Community)
+        .options(joinedload(Community.created_by), joinedload(Community.members))
+        .filter(Community.id == community_id)
+        .first()
+    )
+    if not community:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Community not found")
+
+    membership = (
+        db.query(CommunityMember)
+        .filter(CommunityMember.community_id == community_id, CommunityMember.user_id == current_user.id)
+        .first()
+    )
+    if not membership or membership.role != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
+
+    if body.name is not None:
+        community.name = body.name
+    if body.description is not None:
+        community.description = body.description
+
+    db.commit()
+    db.refresh(community)
+    return _community_to_out(community)
+
+
+# ── Membership ───────────────────────────────────────────────────────
+
+
+@router.post("/{community_id}/join", response_model=CommunityMemberOut)
+def join_community(
+    community_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Join a community."""
+    community = db.query(Community).filter(Community.id == community_id).first()
+    if not community:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Community not found")
+    if community.merged_into_id is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"This community has been merged. Join community #{community.merged_into_id} instead.",
+        )
+    if not community.is_active:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Community not found")
+
+    existing = (
+        db.query(CommunityMember)
+        .filter(CommunityMember.community_id == community_id, CommunityMember.user_id == current_user.id)
+        .first()
+    )
+    if existing:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Already a member")
+
+    membership = CommunityMember(
+        community_id=community_id,
+        user_id=current_user.id,
+        role="member",
+    )
+    db.add(membership)
+    db.commit()
+    db.refresh(membership)
+    _ = membership.user
+    return membership
+
+
+@router.delete("/{community_id}/leave", status_code=status.HTTP_204_NO_CONTENT)
+def leave_community(
+    community_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Leave a community."""
+    membership = (
+        db.query(CommunityMember)
+        .filter(CommunityMember.community_id == community_id, CommunityMember.user_id == current_user.id)
+        .first()
+    )
+    if not membership:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not a member")
+    db.delete(membership)
+    db.commit()
+
+
+@router.get("/{community_id}/members", response_model=list[CommunityMemberOut])
+def list_members(community_id: int, db: Session = Depends(get_db)):
+    """List members of a community."""
+    community = db.query(Community).filter(Community.id == community_id).first()
+    if not community:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Community not found")
+
+    members = (
+        db.query(CommunityMember)
+        .options(joinedload(CommunityMember.user))
+        .filter(CommunityMember.community_id == community_id)
+        .order_by(CommunityMember.joined_at)
+        .all()
+    )
+    return members
+
+
+@router.get("/my/memberships", response_model=list[CommunityOut])
+def my_communities(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """List communities the current user belongs to."""
+    memberships = (
+        db.query(CommunityMember)
+        .filter(CommunityMember.user_id == current_user.id)
+        .all()
+    )
+    community_ids = [m.community_id for m in memberships]
+    if not community_ids:
+        return []
+
+    communities = (
+        db.query(Community)
+        .options(joinedload(Community.created_by), joinedload(Community.members))
+        .filter(Community.id.in_(community_ids))
+        .all()
+    )
+    return [_community_to_out(c) for c in communities]
+
+
+# ── Merge ────────────────────────────────────────────────────────────
+
+
+@router.post("/merge", response_model=CommunityOut)
+def merge_communities(
+    body: MergeRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Merge source community into target. Both community admins or the source admin can initiate."""
+    source = (
+        db.query(Community)
+        .options(joinedload(Community.members), joinedload(Community.created_by))
+        .filter(Community.id == body.source_id)
+        .first()
+    )
+    target = (
+        db.query(Community)
+        .options(joinedload(Community.members), joinedload(Community.created_by))
+        .filter(Community.id == body.target_id)
+        .first()
+    )
+
+    if not source or not target:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Community not found")
+    if source.id == target.id:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Cannot merge a community into itself")
+    if source.merged_into_id is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Source community is already merged")
+
+    # Check that the user is admin of the source community
+    source_membership = (
+        db.query(CommunityMember)
+        .filter(CommunityMember.community_id == source.id, CommunityMember.user_id == current_user.id)
+        .first()
+    )
+    if not source_membership or source_membership.role != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Must be admin of source community")
+
+    # Move members from source to target (skip duplicates)
+    target_user_ids = {m.user_id for m in target.members}
+    for member in source.members:
+        if member.user_id not in target_user_ids:
+            new_member = CommunityMember(
+                community_id=target.id,
+                user_id=member.user_id,
+                role="member",
+            )
+            db.add(new_member)
+
+    # Mark source as merged
+    source.merged_into_id = target.id
+    source.is_active = False
+
+    db.commit()
+    db.refresh(target)
+    return _community_to_out(target)
+
+
+@router.get("/merge/suggestions", response_model=list[MergeSuggestion])
+def get_merge_suggestions(
+    community_id: int = Query(..., description="Community to find merge candidates for"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get automatic merge suggestions based on proximity (same postal code or city)."""
+    community = (
+        db.query(Community)
+        .options(joinedload(Community.created_by), joinedload(Community.members))
+        .filter(Community.id == community_id)
+        .first()
+    )
+    if not community:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Community not found")
+
+    # Find communities with same postal code or city, excluding self and merged ones
+    candidates = (
+        db.query(Community)
+        .options(joinedload(Community.created_by), joinedload(Community.members))
+        .filter(
+            Community.id != community_id,
+            Community.is_active == True,  # noqa: E712
+            Community.merged_into_id == None,  # noqa: E711
+            or_(
+                Community.postal_code == community.postal_code,
+                Community.city == community.city,
+            ),
+        )
+        .all()
+    )
+
+    suggestions = []
+    for candidate in candidates:
+        if candidate.postal_code == community.postal_code:
+            reason = f"Same postal code ({community.postal_code})"
+        else:
+            reason = f"Same city ({community.city})"
+
+        suggestions.append(
+            MergeSuggestion(
+                source=_community_to_out(community),
+                target=_community_to_out(candidate),
+                reason=reason,
+            )
+        )
+
+    return suggestions

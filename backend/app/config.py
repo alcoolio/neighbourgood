@@ -28,8 +28,11 @@ class Settings(BaseSettings):
     smtp_password: str = ""
     smtp_from: str = "noreply@neighbourgood.local"
 
+    # Frontend URL (used in email notifications)
+    frontend_url: str = "http://localhost:3800"
+
     # CORS
-    cors_origins: list[str] = ["http://localhost:3000", "http://localhost:5173"]
+    cors_origins: list[str] = ["http://localhost:3800", "http://localhost:5173"]
 
     model_config = {"env_prefix": "NG_", "env_file": ".env"}
 
