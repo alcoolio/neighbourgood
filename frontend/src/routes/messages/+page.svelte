@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { page } from '$app/stores';
 	import { api } from '$lib/api';
 	import { isLoggedIn, user } from '$lib/stores/auth';
 
@@ -107,7 +108,28 @@
 		}
 	}
 
-	onMount(loadConversations);
+	onMount(async () => {
+		await loadConversations();
+		const partnerId = $page.url.searchParams.get('partner');
+		if (partnerId) {
+			const pid = Number(partnerId);
+			const existing = conversations.find(c => c.partner.id === pid);
+			if (existing) {
+				openConversation(existing.partner);
+			} else {
+				// New conversation – get display name from reputation endpoint
+				try {
+					const rep = await api<{ user_id: number; display_name: string }>(
+						`/users/${pid}/reputation`
+					);
+					selectedPartner = { id: pid, display_name: rep.display_name, email: '' };
+				} catch {
+					selectedPartner = { id: pid, display_name: 'User', email: '' };
+				}
+				messages = [];
+			}
+		}
+	});
 </script>
 
 {#if !$isLoggedIn}

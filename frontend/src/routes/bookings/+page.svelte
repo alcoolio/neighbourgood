@@ -4,11 +4,26 @@
 	import { isLoggedIn, user } from '$lib/stores/auth';
 	import { statusColor, type Booking } from '$lib/types';
 
+	interface ReviewOut {
+		id: number;
+		booking_id: number;
+		reviewer_id: number;
+		rating: number;
+		comment: string | null;
+	}
+
 	let bookings: Booking[] = $state([]);
 	let total = $state(0);
 	let loading = $state(true);
 	let roleFilter = $state('');
 	let statusFilter = $state('');
+
+	// Review state
+	let reviewingBookingId = $state<number | null>(null);
+	let reviewRating = $state(5);
+	let reviewComment = $state('');
+	let submittingReview = $state(false);
+	let reviewedBookings = $state<Set<number>>(new Set());
 
 	async function loadBookings() {
 		loading = true;
@@ -22,6 +37,10 @@
 			);
 			bookings = res.items;
 			total = res.total;
+			const completedIds = bookings.filter(b => b.status === 'completed').map(b => b.id);
+			if (completedIds.length > 0) {
+				loadReviewStatus(completedIds);
+			}
 		} catch {
 			bookings = [];
 		} finally {
@@ -48,6 +67,45 @@
 
 	function isBorrowerOf(b: Booking): boolean {
 		return b.borrower_id === $user?.id;
+	}
+
+	async function loadReviewStatus(bookingIds: number[]) {
+		const reviewed = new Set<number>();
+		for (const id of bookingIds) {
+			try {
+				const reviews = await api<ReviewOut[]>(`/reviews/booking/${id}`);
+				if (reviews.some(r => r.reviewer_id === $user?.id)) {
+					reviewed.add(id);
+				}
+			} catch {
+				// ignore
+			}
+		}
+		reviewedBookings = reviewed;
+	}
+
+	async function submitReview() {
+		if (!reviewingBookingId || submittingReview) return;
+		submittingReview = true;
+		try {
+			await api('/reviews', {
+				method: 'POST',
+				auth: true,
+				body: {
+					booking_id: reviewingBookingId,
+					rating: reviewRating,
+					comment: reviewComment || null,
+				},
+			});
+			reviewedBookings = new Set([...reviewedBookings, reviewingBookingId]);
+			reviewingBookingId = null;
+			reviewRating = 5;
+			reviewComment = '';
+		} catch (err) {
+			alert(err instanceof Error ? err.message : 'Failed to submit review');
+		} finally {
+			submittingReview = false;
+		}
 	}
 
 	onMount(loadBookings);
@@ -125,7 +183,43 @@
 									<button class="btn-cancel" onclick={() => updateStatus(b.id, 'cancelled')}>Cancel</button>
 								{/if}
 							{/if}
+							{#if b.status === 'completed' && !reviewedBookings.has(b.id)}
+								<button
+									class="btn-review"
+									onclick={() => { reviewingBookingId = reviewingBookingId === b.id ? null : b.id; }}
+								>
+									Leave Review
+								</button>
+							{/if}
+							{#if b.status === 'completed' && reviewedBookings.has(b.id)}
+								<span class="reviewed-badge">Reviewed</span>
+							{/if}
 						</div>
+
+						{#if reviewingBookingId === b.id}
+							<div class="review-form fade-in">
+								<div class="star-row">
+									{#each [1, 2, 3, 4, 5] as star}
+										<button
+											class="star-btn"
+											class:active={reviewRating >= star}
+											onclick={() => (reviewRating = star)}
+										>&#9733;</button>
+									{/each}
+								</div>
+								<textarea
+									bind:value={reviewComment}
+									placeholder="Add a comment (optional)"
+									rows="2"
+								></textarea>
+								<div class="review-actions">
+									<button class="btn-approve" onclick={submitReview} disabled={submittingReview}>
+										{submittingReview ? 'Submitting...' : 'Submit Review'}
+									</button>
+									<button class="btn-complete" onclick={() => (reviewingBookingId = null)}>Cancel</button>
+								</div>
+							</div>
+						{/if}
 					</div>
 				{/each}
 			</div>
@@ -173,6 +267,7 @@
 
 	.booking-row {
 		display: flex;
+		flex-wrap: wrap;
 		justify-content: space-between;
 		align-items: flex-start;
 		gap: 1rem;
@@ -268,5 +363,68 @@
 		text-align: center;
 		padding: 3rem 1rem;
 		color: var(--color-text-muted);
+	}
+
+	/* Reviews */
+	.btn-review {
+		padding: 0.3rem 0.65rem;
+		border-radius: var(--radius);
+		font-size: 0.8rem;
+		cursor: pointer;
+		border: 1px solid var(--color-primary);
+		background: var(--color-primary-light);
+		color: var(--color-primary);
+	}
+	.btn-review:hover { background: var(--color-primary); color: white; }
+
+	.reviewed-badge {
+		font-size: 0.78rem;
+		color: var(--color-success);
+		font-weight: 600;
+	}
+
+	.review-form {
+		width: 100%;
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		padding-top: 0.75rem;
+		border-top: 1px solid var(--color-border);
+	}
+
+	.star-row {
+		display: flex;
+		gap: 0.15rem;
+	}
+
+	.star-btn {
+		background: none;
+		border: none;
+		font-size: 1.4rem;
+		cursor: pointer;
+		color: var(--color-border);
+		padding: 0;
+		line-height: 1;
+		transition: color var(--transition-fast);
+	}
+
+	.star-btn.active {
+		color: #f59e0b;
+	}
+
+	.review-form textarea {
+		padding: 0.4rem 0.6rem;
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius);
+		font-size: 0.85rem;
+		font-family: inherit;
+		resize: none;
+		background: var(--color-surface);
+		color: var(--color-text);
+	}
+
+	.review-actions {
+		display: flex;
+		gap: 0.5rem;
 	}
 </style>
