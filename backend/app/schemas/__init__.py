@@ -33,6 +33,16 @@ from app.schemas.community import (
     MergeRequest,
     MergeSuggestion,
 )
+from app.schemas.skill import (
+    SkillCreate,
+    SkillUpdate,
+    SkillOut,
+    SkillList,
+    SkillCategoryInfo,
+    VALID_SKILL_CATEGORIES,
+    VALID_SKILL_TYPES,
+    SKILL_CATEGORY_META,
+)
 
 __all__ = [
     "UserRegister",
@@ -65,4 +75,12 @@ __all__ = [
     "CommunityMemberOut",
     "MergeRequest",
     "MergeSuggestion",
+    "SkillCreate",
+    "SkillUpdate",
+    "SkillOut",
+    "SkillList",
+    "SkillCategoryInfo",
+    "VALID_SKILL_CATEGORIES",
+    "VALID_SKILL_TYPES",
+    "SKILL_CATEGORY_META",
 ]
