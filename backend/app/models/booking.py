@@ -14,8 +14,8 @@ class Booking(Base):
     __tablename__ = "bookings"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    resource_id: Mapped[int] = mapped_column(Integer, ForeignKey("resources.id"), nullable=False)
-    borrower_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    resource_id: Mapped[int] = mapped_column(Integer, ForeignKey("resources.id"), nullable=False, index=True)
+    borrower_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     start_date: Mapped[datetime.date] = mapped_column(Date, nullable=False)
     end_date: Mapped[datetime.date] = mapped_column(Date, nullable=False)
     message: Mapped[str | None] = mapped_column(Text, nullable=True)

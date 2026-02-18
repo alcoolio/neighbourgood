@@ -18,8 +18,8 @@ class Community(Base):
     city: Mapped[str] = mapped_column(String(150), nullable=False, index=True)
     country_code: Mapped[str] = mapped_column(String(5), default="DE", nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    created_by_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
-    merged_into_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("communities.id"), nullable=True)
+    created_by_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    merged_into_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("communities.id"), nullable=True, index=True)
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime, server_default=func.now(), nullable=False
     )

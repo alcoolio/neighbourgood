@@ -117,10 +117,16 @@ def list_conversations(
     )
 
     partner_ids = [row[0] for row in db.query(partner_subq.c.partner_id).all()]
+    if not partner_ids:
+        return []
+
+    # Bulk-fetch all partners in one query (fixes N+1)
+    partners = db.query(User).filter(User.id.in_(partner_ids)).all()
+    partner_map = {p.id: p for p in partners}
 
     conversations = []
     for pid in partner_ids:
-        partner = db.query(User).filter(User.id == pid).first()
+        partner = partner_map.get(pid)
         if not partner:
             continue
 

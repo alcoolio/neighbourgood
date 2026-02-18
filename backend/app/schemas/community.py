@@ -50,12 +50,6 @@ class CommunityList(BaseModel):
     total: int
 
 
-class CommunitySearch(BaseModel):
-    """Search result for community discovery."""
-    items: list[CommunityOut]
-    total: int
-
-
 class MergeRequest(BaseModel):
     source_id: int
     target_id: int

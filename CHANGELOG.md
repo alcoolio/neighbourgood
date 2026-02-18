@@ -4,6 +4,30 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.5.0] - 2026-02-18
+
+### Added
+
+- **Community system** – PLZ-based neighbourhood groups with custom names
+- **Community CRUD** – Create, search, join, leave, update communities
+- **Community merge** – Merge smaller communities into larger ones (admin only)
+- **Merge suggestions** – Auto-suggest merge candidates by same postal code or city
+- **Onboarding flow** – Post-registration search for community by city/name/PLZ, join or create
+- **Community frontend** – My Communities list, community detail with members, merge UI for admins
+- **Alembic migration** – Communities and community_members tables
+- **93 tests** – Added 24 tests for community CRUD, membership, merge, suggestions, and search
+
+### Changed
+
+- **Shared frontend types** – Centralized TypeScript interfaces in `$lib/types.ts`, replacing duplicated local definitions
+- **CSS utility classes** – Global alert, tag, badge, empty-state, and loading classes in `app.css`
+- **Hardcoded colors removed** – All frontend pages now use CSS variables for dark mode compatibility
+- **N+1 query fix** – Bulk-fetch conversation partners in messages endpoint
+- **FK indexes** – Added `index=True` to all foreign key columns across models for query performance
+- **Configurable frontend URL** – Notification emails use `frontend_url` setting instead of hardcoded localhost
+- **Removed redundant schema** – Eliminated `CommunitySearch` (duplicate of `CommunityList`)
+- Registration now redirects to `/onboarding` instead of `/resources`
+
 ## [0.4.0] - 2026-02-17
 
 ### Added

@@ -30,7 +30,6 @@ from app.schemas.community import (
     CommunityOut,
     CommunityList,
     CommunityMemberOut,
-    CommunitySearch,
     MergeRequest,
     MergeSuggestion,
 )
@@ -64,7 +63,6 @@ __all__ = [
     "CommunityOut",
     "CommunityList",
     "CommunityMemberOut",
-    "CommunitySearch",
     "MergeRequest",
     "MergeSuggestion",
 ]

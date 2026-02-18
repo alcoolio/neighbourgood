@@ -4,36 +4,7 @@
 	import { api, apiUpload } from '$lib/api';
 	import { isLoggedIn, user } from '$lib/stores/auth';
 	import { goto } from '$app/navigation';
-
-	interface Resource {
-		id: number;
-		title: string;
-		description: string | null;
-		category: string;
-		condition: string | null;
-		image_url: string | null;
-		is_available: boolean;
-		owner_id: number;
-		owner: {
-			id: number;
-			display_name: string;
-			neighbourhood: string | null;
-			email: string;
-		};
-		created_at: string;
-		updated_at: string;
-	}
-
-	interface Booking {
-		id: number;
-		resource_id: number;
-		borrower_id: number;
-		borrower: { display_name: string };
-		start_date: string;
-		end_date: string;
-		message: string | null;
-		status: string;
-	}
+	import { statusColor, type Resource, type Booking } from '$lib/types';
 
 	let resource: Resource | null = $state(null);
 	let bookings: Booking[] = $state([]);
@@ -139,12 +110,6 @@
 		}
 	}
 
-	function statusColor(status: string): string {
-		if (status === 'approved') return '#059669';
-		if (status === 'pending') return '#d97706';
-		if (status === 'rejected' || status === 'cancelled') return '#ef4444';
-		return '#6b7280';
-	}
 </script>
 
 {#if loading}
@@ -340,13 +305,13 @@
 	}
 
 	.availability.available {
-		background: #ecfdf5;
-		color: #059669;
+		background: var(--color-success-bg);
+		color: var(--color-success);
 	}
 
 	.availability:not(.available) {
-		background: #fef2f2;
-		color: #ef4444;
+		background: var(--color-error-bg);
+		color: var(--color-error);
 	}
 
 	.section-card {
@@ -437,16 +402,17 @@
 
 	.btn-danger {
 		padding: 0.5rem 1rem;
-		border: 1px solid #fca5a5;
+		border: 1px solid var(--color-error);
 		border-radius: var(--radius);
-		background: #fef2f2;
-		color: #ef4444;
+		background: var(--color-error-bg);
+		color: var(--color-error);
 		cursor: pointer;
 		font-size: 0.9rem;
 	}
 
 	.btn-danger:hover {
-		background: #fee2e2;
+		background: var(--color-error);
+		color: white;
 	}
 
 	/* Booking list */
@@ -522,7 +488,7 @@
 	}
 
 	.error {
-		color: #ef4444;
+		color: var(--color-error);
 		font-size: 0.9rem;
 		margin-bottom: 0.5rem;
 	}
@@ -537,6 +503,6 @@
 	}
 
 	.error-page h1 {
-		color: #ef4444;
+		color: var(--color-error);
 	}
 </style>

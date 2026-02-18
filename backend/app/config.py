@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     smtp_password: str = ""
     smtp_from: str = "noreply@neighbourgood.local"
 
+    # Frontend URL (used in email notifications)
+    frontend_url: str = "http://localhost:3800"
+
     # CORS
     cors_origins: list[str] = ["http://localhost:3800", "http://localhost:5173"]
 

@@ -2,19 +2,7 @@
 	import { onMount } from 'svelte';
 	import { api } from '$lib/api';
 	import { isLoggedIn, user } from '$lib/stores/auth';
-
-	interface Booking {
-		id: number;
-		resource_id: number;
-		resource_title: string | null;
-		borrower_id: number;
-		borrower: { id: number; display_name: string };
-		start_date: string;
-		end_date: string;
-		message: string | null;
-		status: string;
-		created_at: string;
-	}
+	import { statusColor, type Booking } from '$lib/types';
 
 	let bookings: Booking[] = $state([]);
 	let total = $state(0);
@@ -60,14 +48,6 @@
 
 	function isBorrowerOf(b: Booking): boolean {
 		return b.borrower_id === $user?.id;
-	}
-
-	function statusColor(s: string): string {
-		if (s === 'approved') return '#059669';
-		if (s === 'pending') return '#d97706';
-		if (s === 'rejected' || s === 'cancelled') return '#ef4444';
-		if (s === 'completed') return '#6b7280';
-		return '#6b7280';
 	}
 
 	onMount(loadBookings);
@@ -260,25 +240,25 @@
 	}
 
 	.btn-approve {
-		background: #ecfdf5;
-		color: #059669;
-		border-color: #a7f3d0;
+		background: var(--color-success-bg);
+		color: var(--color-success);
+		border-color: var(--color-success);
 	}
-	.btn-approve:hover { background: #d1fae5; }
+	.btn-approve:hover { filter: brightness(0.95); }
 
 	.btn-reject, .btn-cancel {
-		background: #fef2f2;
-		color: #ef4444;
-		border-color: #fca5a5;
+		background: var(--color-error-bg);
+		color: var(--color-error);
+		border-color: var(--color-error);
 	}
-	.btn-reject:hover, .btn-cancel:hover { background: #fee2e2; }
+	.btn-reject:hover, .btn-cancel:hover { filter: brightness(0.95); }
 
 	.btn-complete {
-		background: #f5f5f5;
-		color: #6b7280;
-		border-color: #d1d5db;
+		background: var(--color-surface);
+		color: var(--color-text-muted);
+		border-color: var(--color-border);
 	}
-	.btn-complete:hover { background: #e5e7eb; }
+	.btn-complete:hover { border-color: var(--color-border-hover); }
 
 	.loading {
 		color: var(--color-text-muted);

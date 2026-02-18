@@ -230,11 +230,11 @@
 	}
 
 	.conv-item:hover {
-		background: #f0f4ff;
+		background: var(--color-primary-light);
 	}
 
 	.conv-item.active {
-		background: #e8f0fe;
+		background: var(--color-primary-light);
 	}
 
 	.conv-header {
@@ -281,7 +281,7 @@
 	.thread {
 		display: flex;
 		flex-direction: column;
-		background: #fafafa;
+		background: var(--color-bg);
 	}
 
 	.thread-empty {
