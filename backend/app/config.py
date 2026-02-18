@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     app_name: str = "NeighbourGood"
-    app_version: str = "0.1.0"
+    app_version: str = "0.5.0"
     debug: bool = False
     database_url: str = "sqlite:///./neighbourgood.db"
 
@@ -33,6 +33,14 @@ class Settings(BaseSettings):
 
     # CORS
     cors_origins: list[str] = ["http://localhost:3800", "http://localhost:5173"]
+
+    # Instance identity (for federation directory)
+    instance_name: str = "My NeighbourGood"
+    instance_description: str = ""
+    instance_region: str = ""
+    instance_url: str = ""
+    admin_name: str = ""
+    admin_contact: str = ""
 
     model_config = {"env_prefix": "NG_", "env_file": ".env"}
 

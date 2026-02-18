@@ -11,8 +11,15 @@
 		condition: string | null;
 		image_url: string | null;
 		is_available: boolean;
+		community_id: number | null;
 		owner: { display_name: string; neighbourhood: string | null };
 		created_at: string;
+	}
+
+	interface MyCommunity {
+		id: number;
+		name: string;
+		postal_code: string;
 	}
 
 	const CATEGORIES = [
@@ -45,7 +52,9 @@
 	let newDescription = $state('');
 	let newCategory = $state('tool');
 	let newCondition = $state('good');
+	let newCommunityId = $state('');
 	let createError = $state('');
+	let myCommunities = $state<MyCommunity[]>([]);
 
 	async function loadResources() {
 		loading = true;
@@ -81,19 +90,34 @@
 					title: newTitle,
 					description: newDescription || null,
 					category: newCategory,
-					condition: newCondition
+					condition: newCondition,
+					community_id: newCommunityId ? Number(newCommunityId) : null
 				}
 			});
 			showCreateForm = false;
 			newTitle = '';
 			newDescription = '';
+			newCommunityId = '';
 			await loadResources();
 		} catch (err) {
 			createError = err instanceof Error ? err.message : 'Failed to create resource';
 		}
 	}
 
-	onMount(loadResources);
+	async function loadMyCommunities() {
+		try {
+			myCommunities = await api<MyCommunity[]>(
+				'/communities/my/memberships', { auth: true }
+			);
+		} catch {
+			myCommunities = [];
+		}
+	}
+
+	onMount(() => {
+		loadResources();
+		if ($isLoggedIn) loadMyCommunities();
+	});
 
 	$effect(() => {
 		filterCategory;
@@ -150,6 +174,17 @@
 						</select>
 					</label>
 				</div>
+				{#if myCommunities.length > 0}
+					<label>
+						<span>Community</span>
+						<select bind:value={newCommunityId}>
+							<option value="">No community (personal)</option>
+							{#each myCommunities as c}
+								<option value={c.id}>{c.name} ({c.postal_code})</option>
+							{/each}
+						</select>
+					</label>
+				{/if}
 				<button type="submit" class="btn-primary">Share Resource</button>
 			</form>
 		</div>

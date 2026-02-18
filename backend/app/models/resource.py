@@ -19,6 +19,9 @@ class Resource(Base):
     image_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
     is_available: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     owner_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    community_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("communities.id"), nullable=True, index=True
+    )
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime, server_default=func.now(), nullable=False
     )
@@ -27,3 +30,4 @@ class Resource(Base):
     )
 
     owner: Mapped["User"] = relationship(back_populates="resources")  # noqa: F821
+    community: Mapped["Community | None"] = relationship()  # noqa: F821

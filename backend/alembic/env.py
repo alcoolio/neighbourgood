@@ -6,7 +6,7 @@ from alembic import context
 
 from app.config import settings
 from app.database import Base
-from app.models import Resource, User  # noqa: F401 – register models
+from app.models import Booking, Community, CommunityMember, Message, Resource, User  # noqa: F401 – register models
 
 config = context.config
 
