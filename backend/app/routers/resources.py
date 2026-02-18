@@ -14,6 +14,7 @@ from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.resource import Resource
 from app.models.user import User
+from app.services.activity import record_activity
 from app.schemas.resource import (
     CATEGORY_META,
     VALID_CATEGORIES,
@@ -123,6 +124,13 @@ def create_resource(
     db.commit()
     db.refresh(resource)
     _ = resource.owner
+    record_activity(
+        db,
+        event_type="resource_shared",
+        summary=f"shared \"{resource.title}\"",
+        actor_id=current_user.id,
+        community_id=resource.community_id,
+    )
     return ResourceOut(**_resource_to_out(resource))
 
 

@@ -7,8 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import Base, engine
-from app.models import Booking, Community, CommunityMember, Message, Resource, User  # noqa: F401 – ensure models are registered
-from app.routers import auth, bookings, communities, instance, messages, resources, status, users
+from app.models import Activity, Booking, Community, CommunityMember, Invite, Message, Resource, Review, Skill, User  # noqa: F401 – ensure models are registered
+from app.routers import activity, auth, bookings, communities, instance, invites, messages, resources, reviews, skills, status, users
 
 
 @asynccontextmanager
@@ -39,4 +39,8 @@ app.include_router(resources.router)
 app.include_router(bookings.router)
 app.include_router(messages.router)
 app.include_router(communities.router)
+app.include_router(skills.router)
+app.include_router(activity.router)
+app.include_router(invites.router)
+app.include_router(reviews.router)
 app.include_router(instance.router)

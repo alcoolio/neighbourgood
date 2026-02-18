@@ -11,6 +11,7 @@ from app.dependencies import get_current_user
 from app.models.booking import BOOKING_STATUSES, Booking
 from app.models.resource import Resource
 from app.models.user import User
+from app.services.activity import record_activity
 from app.services.notifications import notify_booking_request, notify_booking_status
 from app.schemas.booking import (
     BookingCreate,
@@ -97,6 +98,14 @@ def create_booking(
     owner = db.query(User).filter(User.id == resource.owner_id).first()
     if owner:
         notify_booking_request(owner.email, current_user.display_name, resource.title)
+
+    record_activity(
+        db,
+        event_type="resource_borrowed",
+        summary=f"requested to borrow \"{resource.title}\"",
+        actor_id=current_user.id,
+        community_id=resource.community_id,
+    )
 
     return _booking_to_out(booking)
 
@@ -213,6 +222,15 @@ def update_booking_status(
     resource_title = resource.title if resource else "Resource"
     if borrower and borrower.id != current_user.id:
         notify_booking_status(borrower.email, resource_title, body.status)
+
+    if body.status == "completed":
+        record_activity(
+            db,
+            event_type="booking_completed",
+            summary=f"completed a booking for \"{resource_title}\"",
+            actor_id=current_user.id,
+            community_id=resource.community_id if resource else None,
+        )
 
     return _booking_to_out(booking)
 

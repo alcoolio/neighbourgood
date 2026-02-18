@@ -1,5 +1,5 @@
 from app.schemas.auth import UserRegister, UserLogin, Token
-from app.schemas.user import UserProfile, UserProfileUpdate
+from app.schemas.user import UserProfile, UserProfileUpdate, ReputationOut
 from app.schemas.resource import (
     ResourceCreate,
     ResourceUpdate,
@@ -33,6 +33,16 @@ from app.schemas.community import (
     MergeRequest,
     MergeSuggestion,
 )
+from app.schemas.skill import (
+    SkillCreate,
+    SkillUpdate,
+    SkillOut,
+    SkillList,
+    SkillCategoryInfo,
+    VALID_SKILL_CATEGORIES,
+    VALID_SKILL_TYPES,
+    SKILL_CATEGORY_META,
+)
 
 __all__ = [
     "UserRegister",
@@ -40,6 +50,7 @@ __all__ = [
     "Token",
     "UserProfile",
     "UserProfileUpdate",
+    "ReputationOut",
     "ResourceCreate",
     "ResourceUpdate",
     "ResourceOut",
@@ -65,4 +76,12 @@ __all__ = [
     "CommunityMemberOut",
     "MergeRequest",
     "MergeSuggestion",
+    "SkillCreate",
+    "SkillUpdate",
+    "SkillOut",
+    "SkillList",
+    "SkillCategoryInfo",
+    "VALID_SKILL_CATEGORIES",
+    "VALID_SKILL_TYPES",
+    "SKILL_CATEGORY_META",
 ]

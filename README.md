@@ -1,6 +1,6 @@
 # 🏘️ NeighbourGood
 
-**v0.6.0** · A self-hostable web platform that helps communities share resources and coordinate during crises.
+**v0.7.0** · A self-hostable web platform that helps communities share resources and coordinate during crises.
 
 ## 💡 Vision
 
@@ -144,6 +144,24 @@ neighbourgood/
 | `/communities/my`             | GET      | Yes  | List your communities              |
 | `/communities/{id}/merge`     | POST     | Yes  | Merge community into another       |
 | `/communities/{id}/merge-suggestions` | GET | Yes | Auto-suggest merge candidates   |
+| `/skills`                       | GET      | No   | List skills (search, filter)       |
+| `/skills`                       | POST     | Yes  | Create a skill listing             |
+| `/skills/{id}`                  | GET      | No   | Get skill details                  |
+| `/skills/{id}`                  | PATCH    | Yes  | Update skill (owner only)          |
+| `/skills/{id}`                  | DELETE   | Yes  | Delete skill (owner only)          |
+| `/skills/categories`            | GET      | No   | List skill categories              |
+| `/users/me/reputation`          | GET      | Yes  | Get your reputation score          |
+| `/users/{id}/reputation`        | GET      | No   | Get a user's reputation score      |
+| `/activity`                     | GET      | No   | Community activity feed            |
+| `/activity/my`                  | GET      | Yes  | Your own activity history          |
+| `/invites`                      | POST     | Yes  | Create community invite code       |
+| `/invites`                      | GET      | Yes  | List invites for a community       |
+| `/invites/{code}/redeem`        | POST     | Yes  | Redeem an invite code              |
+| `/invites/{id}`                 | DELETE   | Yes  | Revoke an invite code              |
+| `/reviews`                      | POST     | Yes  | Leave a review on a booking        |
+| `/reviews/booking/{id}`         | GET      | No   | Get reviews for a booking          |
+| `/reviews/user/{id}`            | GET      | No   | Get reviews received by a user     |
+| `/reviews/user/{id}/summary`    | GET      | No   | Get user's average rating          |
 | `/instance/info`              | GET      | No   | Instance metadata (federation)   |
 
 ## 🗺️ Roadmap
@@ -169,19 +187,19 @@ neighbourgood/
 - [x] User messaging (in-app)
 - [x] Email notifications
 
-### Phase 3 — Community & Trust (in progress)
+### Phase 3 — Community & Trust ✅
 
-- [ ] Skill exchange listings
-- [ ] Reputation/trust score system
-- [ ] Community feed / activity timeline
+- [x] Skill exchange listings (offer/request with 10 categories)
+- [x] Reputation/trust score system (computed from activity, 5 levels)
+- [x] Community feed / activity timeline (auto-generated from events)
 - [x] Neighbourhood groups (Hybrid: PLZ-based with custom names)
 - [x] Community merge function with auto-suggestions
 - [x] Onboarding flow (search/join/create community)
 - [x] Community-scoped resources (soft scoping with community_id)
 - [x] Instance identity and `/instance/info` endpoint (federation prep)
 - [x] PostgreSQL production default (Docker Compose)
-- [ ] Invite system for new members
-- [ ] Rating and review system for transactions
+- [x] Invite system for new members (code-based, with expiry/max uses)
+- [x] Rating and review system for transactions (1-5 stars, per-booking)
 
 ### Phase 3.5 — Federation Preparation
 

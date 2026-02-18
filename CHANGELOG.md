@@ -4,6 +4,31 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.7.0] - 2026-02-18
+
+### Added
+
+- **Skill exchange listings** – Offer or request skills with 10 categories (tutoring, repairs, cooking, languages, music, gardening, tech, crafts, fitness, other)
+- **Full skills CRUD** – `/skills` endpoints with search, category/type filters, and community scoping
+- **Skills frontend page** – Browse, search, filter, and create skill listings with offer/request badges
+- **Reputation/trust score system** – Computed score from sharing activity: resources shared (5pts), lending completed (10pts), borrowing completed (3pts), skills offered (5pts), skills requested (2pts)
+- **5 reputation levels** – Newcomer → Neighbour → Helper → Trusted → Pillar
+- **Reputation endpoints** – `GET /users/me/reputation` (auth), `GET /users/{id}/reputation` (public)
+- **Community activity feed** – Auto-generated timeline from resource sharing, bookings, skills, and member joins
+- **Activity endpoints** – `GET /activity` (public, filter by community), `GET /activity/my` (auth)
+- **Invite system** – Generate URL-safe invite codes for communities with optional max_uses and expiry
+- **Invite CRUD** – Create, list, redeem, and revoke invite codes
+- **Rating and review system** – 1-5 star reviews on completed bookings for both borrower and lender
+- **Review summary** – Average rating and total review count per user
+- **163 tests** – Added 70 tests for skills, reputation, activity, invites, and reviews
+
+### Changed
+
+- Skills nav link added to main navigation (visible to all users)
+- Activity events auto-recorded when resources are shared, bookings created/completed, skills posted, and members join communities
+- Homepage: 6-box feature grid, GitHub social preview image, bright mode default
+- Backend version bumped to 0.7.0
+
 ## [0.6.0] - 2026-02-18
 
 ### Added

@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     app_name: str = "NeighbourGood"
-    app_version: str = "0.6.0"
+    app_version: str = "0.7.0"
     debug: bool = False
     database_url: str = "sqlite:///./neighbourgood.db"
 
