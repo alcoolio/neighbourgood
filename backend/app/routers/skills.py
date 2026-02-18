@@ -8,6 +8,7 @@ from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.skill import Skill
 from app.models.user import User
+from app.services.activity import record_activity
 from app.schemas.skill import (
     SKILL_CATEGORY_META,
     VALID_SKILL_CATEGORIES,
@@ -113,6 +114,15 @@ def create_skill(
     db.commit()
     db.refresh(skill)
     _ = skill.owner
+    event_type = "skill_offered" if skill.skill_type == "offer" else "skill_requested"
+    verb = "offered" if skill.skill_type == "offer" else "is looking for"
+    record_activity(
+        db,
+        event_type=event_type,
+        summary=f"{verb} \"{skill.title}\"",
+        actor_id=current_user.id,
+        community_id=skill.community_id,
+    )
     return SkillOut(**_skill_to_out(skill))
 
 

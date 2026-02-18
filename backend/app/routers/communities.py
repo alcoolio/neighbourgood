@@ -8,6 +8,7 @@ from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.community import Community, CommunityMember
 from app.models.user import User
+from app.services.activity import record_activity
 from app.schemas.community import (
     CommunityCreate,
     CommunityList,
@@ -202,6 +203,13 @@ def join_community(
     db.commit()
     db.refresh(membership)
     _ = membership.user
+    record_activity(
+        db,
+        event_type="member_joined",
+        summary=f"joined \"{community.name}\"",
+        actor_id=current_user.id,
+        community_id=community_id,
+    )
     return membership
 
 
