@@ -6,5 +6,6 @@ from app.models.community import Community, CommunityMember
 from app.models.skill import Skill
 from app.models.activity import Activity
 from app.models.invite import Invite
+from app.models.review import Review
 
-__all__ = ["User", "Resource", "Booking", "Message", "Community", "CommunityMember", "Skill", "Activity", "Invite"]
+__all__ = ["User", "Resource", "Booking", "Message", "Community", "CommunityMember", "Skill", "Activity", "Invite", "Review"]
