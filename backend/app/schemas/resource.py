@@ -30,6 +30,7 @@ class ResourceCreate(BaseModel):
     description: str | None = None
     category: str
     condition: str | None = None
+    community_id: int | None = None
 
 
 class ResourceUpdate(BaseModel):
@@ -49,6 +50,7 @@ class ResourceOut(BaseModel):
     image_url: str | None = None
     is_available: bool
     owner_id: int
+    community_id: int | None = None
     owner: UserProfile
     created_at: datetime.datetime
     updated_at: datetime.datetime

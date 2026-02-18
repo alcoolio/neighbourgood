@@ -38,9 +38,26 @@
 		reason: string;
 	}
 
+	interface ResourceItem {
+		id: number;
+		title: string;
+		description: string | null;
+		category: string;
+		image_url: string | null;
+		is_available: boolean;
+		owner: { display_name: string };
+	}
+
+	const CATEGORY_ICONS: Record<string, string> = {
+		tool: '🔧', vehicle: '🚗', electronics: '⚡', furniture: '🪑',
+		food: '🍎', clothing: '👕', skill: '💡', other: '📦'
+	};
+
 	let community = $state<CommunityOut | null>(null);
 	let members = $state<MemberOut[]>([]);
 	let suggestions = $state<MergeSuggestion[]>([]);
+	let resources = $state<ResourceItem[]>([]);
+	let resourceTotal = $state(0);
 	let loading = $state(true);
 	let error = $state('');
 	let actionMsg = $state('');
@@ -59,6 +76,12 @@
 		try {
 			community = await api<CommunityOut>(`/communities/${communityId}`);
 			members = await api<MemberOut[]>(`/communities/${communityId}/members`);
+
+			const resData = await api<{ items: ResourceItem[]; total: number }>(
+				`/resources?community_id=${communityId}`
+			);
+			resources = resData.items;
+			resourceTotal = resData.total;
 
 			if ($isLoggedIn && $user) {
 				const me = members.find((m) => m.user.id === $user!.id);
@@ -197,6 +220,39 @@
 					</div>
 				{/each}
 			</div>
+		</section>
+
+		<section class="resources-section slide-up" style="animation-delay: 0.1s">
+			<div class="section-header">
+				<h2>Shared Resources ({resourceTotal})</h2>
+				{#if isMember}
+					<a href="/resources" class="btn-small">Browse all</a>
+				{/if}
+			</div>
+			{#if resources.length === 0}
+				<p class="section-hint">No resources shared in this community yet.</p>
+			{:else}
+				<div class="resource-grid">
+					{#each resources as r (r.id)}
+						<a href="/resources/{r.id}" class="resource-card">
+							{#if r.image_url}
+								<div class="res-image">
+									<img src="/api{r.image_url}" alt={r.title} />
+								</div>
+							{:else}
+								<div class="res-image res-placeholder">
+									<span>{CATEGORY_ICONS[r.category] ?? '📦'}</span>
+								</div>
+							{/if}
+							<div class="res-body">
+								<span class="res-category">{r.category}</span>
+								<h3>{r.title}</h3>
+								<span class="res-owner">by {r.owner.display_name}</span>
+							</div>
+						</a>
+					{/each}
+				</div>
+			{/if}
 		</section>
 
 		{#if isAdmin && suggestions.length > 0}
@@ -524,5 +580,105 @@
 	.alert-info a {
 		color: inherit;
 		font-weight: 600;
+	}
+
+	.resources-section {
+		margin-top: 2rem;
+	}
+
+	.resources-section h2 {
+		font-size: 1.15rem;
+		font-weight: 600;
+	}
+
+	.section-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin-bottom: 0.75rem;
+	}
+
+	.btn-small {
+		font-size: 0.8rem;
+		padding: 0.3rem 0.7rem;
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius);
+		color: var(--color-text-muted);
+		text-decoration: none;
+		transition: all var(--transition-fast);
+	}
+
+	.btn-small:hover {
+		border-color: var(--color-primary);
+		color: var(--color-primary);
+	}
+
+	.resource-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+		gap: 0.75rem;
+	}
+
+	.resource-card {
+		display: flex;
+		flex-direction: column;
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius);
+		text-decoration: none;
+		color: var(--color-text);
+		overflow: hidden;
+		transition: border-color var(--transition-fast);
+	}
+
+	.resource-card:hover {
+		border-color: var(--color-primary);
+	}
+
+	.res-image {
+		height: 90px;
+		overflow: hidden;
+		background: var(--color-bg);
+	}
+
+	.res-image img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+
+	.res-placeholder {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 1.8rem;
+		opacity: 0.5;
+	}
+
+	.res-body {
+		padding: 0.5rem 0.65rem 0.65rem;
+	}
+
+	.res-category {
+		font-size: 0.65rem;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		color: var(--color-primary);
+		font-weight: 600;
+	}
+
+	.res-body h3 {
+		font-size: 0.88rem;
+		font-weight: 500;
+		margin: 0.15rem 0;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.res-owner {
+		font-size: 0.75rem;
+		color: var(--color-text-muted);
 	}
 </style>

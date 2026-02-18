@@ -1,15 +1,37 @@
 services:
+  db:
+    image: postgres:16-alpine
+    container_name: ng-db
+    environment:
+      - POSTGRES_USER=neighbourgood
+      - POSTGRES_PASSWORD=neighbourgood
+      - POSTGRES_DB=neighbourgood
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U neighbourgood"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
   backend:
     build: ./backend
     container_name: ng-backend
     ports:
       - "8300:8300"
     environment:
-      - NG_DATABASE_URL=sqlite:///./neighbourgood.db
+      - NG_DATABASE_URL=postgresql://neighbourgood:neighbourgood@db:5432/neighbourgood
       - NG_PLATFORM_MODE=blue
       - NG_CORS_ORIGINS=["http://localhost:3800"]
+      - NG_INSTANCE_NAME=My NeighbourGood
+      - NG_ADMIN_NAME=Admin
+      - NG_ADMIN_CONTACT=admin@example.com
     volumes:
-      - backend-data:/app/data
+      - backend-uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8300/status')"]
@@ -32,4 +54,5 @@ services:
     restart: unless-stopped
 
 volumes:
-  backend-data:
+  pg-data:
+  backend-uploads:

@@ -41,6 +41,7 @@ def _resource_to_out(resource: Resource) -> dict:
         "image_url": f"/resources/{resource.id}/image" if resource.image_path else None,
         "is_available": resource.is_available,
         "owner_id": resource.owner_id,
+        "community_id": resource.community_id,
         "owner": resource.owner,
         "created_at": resource.created_at,
         "updated_at": resource.updated_at,
@@ -60,6 +61,7 @@ def list_categories():
 def list_resources(
     category: str | None = Query(None),
     available: bool | None = Query(None),
+    community_id: int | None = Query(None, description="Filter by community"),
     q: str | None = Query(None, min_length=1, max_length=100),
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
@@ -68,6 +70,8 @@ def list_resources(
     """List resources with optional filters and text search."""
     query = db.query(Resource).options(joinedload(Resource.owner))
 
+    if community_id is not None:
+        query = query.filter(Resource.community_id == community_id)
     if category:
         query = query.filter(Resource.category == category)
     if available is not None:
@@ -113,6 +117,7 @@ def create_resource(
         category=body.category,
         condition=body.condition,
         owner_id=current_user.id,
+        community_id=body.community_id,
     )
     db.add(resource)
     db.commit()

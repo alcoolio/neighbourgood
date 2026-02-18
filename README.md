@@ -36,7 +36,7 @@ Activated by an admin or community vote when an emergency occurs:
 | ---------- | ------------------------------ | ------------------------------------------------ |
 | Backend    | Python + FastAPI               | Lightweight, async, easy to extend with AI later  |
 | Frontend   | SvelteKit                      | Fast, small bundles, good PWA/offline support     |
-| Database   | SQLite (default) / PostgreSQL  | Zero-config default, scale up when needed         |
+| Database   | PostgreSQL (prod) / SQLite (dev) | PostgreSQL in Docker for production, SQLite for quick local dev |
 | Deployment | Docker Compose                 | Single `docker-compose up` to run everything      |
 
 ## 🚀 Quick Start
@@ -144,6 +144,7 @@ neighbourgood/
 | `/communities/my`             | GET      | Yes  | List your communities              |
 | `/communities/{id}/merge`     | POST     | Yes  | Merge community into another       |
 | `/communities/{id}/merge-suggestions` | GET | Yes | Auto-suggest merge candidates   |
+| `/instance/info`              | GET      | No   | Instance metadata (federation)   |
 
 ## 🗺️ Roadmap
 
@@ -176,12 +177,24 @@ neighbourgood/
 - [x] Neighbourhood groups (Hybrid: PLZ-based with custom names)
 - [x] Community merge function with auto-suggestions
 - [x] Onboarding flow (search/join/create community)
+- [x] Community-scoped resources (soft scoping with community_id)
+- [x] Instance identity and `/instance/info` endpoint (federation prep)
+- [x] PostgreSQL production default (Docker Compose)
 - [ ] Invite system for new members
 - [ ] Rating and review system for transactions
 
+### Phase 3.5 — Federation Preparation
+
+- [x] Instance metadata with admin accountability (name, region, contact)
+- [x] `/instance/info` public endpoint for directory crawling
+- [ ] Instance directory (discover other NeighbourGood instances)
+- [ ] Cross-instance Red Sky alerts
+- [ ] User data export (portable backup)
+- [ ] Instance migration tooling
+
 ### Phase 4 — Red Sky Mode 🚨
 
-- [ ] Admin toggle for crisis mode
+- [ ] Admin toggle for crisis mode (per-community)
 - [ ] Community vote mechanism for mode activation
 - [ ] Emergency ticketing system (Request / Offer / Emergency Ping)
 - [ ] Neighbourhood leader roles and assignment
@@ -195,7 +208,6 @@ neighbourgood/
 - [ ] Offline item browsing and request queuing
 - [ ] Background sync when connectivity returns
 - [ ] Data export and backup tools
-- [ ] Optional PostgreSQL migration path
 
 ### Phase 6 — Advanced Features
 

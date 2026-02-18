@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.6.0] - 2026-02-18
+
+### Added
+
+- **Instance identity** – Configurable instance metadata (name, region, admin contact) for federation readiness
+- **`/instance/info` endpoint** – Public metadata endpoint for federation directory crawling
+- **Community-scoped resources** – Resources can belong to a community via `community_id` (nullable for personal items)
+- **Community resource filter** – `GET /resources?community_id=` filters resources by community
+- **Community resources view** – Community detail page shows resources shared within that community
+- **Community selector on create** – Resource creation form lets users assign resources to their communities
+- **PostgreSQL production default** – Docker Compose now runs PostgreSQL 16; SQLite remains for local dev
+- **101 tests** – Added 8 tests for instance info, community-scoped resource CRUD and filtering
+
+### Changed
+
+- Docker Compose uses PostgreSQL with dedicated `pg-data` volume instead of SQLite
+- `.env.example` expanded with instance identity and admin contact fields
+- `psycopg2-binary` added to backend requirements
+- Alembic `env.py` now imports all models for complete migration generation
+
 ## [0.5.0] - 2026-02-18
 
 ### Added
