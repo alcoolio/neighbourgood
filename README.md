@@ -147,14 +147,14 @@ See [API_ENDPOINTS.md](API_ENDPOINTS.md) for the full endpoint reference. Intera
 - [x] Invite system for new members (code-based, with expiry/max uses)
 - [x] Rating and review system for transactions (1-5 stars, per-booking)
 
-### Phase 3.5 — Federation Preparation
+### Phase 3.5 — Federation Preparation ✅
 
 - [x] Instance metadata with admin accountability (name, region, contact)
 - [x] `/instance/info` public endpoint for directory crawling
-- [ ] Instance directory (discover other NeighbourGood instances)
-- [ ] Cross-instance Red Sky alerts
-- [ ] User data export (portable backup)
-- [ ] Instance migration tooling
+- [x] Instance directory (discover other NeighbourGood instances)
+- [x] Cross-instance Red Sky alerts
+- [x] User data export (portable backup)
+- [x] Instance migration tooling
 
 ### Phase 4 — Red Sky Mode 🚨
 
