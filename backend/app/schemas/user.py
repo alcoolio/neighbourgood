@@ -19,3 +19,11 @@ class UserProfile(BaseModel):
 class UserProfileUpdate(BaseModel):
     display_name: str | None = None
     neighbourhood: str | None = None
+
+
+class ReputationOut(BaseModel):
+    user_id: int
+    display_name: str
+    score: int
+    level: str
+    breakdown: dict[str, int]

@@ -1,5 +1,5 @@
 from app.schemas.auth import UserRegister, UserLogin, Token
-from app.schemas.user import UserProfile, UserProfileUpdate
+from app.schemas.user import UserProfile, UserProfileUpdate, ReputationOut
 from app.schemas.resource import (
     ResourceCreate,
     ResourceUpdate,
@@ -50,6 +50,7 @@ __all__ = [
     "Token",
     "UserProfile",
     "UserProfileUpdate",
+    "ReputationOut",
     "ResourceCreate",
     "ResourceUpdate",
     "ResourceOut",
