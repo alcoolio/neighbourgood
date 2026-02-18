@@ -108,61 +108,7 @@ neighbourgood/
 
 ## 📡 API
 
-| Endpoint                    | Method   | Auth | Description                          |
-| --------------------------- | -------- | ---- | ------------------------------------ |
-| `/status`                   | GET      | No   | Health check, version, current mode  |
-| `/auth/register`            | POST     | No   | Create account, returns JWT          |
-| `/auth/login`               | POST     | No   | Authenticate, returns JWT            |
-| `/users/me`                 | GET      | Yes  | Get current user profile             |
-| `/users/me`                 | PATCH    | Yes  | Update profile (name, neighbourhood) |
-| `/resources`                | GET      | No   | List resources (search, filter)      |
-| `/resources`                | POST     | Yes  | Create a new resource listing        |
-| `/resources/{id}`           | GET      | No   | Get resource details                 |
-| `/resources/{id}`           | PATCH    | Yes  | Update resource (owner only)         |
-| `/resources/{id}`           | DELETE   | Yes  | Delete resource (owner only)         |
-| `/resources/categories`     | GET      | No   | List categories with labels/icons    |
-| `/resources/{id}/image`     | POST     | Yes  | Upload resource image (owner only)   |
-| `/resources/{id}/image`     | GET      | No   | Serve resource image                 |
-| `/bookings`                 | POST     | Yes  | Request to borrow a resource         |
-| `/bookings`                 | GET      | Yes  | List your bookings (role/status)     |
-| `/bookings/{id}`            | GET      | Yes  | Get booking details                  |
-| `/bookings/{id}`            | PATCH    | Yes  | Update booking status                |
-| `/bookings/resource/{id}/calendar` | GET | No | Calendar view of resource bookings   |
-| `/messages`                 | POST     | Yes  | Send a message to another user       |
-| `/messages`                 | GET      | Yes  | List messages (partner/booking filter)|
-| `/messages/conversations`   | GET      | Yes  | List conversation summaries          |
-| `/messages/unread`          | GET      | Yes  | Get unread message count             |
-| `/messages/{id}/read`       | PATCH    | Yes  | Mark a message as read               |
-| `/messages/conversation/{id}/read` | POST | Yes | Mark conversation as read         |
-| `/communities/search`         | GET      | No   | Search communities (name/PLZ/city) |
-| `/communities`                | POST     | Yes  | Create a new community             |
-| `/communities/{id}`           | GET      | No   | Get community details              |
-| `/communities/{id}`           | PATCH    | Yes  | Update community (admin only)      |
-| `/communities/{id}/join`      | POST     | Yes  | Join a community                   |
-| `/communities/{id}/leave`     | POST     | Yes  | Leave a community                  |
-| `/communities/{id}/members`   | GET      | No   | List community members             |
-| `/communities/my`             | GET      | Yes  | List your communities              |
-| `/communities/{id}/merge`     | POST     | Yes  | Merge community into another       |
-| `/communities/{id}/merge-suggestions` | GET | Yes | Auto-suggest merge candidates   |
-| `/skills`                       | GET      | No   | List skills (search, filter)       |
-| `/skills`                       | POST     | Yes  | Create a skill listing             |
-| `/skills/{id}`                  | GET      | No   | Get skill details                  |
-| `/skills/{id}`                  | PATCH    | Yes  | Update skill (owner only)          |
-| `/skills/{id}`                  | DELETE   | Yes  | Delete skill (owner only)          |
-| `/skills/categories`            | GET      | No   | List skill categories              |
-| `/users/me/reputation`          | GET      | Yes  | Get your reputation score          |
-| `/users/{id}/reputation`        | GET      | No   | Get a user's reputation score      |
-| `/activity`                     | GET      | No   | Community activity feed            |
-| `/activity/my`                  | GET      | Yes  | Your own activity history          |
-| `/invites`                      | POST     | Yes  | Create community invite code       |
-| `/invites`                      | GET      | Yes  | List invites for a community       |
-| `/invites/{code}/redeem`        | POST     | Yes  | Redeem an invite code              |
-| `/invites/{id}`                 | DELETE   | Yes  | Revoke an invite code              |
-| `/reviews`                      | POST     | Yes  | Leave a review on a booking        |
-| `/reviews/booking/{id}`         | GET      | No   | Get reviews for a booking          |
-| `/reviews/user/{id}`            | GET      | No   | Get reviews received by a user     |
-| `/reviews/user/{id}/summary`    | GET      | No   | Get user's average rating          |
-| `/instance/info`              | GET      | No   | Instance metadata (federation)   |
+See [API_ENDPOINTS.md](API_ENDPOINTS.md) for the full endpoint reference. Interactive docs at `/docs` when the backend is running.
 
 ## 🗺️ Roadmap
 
