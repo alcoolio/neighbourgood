@@ -38,6 +38,7 @@
 		<div class="nav-links">
 			<a href="/resources" class="nav-link">Resources</a>
 			{#if $isLoggedIn}
+				<a href="/communities" class="nav-link">Communities</a>
 				<a href="/bookings" class="nav-link">Bookings</a>
 				<a href="/messages" class="nav-link">Messages</a>
 			{/if}

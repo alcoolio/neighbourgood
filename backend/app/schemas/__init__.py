@@ -24,6 +24,16 @@ from app.schemas.message import (
     ConversationSummary,
     UnreadCount,
 )
+from app.schemas.community import (
+    CommunityCreate,
+    CommunityUpdate,
+    CommunityOut,
+    CommunityList,
+    CommunityMemberOut,
+    CommunitySearch,
+    MergeRequest,
+    MergeSuggestion,
+)
 
 __all__ = [
     "UserRegister",
@@ -49,4 +59,12 @@ __all__ = [
     "MessageList",
     "ConversationSummary",
     "UnreadCount",
+    "CommunityCreate",
+    "CommunityUpdate",
+    "CommunityOut",
+    "CommunityList",
+    "CommunityMemberOut",
+    "CommunitySearch",
+    "MergeRequest",
+    "MergeSuggestion",
 ]

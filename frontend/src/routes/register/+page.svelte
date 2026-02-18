@@ -31,7 +31,7 @@
 			const profile = await api<UserProfile>('/users/me', { auth: true });
 			user.set(profile);
 
-			goto('/resources');
+			goto('/onboarding');
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Registration failed';
 		} finally {
