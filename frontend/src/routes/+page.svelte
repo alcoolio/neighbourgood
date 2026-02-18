@@ -51,6 +51,14 @@
 		</div>
 	</section>
 
+	<section class="hero-image slide-up" style="animation-delay: 0.05s">
+		<img
+			src="https://repository-images.githubusercontent.com/1157105951/d1f4dfb1-a28b-4cd3-8994-c4f2906d0354"
+			alt="NeighbourGood – a local network for neighbours to share stuff and skills"
+			class="social-preview"
+		/>
+	</section>
+
 	<section class="features">
 		<div class="feature-grid">
 			<div class="feature-card slide-up" style="animation-delay: 0.05s">
@@ -72,6 +80,16 @@
 				<div class="feature-icon">&#128274;</div>
 				<h3>Self-Hosted</h3>
 				<p>Run it on your own server. Your community's data stays in your community.</p>
+			</div>
+			<div class="feature-card slide-up" style="animation-delay: 0.25s">
+				<div class="feature-icon">&#127760;</div>
+				<h3>Neighbourhood Groups</h3>
+				<p>Join or create local communities by postcode. Share within your area, merge nearby groups.</p>
+			</div>
+			<div class="feature-card slide-up" style="animation-delay: 0.3s">
+				<div class="feature-icon">&#128172;</div>
+				<h3>Built-in Messaging</h3>
+				<p>Chat directly with neighbours about bookings, coordinate pickups, and stay connected.</p>
 			</div>
 		</div>
 	</section>
@@ -193,10 +211,29 @@
 		margin-bottom: 2rem;
 	}
 
+	.hero-image {
+		margin-bottom: 2rem;
+		text-align: center;
+	}
+
+	.social-preview {
+		width: 100%;
+		max-width: 700px;
+		border-radius: var(--radius-lg);
+		box-shadow: var(--shadow-lg);
+		border: 1px solid var(--color-border);
+	}
+
 	.feature-grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+		grid-template-columns: repeat(3, 1fr);
 		gap: 1rem;
+	}
+
+	@media (max-width: 640px) {
+		.feature-grid {
+			grid-template-columns: 1fr;
+		}
 	}
 
 	.feature-card {

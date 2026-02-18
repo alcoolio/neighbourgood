@@ -9,9 +9,6 @@ function getInitialTheme(): 'light' | 'dark' {
 	if (typeof localStorage === 'undefined') return 'light';
 	const stored = localStorage.getItem('ng_theme');
 	if (stored === 'dark' || stored === 'light') return stored;
-	if (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-		return 'dark';
-	}
 	return 'light';
 }
 
