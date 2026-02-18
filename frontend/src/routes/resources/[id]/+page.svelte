@@ -85,6 +85,10 @@
 		}
 	}
 
+	function startConversation(ownerId: number) {
+		goto(`/messages?partner=${ownerId}`);
+	}
+
 	async function handleBooking(e: Event) {
 		e.preventDefault();
 		if (!resource) return;
@@ -154,6 +158,11 @@
 			<p class="owner-name">{resource.owner.display_name}</p>
 			{#if resource.owner.neighbourhood}
 				<p class="owner-neighbourhood">{resource.owner.neighbourhood}</p>
+			{/if}
+			{#if $isLoggedIn && $user?.id !== resource.owner_id}
+				<button class="btn-message-owner" onclick={() => startConversation(resource!.owner_id)}>
+					Message Owner
+				</button>
 			{/if}
 		</div>
 
@@ -354,6 +363,24 @@
 	.owner-neighbourhood {
 		font-size: 0.9rem;
 		color: var(--color-text-muted);
+	}
+
+	.btn-message-owner {
+		margin-top: 0.5rem;
+		padding: 0.4rem 0.9rem;
+		background: var(--color-surface);
+		border: 1px solid var(--color-primary);
+		border-radius: var(--radius);
+		color: var(--color-primary);
+		font-size: 0.85rem;
+		font-weight: 500;
+		cursor: pointer;
+		transition: all var(--transition-fast);
+	}
+
+	.btn-message-owner:hover {
+		background: var(--color-primary);
+		color: white;
 	}
 
 	.meta {

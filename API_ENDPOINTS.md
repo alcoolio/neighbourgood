@@ -114,3 +114,28 @@ Full reference for the NeighbourGood REST API. Interactive docs available at `/d
 | Endpoint         | Method | Auth | Description                    |
 | ---------------- | ------ | ---- | ------------------------------ |
 | `/instance/info` | GET    | No   | Instance metadata (federation) |
+
+## Federation – Instance Directory
+
+| Endpoint                   | Method | Auth  | Description                              |
+| -------------------------- | ------ | ----- | ---------------------------------------- |
+| `/directory`               | GET    | No    | List known NeighbourGood instances       |
+| `/directory`               | POST   | Yes   | Add instance by URL (auto-fetches info)  |
+| `/directory/{id}`          | DELETE | Admin | Remove instance from directory           |
+| `/directory/refresh`       | POST   | Yes   | Re-crawl all instances for updates       |
+
+## Federation – Red Sky Alerts
+
+| Endpoint                      | Method | Auth  | Description                              |
+| ----------------------------- | ------ | ----- | ---------------------------------------- |
+| `/alerts`                     | GET    | No    | List Red Sky alerts (active by default)  |
+| `/alerts/send`                | POST   | Admin | Broadcast alert to all known instances   |
+| `/alerts/receive`             | POST   | No    | Receive alert from remote instance       |
+| `/alerts/{id}/dismiss`        | PATCH  | Admin | Dismiss a Red Sky alert                  |
+
+## Data Export & Migration
+
+| Endpoint              | Method | Auth | Description                              |
+| --------------------- | ------ | ---- | ---------------------------------------- |
+| `/export/my-data`     | GET    | Yes  | Export all user data as portable JSON    |
+| `/migrate/import`     | POST   | Yes  | Import resources/skills from export data |

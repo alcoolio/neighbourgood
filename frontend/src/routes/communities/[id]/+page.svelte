@@ -38,6 +38,18 @@
 		reason: string;
 	}
 
+	interface InviteOut {
+		id: number;
+		code: string;
+		community_id: number;
+		created_by_id: number;
+		max_uses: number | null;
+		use_count: number;
+		is_active: boolean;
+		expires_at: string | null;
+		created_at: string;
+	}
+
 	interface ResourceItem {
 		id: number;
 		title: string;
@@ -66,6 +78,14 @@
 	let joiningOrLeaving = $state(false);
 	let merging = $state<number | null>(null);
 
+	// Invite state
+	let invites = $state<InviteOut[]>([]);
+	let showInviteForm = $state(false);
+	let inviteMaxUses = $state('');
+	let inviteExpiresHours = $state('');
+	let creatingInvite = $state(false);
+	let copiedCode = $state('');
+
 	const communityId = $derived(Number($page.params.id));
 
 	onMount(() => loadData());
@@ -87,6 +107,17 @@
 				const me = members.find((m) => m.user.id === $user!.id);
 				isMember = !!me;
 				isAdmin = me?.role === 'admin';
+
+				if (isMember) {
+					try {
+						invites = await api<InviteOut[]>(
+							`/invites?community_id=${communityId}`,
+							{ auth: true }
+						);
+					} catch {
+						invites = [];
+					}
+				}
 
 				if (isAdmin) {
 					suggestions = await api<MergeSuggestion[]>(
@@ -146,6 +177,48 @@
 		} finally {
 			merging = null;
 		}
+	}
+
+	async function createInvite() {
+		creatingInvite = true;
+		error = '';
+		try {
+			const body: Record<string, unknown> = { community_id: communityId };
+			if (inviteMaxUses) body.max_uses = Number(inviteMaxUses);
+			if (inviteExpiresHours) body.expires_in_hours = Number(inviteExpiresHours);
+			await api('/invites', { method: 'POST', auth: true, body });
+			showInviteForm = false;
+			inviteMaxUses = '';
+			inviteExpiresHours = '';
+			invites = await api<InviteOut[]>(`/invites?community_id=${communityId}`, { auth: true });
+		} catch (err) {
+			error = err instanceof Error ? err.message : 'Could not create invite';
+		} finally {
+			creatingInvite = false;
+		}
+	}
+
+	async function revokeInvite(inviteId: number) {
+		try {
+			await api(`/invites/${inviteId}`, { method: 'DELETE', auth: true });
+			invites = invites.filter((i) => i.id !== inviteId);
+		} catch (err) {
+			error = err instanceof Error ? err.message : 'Could not revoke invite';
+		}
+	}
+
+	function copyInviteLink(code: string) {
+		const url = `${window.location.origin}/invites/${code}`;
+		navigator.clipboard.writeText(url);
+		copiedCode = code;
+		setTimeout(() => { copiedCode = ''; }, 2000);
+	}
+
+	function formatExpiry(expiresAt: string | null): string {
+		if (!expiresAt) return 'Never';
+		const d = new Date(expiresAt);
+		if (d < new Date()) return 'Expired';
+		return d.toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 	}
 </script>
 
@@ -254,6 +327,61 @@
 				</div>
 			{/if}
 		</section>
+
+		{#if isMember}
+			<section class="invites-section slide-up" style="animation-delay: 0.15s">
+				<div class="section-header">
+					<h2>Invite Links</h2>
+					<button class="btn-small" onclick={() => (showInviteForm = !showInviteForm)}>
+						{showInviteForm ? 'Cancel' : 'Create Invite'}
+					</button>
+				</div>
+
+				{#if showInviteForm}
+					<div class="invite-form fade-in">
+						<div class="invite-form-row">
+							<label>
+								<span>Max uses (optional)</span>
+								<input type="number" min="1" bind:value={inviteMaxUses} placeholder="Unlimited" />
+							</label>
+							<label>
+								<span>Expires in hours (optional)</span>
+								<input type="number" min="1" bind:value={inviteExpiresHours} placeholder="Never" />
+							</label>
+						</div>
+						<button class="btn-primary" onclick={createInvite} disabled={creatingInvite}>
+							{creatingInvite ? 'Creating...' : 'Generate Link'}
+						</button>
+					</div>
+				{/if}
+
+				{#if invites.length === 0}
+					<p class="section-hint">No active invite links. Create one to invite new members.</p>
+				{:else}
+					<div class="invites-list">
+						{#each invites as inv (inv.id)}
+							<div class="invite-row">
+								<div class="invite-info">
+									<code class="invite-code">{inv.code.slice(0, 12)}...</code>
+									<span class="invite-meta">
+										{inv.use_count}{inv.max_uses ? `/${inv.max_uses}` : ''} used
+										&middot; Expires: {formatExpiry(inv.expires_at)}
+									</span>
+								</div>
+								<div class="invite-actions">
+									<button class="btn-small" onclick={() => copyInviteLink(inv.code)}>
+										{copiedCode === inv.code ? 'Copied!' : 'Copy Link'}
+									</button>
+									<button class="btn-small btn-small-danger" onclick={() => revokeInvite(inv.id)}>
+										Revoke
+									</button>
+								</div>
+							</div>
+						{/each}
+					</div>
+				{/if}
+			</section>
+		{/if}
 
 		{#if isAdmin && suggestions.length > 0}
 			<section class="merge-section slide-up" style="animation-delay: 0.1s">
@@ -680,5 +808,110 @@
 	.res-owner {
 		font-size: 0.75rem;
 		color: var(--color-text-muted);
+	}
+
+	/* Invites */
+	.invites-section {
+		margin-top: 2rem;
+	}
+
+	.invites-section h2 {
+		font-size: 1.15rem;
+		font-weight: 600;
+	}
+
+	.invite-form {
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-lg);
+		padding: 1rem 1.25rem;
+		margin-bottom: 0.75rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+	}
+
+	.invite-form-row {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 0.75rem;
+	}
+
+	.invite-form label {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+	}
+
+	.invite-form label span {
+		font-size: 0.82rem;
+		font-weight: 500;
+		color: var(--color-text-muted);
+	}
+
+	.invite-form input {
+		padding: 0.4rem 0.6rem;
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius);
+		font-size: 0.85rem;
+		background: var(--color-bg);
+		color: var(--color-text);
+	}
+
+	.invites-list {
+		display: flex;
+		flex-direction: column;
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-lg);
+		overflow: hidden;
+	}
+
+	.invite-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+		padding: 0.75rem 1rem;
+		border-bottom: 1px solid var(--color-border);
+		background: var(--color-surface);
+	}
+
+	.invite-row:last-child {
+		border-bottom: none;
+	}
+
+	.invite-info {
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+	}
+
+	.invite-code {
+		font-size: 0.82rem;
+		font-weight: 500;
+		background: var(--color-bg);
+		padding: 0.1rem 0.35rem;
+		border-radius: var(--radius-sm);
+	}
+
+	.invite-meta {
+		font-size: 0.75rem;
+		color: var(--color-text-muted);
+	}
+
+	.invite-actions {
+		display: flex;
+		gap: 0.4rem;
+		flex-shrink: 0;
+	}
+
+	.btn-small-danger {
+		color: var(--color-error) !important;
+		border-color: var(--color-error) !important;
+	}
+
+	.btn-small-danger:hover {
+		background: var(--color-error) !important;
+		color: white !important;
 	}
 </style>
