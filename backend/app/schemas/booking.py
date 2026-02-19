@@ -2,7 +2,7 @@
 
 import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.schemas.user import UserProfile
 
@@ -13,7 +13,7 @@ class BookingCreate(BaseModel):
     resource_id: int
     start_date: datetime.date
     end_date: datetime.date
-    message: str | None = None
+    message: str | None = Field(None, max_length=2000)
 
 
 class BookingStatusUpdate(BaseModel):

@@ -2,7 +2,7 @@
 
 import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.schemas.user import UserProfile
 
@@ -10,7 +10,7 @@ from app.schemas.user import UserProfile
 class MessageCreate(BaseModel):
     recipient_id: int
     booking_id: int | None = None
-    body: str
+    body: str = Field(..., min_length=1, max_length=2000)
 
 
 class MessageOut(BaseModel):
@@ -30,6 +30,15 @@ class MessageOut(BaseModel):
 class MessageList(BaseModel):
     items: list[MessageOut]
     total: int
+
+
+class MessageableUser(BaseModel):
+    """A user the current user can message (shares a community)."""
+    id: int
+    display_name: str
+    email: str
+
+    model_config = {"from_attributes": True}
 
 
 class ConversationSummary(BaseModel):

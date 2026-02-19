@@ -6,7 +6,7 @@ def _register(client, email="test@example.com"):
         "/auth/register",
         json={
             "email": email,
-            "password": "testpass123",
+            "password": "Testpass123",
             "display_name": "User",
             "neighbourhood": "Test",
         },

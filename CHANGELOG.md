@@ -4,6 +4,31 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.8.0] - 2026-02-19
+
+### Added
+
+- **Mobile navigation** – Hamburger menu with slide-down nav for screens ≤768px, overlay backdrop, animated open/close
+- **Community-scoped messaging** – Messages restricted to users who share at least one community (403 if no shared community)
+- **New Message button** – Contact picker modal on messages page; lists community members with search filter
+- **Messageable contacts endpoint** – `GET /messages/contacts` returns all users sharing a community with the current user
+- **Security Phase 1 (4a)** – First security hardening pass:
+  - Password strength validation (min 8 chars, uppercase + lowercase + digit required)
+  - Email format validation via `EmailStr` on register and login
+  - Security response headers (X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy, HSTS, CSP)
+  - Secret key validation (rejects default key in production, requires 32+ chars)
+  - File upload hardening (magic byte validation, extension sanitisation, allowed-list enforcement)
+  - Input length limits on all user-facing schemas (titles, descriptions, messages, names)
+- **Security roadmap** – Three security phases mapped to main phases 4 and 5 in README
+- **166 tests** – Added 3 tests for community-scoped messaging and messageable contacts
+
+### Changed
+
+- Navigation header is fully responsive with hamburger menu on mobile
+- Messages page header uses flexbox layout with "New Message" action button
+- `pydantic[email]` added to backend requirements for `EmailStr` support
+- Backend version bumped to 0.8.0
+
 ## [0.7.0] - 2026-02-18
 
 ### Added

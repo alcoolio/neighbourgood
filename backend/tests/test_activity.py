@@ -4,7 +4,7 @@
 def _register(client, email, name="User"):
     res = client.post(
         "/auth/register",
-        json={"email": email, "password": "password123", "display_name": name},
+        json={"email": email, "password": "Password123", "display_name": name},
     )
     return {"Authorization": f"Bearer {res.json()['access_token']}"}
 

@@ -29,6 +29,24 @@ from app.schemas.resource import (
 router = APIRouter(prefix="/resources", tags=["resources"])
 
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp", "gif"}
+
+# Magic bytes for image validation
+_IMAGE_SIGNATURES = {
+    b"\xff\xd8\xff": "image/jpeg",
+    b"\x89PNG\r\n\x1a\n": "image/png",
+    b"RIFF": "image/webp",      # WebP starts with RIFF....WEBP
+    b"GIF87a": "image/gif",
+    b"GIF89a": "image/gif",
+}
+
+
+def _validate_image_magic(data: bytes) -> bool:
+    """Check that file contents start with a recognised image signature."""
+    for sig in _IMAGE_SIGNATURES:
+        if data[:len(sig)] == sig:
+            return True
+    return False
 
 
 def _resource_to_out(resource: Resource) -> dict:
@@ -240,6 +258,13 @@ async def upload_image(
             detail=f"Image too large. Max {settings.max_image_size // (1024*1024)} MB.",
         )
 
+    # Validate magic bytes to prevent disguised file uploads
+    if not _validate_image_magic(contents):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="File content does not match a valid image format",
+        )
+
     # Remove old image
     if resource.image_path:
         try:
@@ -250,7 +275,10 @@ async def upload_image(
     upload_dir = Path(settings.upload_dir)
     upload_dir.mkdir(parents=True, exist_ok=True)
 
-    ext = file.filename.rsplit(".", 1)[-1] if file.filename and "." in file.filename else "jpg"
+    # Sanitise extension – only allow known safe extensions
+    ext = file.filename.rsplit(".", 1)[-1].lower() if file.filename and "." in file.filename else "jpg"
+    if ext not in ALLOWED_EXTENSIONS:
+        ext = "jpg"
     filename = f"{resource_id}_{uuid.uuid4().hex[:8]}.{ext}"
     filepath = upload_dir / filename
 

@@ -1,11 +1,18 @@
 """Application configuration using pydantic-settings."""
 
+import logging
+import warnings
+
 from pydantic_settings import BaseSettings
+
+_DEFAULT_SECRET = "change-me-in-production-use-a-real-secret"
+
+logger = logging.getLogger(__name__)
 
 
 class Settings(BaseSettings):
     app_name: str = "NeighbourGood"
-    app_version: str = "0.7.0"
+    app_version: str = "0.8.0"
     debug: bool = False
     database_url: str = "sqlite:///./neighbourgood.db"
 
@@ -13,7 +20,7 @@ class Settings(BaseSettings):
     platform_mode: str = "blue"
 
     # Auth
-    secret_key: str = "change-me-in-production-use-a-real-secret"
+    secret_key: str = _DEFAULT_SECRET
     access_token_expire_minutes: int = 60 * 24  # 24 hours
 
     # Uploads
@@ -46,3 +53,23 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+# ── Secret key validation ──────────────────────────────────────────
+if settings.secret_key == _DEFAULT_SECRET:
+    if settings.debug:
+        warnings.warn(
+            "Using default secret key – set NG_SECRET_KEY in production!",
+            stacklevel=1,
+        )
+    else:
+        raise RuntimeError(
+            "INSECURE: default secret key detected. "
+            "Set the NG_SECRET_KEY environment variable to a random string "
+            "(at least 32 characters) before running in production. "
+            "Set NG_DEBUG=true to bypass this check during development."
+        )
+
+if len(settings.secret_key) < 32 and not settings.debug:
+    raise RuntimeError(
+        "NG_SECRET_KEY must be at least 32 characters long in production."
+    )

@@ -36,6 +36,20 @@
 	let newMessage = $state('');
 	let sending = $state(false);
 
+	// New message modal state
+	let showNewMessage = $state(false);
+	let contacts: UserInfo[] = $state([]);
+	let loadingContacts = $state(false);
+	let contactSearch = $state('');
+
+	let filteredContacts = $derived(
+		contactSearch
+			? contacts.filter(c =>
+				c.display_name.toLowerCase().includes(contactSearch.toLowerCase())
+			)
+			: contacts
+	);
+
 	async function loadConversations() {
 		loading = true;
 		try {
@@ -44,6 +58,35 @@
 			conversations = [];
 		} finally {
 			loading = false;
+		}
+	}
+
+	async function loadContacts() {
+		loadingContacts = true;
+		try {
+			contacts = await api<UserInfo[]>('/messages/contacts', { auth: true });
+		} catch {
+			contacts = [];
+		} finally {
+			loadingContacts = false;
+		}
+	}
+
+	async function openNewMessage() {
+		showNewMessage = true;
+		contactSearch = '';
+		await loadContacts();
+	}
+
+	function selectContact(contact: UserInfo) {
+		showNewMessage = false;
+		selectedPartner = contact;
+		// Check if conversation already exists
+		const existing = conversations.find(c => c.partner.id === contact.id);
+		if (existing) {
+			openConversation(existing.partner);
+		} else {
+			messages = [];
 		}
 	}
 
@@ -138,7 +181,13 @@
 	</div>
 {:else}
 	<div class="messages-page">
-		<h1>Messages</h1>
+		<div class="page-header">
+			<h1>Messages</h1>
+			<button class="new-msg-btn" onclick={openNewMessage}>
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+				New Message
+			</button>
+		</div>
 
 		<div class="messages-layout">
 			<!-- Conversation list -->
@@ -173,7 +222,7 @@
 			<div class="thread">
 				{#if !selectedPartner}
 					<div class="thread-empty">
-						<p>Select a conversation to view messages.</p>
+						<p>Select a conversation or start a new one.</p>
 					</div>
 				{:else}
 					<div class="thread-header">
@@ -210,6 +259,44 @@
 			</div>
 		</div>
 	</div>
+
+	<!-- New message modal -->
+	{#if showNewMessage}
+		<div class="modal-overlay" role="presentation" onclick={() => showNewMessage = false}>
+			<div class="modal" role="dialog" onclick={(e) => e.stopPropagation()}>
+				<div class="modal-header">
+					<h2>New Message</h2>
+					<button class="modal-close" onclick={() => showNewMessage = false} aria-label="Close">&times;</button>
+				</div>
+				<div class="modal-body">
+					<input
+						type="text"
+						class="contact-search"
+						placeholder="Search community members..."
+						bind:value={contactSearch}
+					/>
+					{#if loadingContacts}
+						<p class="loading">Loading contacts...</p>
+					{:else if contacts.length === 0}
+						<p class="empty-text">No contacts found. Join a community to message members.</p>
+					{:else if filteredContacts.length === 0}
+						<p class="empty-text">No matching contacts.</p>
+					{:else}
+						<ul class="contact-list">
+							{#each filteredContacts as contact}
+								<li>
+									<button class="contact-item" onclick={() => selectContact(contact)}>
+										<span class="contact-name">{contact.display_name}</span>
+										<span class="contact-email">{contact.email}</span>
+									</button>
+								</li>
+							{/each}
+						</ul>
+					{/if}
+				</div>
+			</div>
+		</div>
+	{/if}
 {/if}
 
 <style>
@@ -217,9 +304,37 @@
 		max-width: 900px;
 	}
 
+	.page-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin-bottom: 1rem;
+	}
+
 	h1 {
 		font-size: 1.75rem;
-		margin-bottom: 1rem;
+		margin: 0;
+	}
+
+	.new-msg-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		background: var(--color-primary);
+		color: white;
+		border: none;
+		border-radius: var(--radius-sm);
+		padding: 0.5rem 1rem;
+		font-size: 0.88rem;
+		font-weight: 600;
+		cursor: pointer;
+		transition: all var(--transition-fast);
+	}
+
+	.new-msg-btn:hover {
+		background: var(--color-primary-hover);
+		box-shadow: var(--shadow-md);
+		transform: translateY(-1px);
 	}
 
 	.messages-layout {
@@ -414,5 +529,125 @@
 		text-align: center;
 		padding: 3rem 1rem;
 		color: var(--color-text-muted);
+	}
+
+	/* ── New message modal ────────────────────────────────────── */
+
+	.modal-overlay {
+		position: fixed;
+		inset: 0;
+		background: rgba(0, 0, 0, 0.4);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 200;
+	}
+
+	.modal {
+		background: var(--color-surface);
+		border-radius: var(--radius);
+		box-shadow: var(--shadow-lg);
+		width: 90%;
+		max-width: 440px;
+		max-height: 80vh;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.modal-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 1rem 1.25rem;
+		border-bottom: 1px solid var(--color-border);
+	}
+
+	.modal-header h2 {
+		font-size: 1.1rem;
+		margin: 0;
+	}
+
+	.modal-close {
+		background: none;
+		border: none;
+		font-size: 1.5rem;
+		color: var(--color-text-muted);
+		cursor: pointer;
+		padding: 0;
+		line-height: 1;
+	}
+
+	.modal-close:hover {
+		color: var(--color-text);
+	}
+
+	.modal-body {
+		padding: 1rem 1.25rem;
+		overflow-y: auto;
+	}
+
+	.contact-search {
+		width: 100%;
+		padding: 0.5rem 0.75rem;
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-sm);
+		font-size: 0.9rem;
+		margin-bottom: 0.75rem;
+		background: var(--color-bg);
+		color: var(--color-text);
+	}
+
+	.contact-list {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+	}
+
+	.contact-item {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		width: 100%;
+		padding: 0.6rem 0.75rem;
+		border: none;
+		border-radius: var(--radius-sm);
+		background: none;
+		cursor: pointer;
+		color: var(--color-text);
+		font-size: 0.9rem;
+		text-align: left;
+		transition: background var(--transition-fast);
+	}
+
+	.contact-item:hover {
+		background: var(--color-primary-light);
+	}
+
+	.contact-name {
+		font-weight: 600;
+	}
+
+	.contact-email {
+		font-size: 0.8rem;
+		color: var(--color-text-muted);
+	}
+
+	/* ── Responsive ───────────────────────────────────────────── */
+
+	@media (max-width: 640px) {
+		.messages-layout {
+			grid-template-columns: 1fr;
+			height: auto;
+		}
+
+		.conv-list {
+			border-right: none;
+			border-bottom: 1px solid var(--color-border);
+			max-height: 200px;
+		}
+
+		.thread {
+			min-height: 300px;
+		}
 	}
 </style>

@@ -2,7 +2,7 @@
 
 import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.schemas.user import UserProfile
 
@@ -26,16 +26,16 @@ CATEGORY_META = {
 
 
 class ResourceCreate(BaseModel):
-    title: str
-    description: str | None = None
+    title: str = Field(..., min_length=1, max_length=200)
+    description: str | None = Field(None, max_length=5000)
     category: str
     condition: str | None = None
     community_id: int | None = None
 
 
 class ResourceUpdate(BaseModel):
-    title: str | None = None
-    description: str | None = None
+    title: str | None = Field(None, min_length=1, max_length=200)
+    description: str | None = Field(None, max_length=5000)
     category: str | None = None
     condition: str | None = None
     is_available: bool | None = None
