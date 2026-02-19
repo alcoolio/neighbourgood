@@ -54,12 +54,14 @@
 		</button>
 
 		<div class="nav-links" class:mobile-open={mobileMenuOpen}>
-			<a href="/resources" class="nav-link" onclick={closeMobileMenu}>Resources</a>
-			<a href="/skills" class="nav-link" onclick={closeMobileMenu}>Skills</a>
 			{#if $isLoggedIn}
+				<a href="/resources" class="nav-link" onclick={closeMobileMenu}>Resources</a>
+				<a href="/skills" class="nav-link" onclick={closeMobileMenu}>Skills</a>
 				<a href="/communities" class="nav-link" onclick={closeMobileMenu}>Communities</a>
 				<a href="/bookings" class="nav-link" onclick={closeMobileMenu}>Bookings</a>
 				<a href="/messages" class="nav-link" onclick={closeMobileMenu}>Messages</a>
+			{:else}
+				<a href="/explore" class="nav-link" onclick={closeMobileMenu}>Explore</a>
 			{/if}
 
 			<button

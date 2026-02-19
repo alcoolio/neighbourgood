@@ -1,6 +1,6 @@
 # 🏘️ NeighbourGood
 
-**v0.8.0** · A self-hostable web platform that helps communities share resources and coordinate during crises.
+**v0.9.0** · A self-hostable web platform that helps communities share resources and coordinate during crises.
 
 ## 💡 Vision
 
@@ -164,10 +164,11 @@ See [API_ENDPOINTS.md](API_ENDPOINTS.md) for the full endpoint reference. Intera
 
 ### Phase 4 — Red Sky Mode 🚨
 
-- [ ] Admin toggle for crisis mode (per-community)
-- [ ] Community vote mechanism for mode activation
-- [ ] Emergency ticketing system (Request / Offer / Emergency Ping)
-- [ ] Neighbourhood leader roles and assignment
+- [x] Admin toggle for crisis mode (per-community)
+- [x] Community vote mechanism for mode activation (60% threshold)
+- [x] Emergency ticketing system (Request / Offer / Emergency Ping)
+- [x] Neighbourhood leader roles and assignment
+- [x] Explore page with community map for unregistered users
 - [ ] Low-bandwidth UI variant
 - [ ] Essential resource inventory tracking
 - [ ] Priority-based ticket triage

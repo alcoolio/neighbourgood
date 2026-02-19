@@ -2,7 +2,7 @@
 
 import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -18,6 +18,9 @@ class Community(Base):
     city: Mapped[str] = mapped_column(String(150), nullable=False, index=True)
     country_code: Mapped[str] = mapped_column(String(5), default="DE", nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    mode: Mapped[str] = mapped_column(String(10), default="blue", nullable=False)  # blue (normal) / red (crisis)
+    latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+    longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
     created_by_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     merged_into_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("communities.id"), nullable=True, index=True)
     created_at: Mapped[datetime.datetime] = mapped_column(
@@ -37,7 +40,7 @@ class CommunityMember(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     community_id: Mapped[int] = mapped_column(Integer, ForeignKey("communities.id"), nullable=False)
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
-    role: Mapped[str] = mapped_column(String(20), default="member", nullable=False)  # member, admin
+    role: Mapped[str] = mapped_column(String(20), default="member", nullable=False)  # member, leader, admin
     joined_at: Mapped[datetime.datetime] = mapped_column(
         DateTime, server_default=func.now(), nullable=False
     )

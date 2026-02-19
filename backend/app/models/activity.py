@@ -15,6 +15,10 @@ EVENT_TYPES = [
     "skill_offered",
     "skill_requested",
     "member_joined",
+    "crisis_mode_changed",
+    "ticket_created",
+    "leader_promoted",
+    "leader_demoted",
 ]
 
 

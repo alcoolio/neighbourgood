@@ -13,6 +13,8 @@ class CommunityCreate(BaseModel):
     postal_code: str = Field(..., min_length=1, max_length=20)
     city: str = Field(..., min_length=1, max_length=150)
     country_code: str = Field("DE", max_length=5)
+    latitude: float | None = None
+    longitude: float | None = None
 
 
 class CommunityUpdate(BaseModel):
@@ -37,12 +39,29 @@ class CommunityOut(BaseModel):
     city: str
     country_code: str
     is_active: bool
+    mode: str = "blue"
+    latitude: float | None = None
+    longitude: float | None = None
     member_count: int = 0
     created_by: UserProfile
     merged_into_id: int | None = None
     created_at: datetime.datetime
 
     model_config = {"from_attributes": True}
+
+
+class CommunityMapItem(BaseModel):
+    id: int
+    name: str
+    city: str
+    postal_code: str
+    country_code: str
+    member_count: int = 0
+    resource_count: int = 0
+    skill_count: int = 0
+    mode: str = "blue"
+    latitude: float | None = None
+    longitude: float | None = None
 
 
 class CommunityList(BaseModel):
