@@ -3,9 +3,9 @@ services:
     image: postgres:16-alpine
     container_name: ng-db
     environment:
-      - POSTGRES_USER=neighbourgood
-      - POSTGRES_PASSWORD=neighbourgood
-      - POSTGRES_DB=neighbourgood
+      POSTGRES_USER: neighbourgood
+      POSTGRES_PASSWORD: neighbourgood
+      POSTGRES_DB: neighbourgood
     volumes:
       - pg-data:/var/lib/postgresql/data
     restart: unless-stopped
@@ -20,14 +20,14 @@ services:
     container_name: ng-backend
     ports:
       - "8300:8300"
+    env_file: .env
     environment:
-      - NG_DATABASE_URL=postgresql://neighbourgood:neighbourgood@db:5432/neighbourgood
-      - NG_SECRET_KEY=${NG_SECRET_KEY:?Set NG_SECRET_KEY in .env (run: openssl rand -hex 32)}
-      - NG_PLATFORM_MODE=blue
-      - NG_CORS_ORIGINS=["http://localhost:3800"]
-      - NG_INSTANCE_NAME=My NeighbourGood
-      - NG_ADMIN_NAME=Admin
-      - NG_ADMIN_CONTACT=admin@example.com
+      NG_DATABASE_URL: "postgresql://neighbourgood:neighbourgood@db:5432/neighbourgood"
+      NG_PLATFORM_MODE: "blue"
+      NG_CORS_ORIGINS: '["http://localhost:3800"]'
+      NG_INSTANCE_NAME: "My NeighbourGood"
+      NG_ADMIN_NAME: "Admin"
+      NG_ADMIN_CONTACT: "admin@example.com"
     volumes:
       - backend-uploads:/app/uploads
     depends_on:
@@ -46,9 +46,9 @@ services:
     ports:
       - "3800:3800"
     environment:
-      - ORIGIN=http://localhost:3800
-      - PORT=3800
-      - API_BACKEND=http://backend:8300
+      ORIGIN: "http://localhost:3800"
+      PORT: "3800"
+      API_BACKEND: "http://backend:8300"
     depends_on:
       backend:
         condition: service_healthy
