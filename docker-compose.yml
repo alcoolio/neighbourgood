@@ -22,6 +22,7 @@ services:
       - "8300:8300"
     environment:
       - NG_DATABASE_URL=postgresql://neighbourgood:neighbourgood@db:5432/neighbourgood
+      - NG_SECRET_KEY=${NG_SECRET_KEY:?Set NG_SECRET_KEY in .env (run: openssl rand -hex 32)}
       - NG_PLATFORM_MODE=blue
       - NG_CORS_ORIGINS=["http://localhost:3800"]
       - NG_INSTANCE_NAME=My NeighbourGood

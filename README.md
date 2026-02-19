@@ -47,6 +47,10 @@ Activated by an admin or community vote when an emergency occurs:
 git clone https://github.com/alcoolio/neighbourgood.git
 cd neighbourgood
 cp .env.example .env
+
+# Generate a secret key (required — the app won't start without it)
+echo "NG_SECRET_KEY=$(openssl rand -hex 32)" >> .env
+
 docker compose up --build
 ```
 
@@ -63,7 +67,9 @@ cd backend
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-uvicorn app.main:app --reload
+
+# For local dev, enable debug mode (allows default secret key + SQLite)
+NG_DEBUG=true uvicorn app.main:app --reload
 ```
 
 **Frontend:**
