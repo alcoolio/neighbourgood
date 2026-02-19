@@ -2,13 +2,38 @@
 
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.config import settings
 from app.database import Base, engine
 from app.models import Activity, Booking, Community, CommunityMember, Invite, KnownInstance, Message, RedSkyAlert, Resource, Review, Skill, User  # noqa: F401 – ensure models are registered
 from app.routers import activity, auth, bookings, communities, federation, instance, invites, messages, resources, reviews, skills, status, users
+
+
+# ── Security headers middleware ────────────────────────────────────
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Inject security-related HTTP response headers."""
+
+    async def dispatch(self, request: Request, call_next) -> Response:
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        response.headers["X-XSS-Protection"] = "0"
+        if not settings.debug:
+            response.headers["Strict-Transport-Security"] = (
+                "max-age=63072000; includeSubDomains"
+            )
+            response.headers["Content-Security-Policy"] = "default-src 'self'"
+        return response
+
+
+# ── Application setup ──────────────────────────────────────────────
 
 
 @asynccontextmanager
@@ -23,6 +48,8 @@ app = FastAPI(
     description="Community resource-sharing platform with crisis-mode support.",
     lifespan=lifespan,
 )
+
+app.add_middleware(SecurityHeadersMiddleware)
 
 app.add_middleware(
     CORSMiddleware,

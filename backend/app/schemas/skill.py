@@ -2,7 +2,7 @@
 
 import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.schemas.user import UserProfile
 
@@ -36,16 +36,16 @@ VALID_SKILL_TYPES = ["offer", "request"]
 
 
 class SkillCreate(BaseModel):
-    title: str
-    description: str | None = None
+    title: str = Field(..., min_length=1, max_length=200)
+    description: str | None = Field(None, max_length=5000)
     category: str
     skill_type: str  # "offer" or "request"
     community_id: int | None = None
 
 
 class SkillUpdate(BaseModel):
-    title: str | None = None
-    description: str | None = None
+    title: str | None = Field(None, min_length=1, max_length=200)
+    description: str | None = Field(None, max_length=5000)
     category: str | None = None
     skill_type: str | None = None
 

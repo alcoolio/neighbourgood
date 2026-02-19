@@ -5,7 +5,7 @@ def _register(client, email, name="User"):
     """Helper: register a user and return auth headers."""
     res = client.post(
         "/auth/register",
-        json={"email": email, "password": "password123", "display_name": name},
+        json={"email": email, "password": "Password123", "display_name": name},
     )
     return {"Authorization": f"Bearer {res.json()['access_token']}"}
 
@@ -15,6 +15,29 @@ def _get_user_id(client, headers):
     return res.json()["id"]
 
 
+def _make_community_pair(client, alice_headers, bob_headers):
+    """Create a community with alice and bob as members so they can message."""
+    res = client.post(
+        "/communities",
+        headers=alice_headers,
+        json={"name": "Msg Test", "postal_code": "10115", "city": "Berlin"},
+    )
+    cid = res.json()["id"]
+    client.post(f"/communities/{cid}/join", headers=bob_headers)
+
+
+def _make_community_trio(client, alice_headers, bob_headers, carol_headers):
+    """Create a community with alice, bob and carol as members."""
+    res = client.post(
+        "/communities",
+        headers=alice_headers,
+        json={"name": "Trio Test", "postal_code": "10115", "city": "Berlin"},
+    )
+    cid = res.json()["id"]
+    client.post(f"/communities/{cid}/join", headers=bob_headers)
+    client.post(f"/communities/{cid}/join", headers=carol_headers)
+
+
 # ── Send message ────────────────────────────────────────────────────
 
 
@@ -22,6 +45,7 @@ def test_send_message(client):
     alice = _register(client, "alice@test.com", "Alice")
     bob = _register(client, "bob@test.com", "Bob")
     bob_id = _get_user_id(client, bob)
+    _make_community_pair(client, alice, bob)
 
     res = client.post(
         "/messages",
@@ -34,6 +58,20 @@ def test_send_message(client):
     assert data["recipient_id"] == bob_id
     assert data["is_read"] is False
     assert data["sender"]["display_name"] == "Alice"
+
+
+def test_send_message_blocked_without_shared_community(client):
+    alice = _register(client, "alice@test.com", "Alice")
+    bob = _register(client, "bob@test.com", "Bob")
+    bob_id = _get_user_id(client, bob)
+
+    res = client.post(
+        "/messages",
+        headers=alice,
+        json={"recipient_id": bob_id, "body": "Hello!"},
+    )
+    assert res.status_code == 403
+    assert "communities" in res.json()["detail"].lower()
 
 
 def test_send_message_to_self_rejected(client):
@@ -70,6 +108,7 @@ def test_send_message_requires_auth(client):
 def test_send_message_with_booking_id(client, auth_headers):
     bob = _register(client, "bob@test.com", "Bob")
     bob_id = _get_user_id(client, bob)
+    _make_community_pair(client, auth_headers, bob)
 
     # Create resource and booking for context
     r = client.post(
@@ -102,6 +141,28 @@ def test_send_message_with_booking_id(client, auth_headers):
     assert res.json()["booking_id"] == booking_id
 
 
+# ── Contacts ───────────────────────────────────────────────────────
+
+
+def test_list_messageable_contacts(client):
+    alice = _register(client, "alice@test.com", "Alice")
+    bob = _register(client, "bob@test.com", "Bob")
+    _make_community_pair(client, alice, bob)
+
+    res = client.get("/messages/contacts", headers=alice)
+    assert res.status_code == 200
+    names = {c["display_name"] for c in res.json()}
+    assert "Bob" in names
+
+
+def test_contacts_empty_without_community(client):
+    alice = _register(client, "alice@test.com", "Alice")
+
+    res = client.get("/messages/contacts", headers=alice)
+    assert res.status_code == 200
+    assert res.json() == []
+
+
 # ── List messages ───────────────────────────────────────────────────
 
 
@@ -110,6 +171,7 @@ def test_list_messages(client):
     bob = _register(client, "bob@test.com", "Bob")
     bob_id = _get_user_id(client, bob)
     alice_id = _get_user_id(client, alice)
+    _make_community_pair(client, alice, bob)
 
     # Alice sends to Bob
     client.post(
@@ -140,6 +202,7 @@ def test_list_messages_filter_by_partner(client):
     carol = _register(client, "carol@test.com", "Carol")
     bob_id = _get_user_id(client, bob)
     carol_id = _get_user_id(client, carol)
+    _make_community_trio(client, alice, bob, carol)
 
     client.post("/messages", headers=alice, json={"recipient_id": bob_id, "body": "Hi Bob"})
     client.post("/messages", headers=alice, json={"recipient_id": carol_id, "body": "Hi Carol"})
@@ -152,6 +215,7 @@ def test_list_messages_filter_by_partner(client):
 def test_list_messages_filter_by_booking(client, auth_headers):
     bob = _register(client, "bob@test.com", "Bob")
     bob_id = _get_user_id(client, bob)
+    _make_community_pair(client, auth_headers, bob)
 
     # Create resource and booking
     r = client.post("/resources", headers=auth_headers, json={"title": "Saw", "category": "tool"})
@@ -181,6 +245,7 @@ def test_list_conversations(client):
     carol = _register(client, "carol@test.com", "Carol")
     bob_id = _get_user_id(client, bob)
     carol_id = _get_user_id(client, carol)
+    _make_community_trio(client, alice, bob, carol)
 
     client.post("/messages", headers=alice, json={"recipient_id": bob_id, "body": "Hi Bob"})
     client.post("/messages", headers=alice, json={"recipient_id": carol_id, "body": "Hi Carol"})
@@ -200,6 +265,7 @@ def test_unread_count(client):
     alice = _register(client, "alice@test.com", "Alice")
     bob = _register(client, "bob@test.com", "Bob")
     bob_id = _get_user_id(client, bob)
+    _make_community_pair(client, alice, bob)
 
     # No unread initially
     res = client.get("/messages/unread", headers=bob)
@@ -220,6 +286,7 @@ def test_mark_message_as_read(client):
     alice = _register(client, "alice@test.com", "Alice")
     bob = _register(client, "bob@test.com", "Bob")
     bob_id = _get_user_id(client, bob)
+    _make_community_pair(client, alice, bob)
 
     create_res = client.post("/messages", headers=alice, json={"recipient_id": bob_id, "body": "Read me"})
     msg_id = create_res.json()["id"]
@@ -233,6 +300,7 @@ def test_mark_message_read_not_recipient(client):
     alice = _register(client, "alice@test.com", "Alice")
     bob = _register(client, "bob@test.com", "Bob")
     bob_id = _get_user_id(client, bob)
+    _make_community_pair(client, alice, bob)
 
     create_res = client.post("/messages", headers=alice, json={"recipient_id": bob_id, "body": "Can't read this"})
     msg_id = create_res.json()["id"]
@@ -256,6 +324,7 @@ def test_mark_conversation_read(client):
     bob = _register(client, "bob@test.com", "Bob")
     bob_id = _get_user_id(client, bob)
     alice_id = _get_user_id(client, alice)
+    _make_community_pair(client, alice, bob)
 
     client.post("/messages", headers=alice, json={"recipient_id": bob_id, "body": "Msg 1"})
     client.post("/messages", headers=alice, json={"recipient_id": bob_id, "body": "Msg 2"})

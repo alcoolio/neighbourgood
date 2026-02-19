@@ -1,6 +1,6 @@
 # 🏘️ NeighbourGood
 
-**v0.7.0** · A self-hostable web platform that helps communities share resources and coordinate during crises.
+**v0.8.0** · A self-hostable web platform that helps communities share resources and coordinate during crises.
 
 ## 💡 Vision
 
@@ -166,12 +166,45 @@ See [API_ENDPOINTS.md](API_ENDPOINTS.md) for the full endpoint reference. Intera
 - [ ] Essential resource inventory tracking
 - [ ] Priority-based ticket triage
 
+#### Security Phase 4a — Hardening ✅
+
+- [x] Password strength validation (min 8 chars, uppercase + lowercase + digit)
+- [x] Email format validation (EmailStr)
+- [x] Security response headers (X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy, HSTS)
+- [x] Secret key validation (reject default key in production, require 32+ chars)
+- [x] File upload hardening (magic byte validation, extension sanitisation)
+- [x] Input length limits on all user-facing schemas
+
+#### Security Phase 4b — Access Control
+
+- [ ] Rate limiting on auth endpoints (login, register)
+- [ ] Account lockout after repeated failed login attempts
+- [ ] CSRF protection for state-changing operations
+- [ ] Session invalidation on password change
+- [ ] Audit logging for admin actions
+
+#### Security Phase 4c — Data Protection
+
+- [ ] Field-level encryption for sensitive data (email, messages)
+- [ ] Automated database backups with encryption at rest
+- [ ] PII anonymisation for deleted accounts
+- [ ] Content Security Policy tuning per route
+- [ ] Dependency vulnerability scanning (CI integration)
+
 ### Phase 5 — Offline & Resilience
 
 - [ ] Full PWA with service worker caching
 - [ ] Offline item browsing and request queuing
 - [ ] Background sync when connectivity returns
 - [ ] Data export and backup tools
+
+#### Security Phase 5a — Infrastructure
+
+- [ ] TLS certificate automation (Let's Encrypt)
+- [ ] Container image scanning and hardening
+- [ ] Network segmentation (backend ↔ database)
+- [ ] Secrets management (Vault / sealed secrets)
+- [ ] Incident response runbook
 
 ### Phase 6 — Advanced Features
 

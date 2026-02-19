@@ -1,4 +1,7 @@
-"""In-app messaging endpoints – direct messages between users."""
+"""In-app messaging endpoints – direct messages between users.
+
+Messages are restricted to users who share at least one community.
+"""
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import and_, case, func, or_
@@ -6,12 +9,14 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
 from app.dependencies import get_current_user
+from app.models.community import CommunityMember
 from app.models.message import Message
 from app.models.user import User
 from app.services.notifications import notify_new_message
 from app.schemas.message import (
     ConversationSummary,
     MessageCreate,
+    MessageableUser,
     MessageList,
     MessageOut,
     UnreadCount,
@@ -21,13 +26,67 @@ from app.schemas.user import UserProfile
 router = APIRouter(prefix="/messages", tags=["messages"])
 
 
+def _share_community(db: Session, user_a_id: int, user_b_id: int) -> bool:
+    """Return True if user_a and user_b share at least one community."""
+    a_communities = (
+        db.query(CommunityMember.community_id)
+        .filter(CommunityMember.user_id == user_a_id)
+        .subquery()
+    )
+    shared = (
+        db.query(CommunityMember.id)
+        .filter(
+            CommunityMember.user_id == user_b_id,
+            CommunityMember.community_id.in_(
+                db.query(a_communities.c.community_id)
+            ),
+        )
+        .first()
+    )
+    return shared is not None
+
+
+@router.get("/contacts", response_model=list[MessageableUser])
+def list_messageable_users(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """List all users who share a community with the current user (messageable contacts)."""
+    my_communities = (
+        db.query(CommunityMember.community_id)
+        .filter(CommunityMember.user_id == current_user.id)
+        .subquery()
+    )
+    fellow_member_ids = (
+        db.query(CommunityMember.user_id)
+        .filter(
+            CommunityMember.community_id.in_(
+                db.query(my_communities.c.community_id)
+            ),
+            CommunityMember.user_id != current_user.id,
+        )
+        .distinct()
+        .subquery()
+    )
+    users = (
+        db.query(User)
+        .filter(
+            User.id.in_(db.query(fellow_member_ids.c.user_id)),
+            User.is_active == True,  # noqa: E712
+        )
+        .order_by(User.display_name)
+        .all()
+    )
+    return users
+
+
 @router.post("", response_model=MessageOut, status_code=status.HTTP_201_CREATED)
 def send_message(
     body: MessageCreate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Send a message to another user."""
+    """Send a message to another user. Both users must share at least one community."""
     if body.recipient_id == current_user.id:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -37,6 +96,12 @@ def send_message(
     recipient = db.query(User).filter(User.id == body.recipient_id, User.is_active).first()
     if not recipient:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Recipient not found")
+
+    if not _share_community(db, current_user.id, body.recipient_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only message users within your communities",
+        )
 
     msg = Message(
         sender_id=current_user.id,

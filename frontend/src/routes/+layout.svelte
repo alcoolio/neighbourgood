@@ -7,6 +7,11 @@
 	import { api } from '$lib/api';
 
 	let { children } = $props();
+	let mobileMenuOpen = $state(false);
+
+	function closeMobileMenu() {
+		mobileMenuOpen = false;
+	}
 
 	onMount(async () => {
 		const t = $token;
@@ -31,17 +36,30 @@
 
 <nav class="main-nav">
 	<div class="nav-inner">
-		<a href="/" class="nav-brand">
+		<a href="/" class="nav-brand" onclick={closeMobileMenu}>
 			<span class="brand-icon">N</span>
 			<span class="brand-text">NeighbourGood</span>
 		</a>
-		<div class="nav-links">
-			<a href="/resources" class="nav-link">Resources</a>
-			<a href="/skills" class="nav-link">Skills</a>
+
+		<button
+			class="hamburger"
+			class:open={mobileMenuOpen}
+			onclick={() => mobileMenuOpen = !mobileMenuOpen}
+			aria-label="Toggle menu"
+			aria-expanded={mobileMenuOpen}
+		>
+			<span class="hamburger-line"></span>
+			<span class="hamburger-line"></span>
+			<span class="hamburger-line"></span>
+		</button>
+
+		<div class="nav-links" class:mobile-open={mobileMenuOpen}>
+			<a href="/resources" class="nav-link" onclick={closeMobileMenu}>Resources</a>
+			<a href="/skills" class="nav-link" onclick={closeMobileMenu}>Skills</a>
 			{#if $isLoggedIn}
-				<a href="/communities" class="nav-link">Communities</a>
-				<a href="/bookings" class="nav-link">Bookings</a>
-				<a href="/messages" class="nav-link">Messages</a>
+				<a href="/communities" class="nav-link" onclick={closeMobileMenu}>Communities</a>
+				<a href="/bookings" class="nav-link" onclick={closeMobileMenu}>Bookings</a>
+				<a href="/messages" class="nav-link" onclick={closeMobileMenu}>Messages</a>
 			{/if}
 
 			<button
@@ -60,17 +78,21 @@
 			{#if $isLoggedIn}
 				<div class="nav-user-group">
 					<span class="nav-user">{$user?.display_name ?? 'Account'}</span>
-					<button class="nav-btn" onclick={() => { logout(); window.location.href = '/'; }}>
+					<button class="nav-btn" onclick={() => { closeMobileMenu(); logout(); window.location.href = '/'; }}>
 						Logout
 					</button>
 				</div>
 			{:else}
-				<a href="/login" class="nav-link">Login</a>
-				<a href="/register" class="nav-btn-primary">Sign Up</a>
+				<a href="/login" class="nav-link" onclick={closeMobileMenu}>Login</a>
+				<a href="/register" class="nav-btn-primary" onclick={closeMobileMenu}>Sign Up</a>
 			{/if}
 		</div>
 	</div>
 </nav>
+
+{#if mobileMenuOpen}
+	<button class="mobile-overlay" onclick={closeMobileMenu} aria-label="Close menu"></button>
+{/if}
 
 <div class="page-content fade-in">
 	{@render children()}
@@ -128,6 +150,51 @@
 		font-size: 1.1rem;
 		letter-spacing: -0.02em;
 	}
+
+	/* ── Hamburger button (hidden on desktop) ────────────────── */
+
+	.hamburger {
+		display: none;
+		flex-direction: column;
+		justify-content: center;
+		gap: 4px;
+		width: 36px;
+		height: 36px;
+		padding: 6px;
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-sm);
+		background: var(--color-surface);
+		cursor: pointer;
+		transition: all var(--transition-fast);
+	}
+
+	.hamburger:hover {
+		border-color: var(--color-primary);
+	}
+
+	.hamburger-line {
+		display: block;
+		width: 100%;
+		height: 2px;
+		background: var(--color-text);
+		border-radius: 1px;
+		transition: all var(--transition-fast);
+		transform-origin: center;
+	}
+
+	.hamburger.open .hamburger-line:nth-child(1) {
+		transform: translateY(6px) rotate(45deg);
+	}
+
+	.hamburger.open .hamburger-line:nth-child(2) {
+		opacity: 0;
+	}
+
+	.hamburger.open .hamburger-line:nth-child(3) {
+		transform: translateY(-6px) rotate(-45deg);
+	}
+
+	/* ── Nav links ────────────────────────────────────────────── */
 
 	.nav-links {
 		display: flex;
@@ -226,6 +293,82 @@
 		text-decoration: none;
 		box-shadow: var(--shadow-md);
 		transform: translateY(-1px);
+	}
+
+	/* ── Mobile overlay ──────────────────────────────────────── */
+
+	.mobile-overlay {
+		display: none;
+	}
+
+	/* ── Responsive: mobile layout ───────────────────────────── */
+
+	@media (max-width: 768px) {
+		.hamburger {
+			display: flex;
+		}
+
+		.nav-links {
+			display: none;
+			position: absolute;
+			top: 100%;
+			left: 0;
+			right: 0;
+			flex-direction: column;
+			align-items: stretch;
+			gap: 0;
+			background: var(--color-surface);
+			border-bottom: 1px solid var(--color-border);
+			box-shadow: var(--shadow-md);
+			padding: 0.5rem 0;
+			z-index: 99;
+		}
+
+		.nav-links.mobile-open {
+			display: flex;
+		}
+
+		.nav-link {
+			padding: 0.75rem 1.5rem;
+			border-radius: 0;
+			font-size: 0.95rem;
+		}
+
+		.nav-link:hover {
+			background: var(--color-primary-light);
+		}
+
+		.theme-toggle {
+			margin: 0.25rem 1.5rem;
+			align-self: flex-start;
+		}
+
+		.nav-user-group {
+			margin: 0;
+			padding: 0.5rem 1.5rem;
+			border-left: none;
+			border-top: 1px solid var(--color-border);
+			justify-content: space-between;
+		}
+
+		.nav-btn-primary {
+			margin: 0.25rem 1.5rem;
+			justify-content: center;
+		}
+
+		.mobile-overlay {
+			display: block;
+			position: fixed;
+			inset: 0;
+			background: rgba(0, 0, 0, 0.3);
+			z-index: 50;
+			border: none;
+			cursor: default;
+		}
+
+		.brand-text {
+			font-size: 1rem;
+		}
 	}
 
 	.page-content {

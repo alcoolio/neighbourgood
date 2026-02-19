@@ -1,5 +1,10 @@
 """Shared fixtures for tests – uses an in-memory SQLite database."""
 
+import os
+
+# Enable debug mode so the default secret key is accepted during tests.
+os.environ.setdefault("NG_DEBUG", "true")
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -53,7 +58,7 @@ def auth_headers(client):
         "/auth/register",
         json={
             "email": "test@example.com",
-            "password": "testpass123",
+            "password": "Testpass123",
             "display_name": "Test User",
             "neighbourhood": "Testville",
         },

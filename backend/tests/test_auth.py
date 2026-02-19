@@ -6,7 +6,7 @@ def test_register_success(client):
         "/auth/register",
         json={
             "email": "new@example.com",
-            "password": "secret123",
+            "password": "Secret123",
             "display_name": "New User",
         },
     )
@@ -19,7 +19,7 @@ def test_register_success(client):
 def test_register_duplicate_email(client):
     payload = {
         "email": "dup@example.com",
-        "password": "secret123",
+        "password": "Secret123",
         "display_name": "Dup User",
     }
     client.post("/auth/register", json=payload)
@@ -32,13 +32,13 @@ def test_login_success(client):
         "/auth/register",
         json={
             "email": "login@example.com",
-            "password": "mypassword",
+            "password": "Mypassword1",
             "display_name": "Login User",
         },
     )
     res = client.post(
         "/auth/login",
-        json={"email": "login@example.com", "password": "mypassword"},
+        json={"email": "login@example.com", "password": "Mypassword1"},
     )
     assert res.status_code == 200
     assert "access_token" in res.json()
@@ -49,12 +49,12 @@ def test_login_wrong_password(client):
         "/auth/register",
         json={
             "email": "wrong@example.com",
-            "password": "correct",
+            "password": "Correct123",
             "display_name": "Wrong Pass",
         },
     )
     res = client.post(
         "/auth/login",
-        json={"email": "wrong@example.com", "password": "incorrect"},
+        json={"email": "wrong@example.com", "password": "Incorrect1"},
     )
     assert res.status_code == 401

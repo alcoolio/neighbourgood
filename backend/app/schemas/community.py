@@ -2,22 +2,22 @@
 
 import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.schemas.user import UserProfile
 
 
 class CommunityCreate(BaseModel):
-    name: str
-    description: str | None = None
-    postal_code: str
-    city: str
-    country_code: str = "DE"
+    name: str = Field(..., min_length=1, max_length=150)
+    description: str | None = Field(None, max_length=5000)
+    postal_code: str = Field(..., min_length=1, max_length=20)
+    city: str = Field(..., min_length=1, max_length=150)
+    country_code: str = Field("DE", max_length=5)
 
 
 class CommunityUpdate(BaseModel):
-    name: str | None = None
-    description: str | None = None
+    name: str | None = Field(None, min_length=1, max_length=150)
+    description: str | None = Field(None, max_length=5000)
 
 
 class CommunityMemberOut(BaseModel):

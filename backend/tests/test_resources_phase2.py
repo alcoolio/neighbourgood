@@ -159,7 +159,7 @@ def test_upload_image_not_owner(client, auth_headers):
         "/auth/register",
         json={
             "email": "other@example.com",
-            "password": "otherpass123",
+            "password": "Otherpass123",
             "display_name": "Other User",
         },
     )

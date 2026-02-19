@@ -2,7 +2,7 @@
 
 import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class UserProfile(BaseModel):
@@ -17,8 +17,8 @@ class UserProfile(BaseModel):
 
 
 class UserProfileUpdate(BaseModel):
-    display_name: str | None = None
-    neighbourhood: str | None = None
+    display_name: str | None = Field(None, min_length=1, max_length=100)
+    neighbourhood: str | None = Field(None, max_length=200)
 
 
 class ReputationOut(BaseModel):
