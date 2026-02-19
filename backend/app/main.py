@@ -8,8 +8,8 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.config import settings
 from app.database import Base, engine
-from app.models import Activity, Booking, Community, CommunityMember, Invite, KnownInstance, Message, RedSkyAlert, Resource, Review, Skill, User  # noqa: F401 – ensure models are registered
-from app.routers import activity, auth, bookings, communities, federation, instance, invites, messages, resources, reviews, skills, status, users
+from app.models import Activity, Booking, Community, CommunityMember, CrisisVote, EmergencyTicket, Invite, KnownInstance, Message, RedSkyAlert, Resource, Review, Skill, User  # noqa: F401 – ensure models are registered
+from app.routers import activity, auth, bookings, communities, crisis, federation, instance, invites, messages, resources, reviews, skills, status, users
 
 
 # ── Security headers middleware ────────────────────────────────────
@@ -66,6 +66,7 @@ app.include_router(resources.router)
 app.include_router(bookings.router)
 app.include_router(messages.router)
 app.include_router(communities.router)
+app.include_router(crisis.router)
 app.include_router(skills.router)
 app.include_router(activity.router)
 app.include_router(invites.router)

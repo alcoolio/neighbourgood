@@ -4,6 +4,42 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.9.0] - 2026-02-19
+
+### Added
+
+- **Per-community crisis mode** – Communities can switch between Blue Sky (normal) and Red Sky (crisis) modes
+- **Admin crisis toggle** – Community admins can force-toggle crisis mode via `POST /communities/{id}/crisis/toggle`
+- **Community vote mechanism** – Members can vote to activate/deactivate crisis mode; auto-switches at 60% threshold
+- **Crisis mode status** – `GET /communities/{id}/crisis/status` shows current mode, vote counts, and threshold
+- **Emergency ticketing system** – Create request, offer, and emergency ping tickets within communities
+  - Emergency pings restricted to Red Sky mode only
+  - Ticket CRUD with type/status/urgency filters
+  - Authors, leaders, and admins can update tickets
+- **Neighbourhood leader roles** – Admins can promote members to "leader" role, leaders can manage tickets
+  - `POST /communities/{id}/leaders/{user_id}` to promote
+  - `DELETE /communities/{id}/leaders/{user_id}` to demote
+  - `GET /communities/{id}/leaders` to list leaders
+- **Explore page (landing for guests)** – Map-based community discovery using Leaflet/OpenStreetMap
+  - Browser geolocation to center map on user's position
+  - Community markers with member count badges
+  - Community list cards with crisis mode indicators
+  - Register CTA for unregistered users
+- **Public map endpoint** – `GET /communities/map` returns lightweight community data (no auth required)
+- **Community coordinates** – Optional latitude/longitude fields on communities for map placement
+- **Guest-friendly navigation** – Logged-out users see "Explore" instead of Resources/Skills
+- **Crisis mode UI** – Community detail page shows crisis status, vote buttons, emergency tickets, and leader management
+- **198 tests** – Added 32 tests for crisis toggle, voting, tickets, leaders, and map endpoint
+
+### Changed
+
+- Community model extended with `mode` (blue/red), `latitude`, and `longitude` fields
+- CommunityMember role now supports "member", "leader", and "admin"
+- CommunityOut schema includes `mode`, `latitude`, `longitude` fields
+- Navigation hides Resources/Skills for logged-out users, shows Explore link instead
+- Activity event types expanded: `crisis_mode_changed`, `ticket_created`, `leader_promoted`, `leader_demoted`
+- Backend version bumped to 0.9.0
+
 ## [0.8.0] - 2026-02-19
 
 ### Added

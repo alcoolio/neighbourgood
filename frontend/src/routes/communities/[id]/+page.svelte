@@ -18,11 +18,40 @@
 		postal_code: string;
 		city: string;
 		country_code: string;
+		mode: string;
 		member_count: number;
 		is_active: boolean;
 		merged_into_id: number | null;
 		created_by: UserProfile;
 		created_at: string;
+	}
+
+	interface CrisisStatus {
+		community_id: number;
+		mode: string;
+		votes_to_activate: number;
+		votes_to_deactivate: number;
+		total_members: number;
+		threshold_pct: number;
+	}
+
+	interface TicketOut {
+		id: number;
+		community_id: number;
+		author: UserProfile;
+		ticket_type: string;
+		title: string;
+		description: string;
+		status: string;
+		urgency: string;
+		assigned_to: UserProfile | null;
+		created_at: string;
+		updated_at: string;
+	}
+
+	interface TicketList {
+		items: TicketOut[];
+		total: number;
 	}
 
 	interface MemberOut {
@@ -74,9 +103,24 @@
 	let error = $state('');
 	let actionMsg = $state('');
 	let isAdmin = $state(false);
+	let isLeader = $state(false);
 	let isMember = $state(false);
 	let joiningOrLeaving = $state(false);
 	let merging = $state<number | null>(null);
+
+	// Crisis mode state
+	let crisisStatus = $state<CrisisStatus | null>(null);
+	let togglingCrisis = $state(false);
+	let votingCrisis = $state(false);
+	let tickets = $state<TicketOut[]>([]);
+	let ticketTotal = $state(0);
+	let showTicketForm = $state(false);
+	let ticketTitle = $state('');
+	let ticketDesc = $state('');
+	let ticketType = $state('request');
+	let ticketUrgency = $state('medium');
+	let creatingTicket = $state(false);
+	let promotingUser = $state<number | null>(null);
 
 	// Invite state
 	let invites = $state<InviteOut[]>([]);
@@ -103,10 +147,18 @@
 			resources = resData.items;
 			resourceTotal = resData.total;
 
+			// Load crisis status (public)
+			try {
+				crisisStatus = await api<CrisisStatus>(`/communities/${communityId}/crisis/status`);
+			} catch {
+				crisisStatus = null;
+			}
+
 			if ($isLoggedIn && $user) {
 				const me = members.find((m) => m.user.id === $user!.id);
 				isMember = !!me;
 				isAdmin = me?.role === 'admin';
+				isLeader = me?.role === 'leader';
 
 				if (isMember) {
 					try {
@@ -116,6 +168,17 @@
 						);
 					} catch {
 						invites = [];
+					}
+					// Load tickets
+					try {
+						const ticketData = await api<TicketList>(
+							`/communities/${communityId}/tickets`,
+							{ auth: true }
+						);
+						tickets = ticketData.items;
+						ticketTotal = ticketData.total;
+					} catch {
+						tickets = [];
 					}
 				}
 
@@ -220,6 +283,119 @@
 		if (d < new Date()) return 'Expired';
 		return d.toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 	}
+
+	// ── Crisis mode functions ──────────────────────────
+
+	async function toggleCrisisMode(newMode: string) {
+		togglingCrisis = true;
+		error = '';
+		try {
+			crisisStatus = await api<CrisisStatus>(`/communities/${communityId}/crisis/toggle`, {
+				method: 'POST', auth: true, body: { mode: newMode }
+			});
+			actionMsg = newMode === 'red' ? 'Crisis mode activated!' : 'Switched back to normal mode.';
+			await loadData();
+		} catch (err) {
+			error = err instanceof Error ? err.message : 'Failed to toggle crisis mode';
+		} finally {
+			togglingCrisis = false;
+		}
+	}
+
+	async function castVote(voteType: string) {
+		votingCrisis = true;
+		error = '';
+		try {
+			await api(`/communities/${communityId}/crisis/vote`, {
+				method: 'POST', auth: true, body: { vote_type: voteType }
+			});
+			crisisStatus = await api<CrisisStatus>(`/communities/${communityId}/crisis/status`);
+			actionMsg = `Vote recorded: ${voteType}`;
+			// Reload in case mode switched
+			await loadData();
+		} catch (err) {
+			error = err instanceof Error ? err.message : 'Failed to cast vote';
+		} finally {
+			votingCrisis = false;
+		}
+	}
+
+	async function createTicket() {
+		creatingTicket = true;
+		error = '';
+		try {
+			await api(`/communities/${communityId}/tickets`, {
+				method: 'POST', auth: true,
+				body: { ticket_type: ticketType, title: ticketTitle, description: ticketDesc, urgency: ticketUrgency }
+			});
+			showTicketForm = false;
+			ticketTitle = '';
+			ticketDesc = '';
+			ticketType = 'request';
+			ticketUrgency = 'medium';
+			const ticketData = await api<TicketList>(`/communities/${communityId}/tickets`, { auth: true });
+			tickets = ticketData.items;
+			ticketTotal = ticketData.total;
+		} catch (err) {
+			error = err instanceof Error ? err.message : 'Failed to create ticket';
+		} finally {
+			creatingTicket = false;
+		}
+	}
+
+	async function updateTicketStatus(ticketId: number, newStatus: string) {
+		try {
+			await api(`/communities/${communityId}/tickets/${ticketId}`, {
+				method: 'PATCH', auth: true, body: { status: newStatus }
+			});
+			const ticketData = await api<TicketList>(`/communities/${communityId}/tickets`, { auth: true });
+			tickets = ticketData.items;
+			ticketTotal = ticketData.total;
+		} catch (err) {
+			error = err instanceof Error ? err.message : 'Failed to update ticket';
+		}
+	}
+
+	async function promoteToLeader(userId: number) {
+		promotingUser = userId;
+		error = '';
+		try {
+			await api(`/communities/${communityId}/leaders/${userId}`, { method: 'POST', auth: true });
+			actionMsg = 'User promoted to leader!';
+			await loadData();
+		} catch (err) {
+			error = err instanceof Error ? err.message : 'Failed to promote';
+		} finally {
+			promotingUser = null;
+		}
+	}
+
+	async function demoteLeader(userId: number) {
+		promotingUser = userId;
+		error = '';
+		try {
+			await api(`/communities/${communityId}/leaders/${userId}`, { method: 'DELETE', auth: true });
+			actionMsg = 'User demoted from leader.';
+			await loadData();
+		} catch (err) {
+			error = err instanceof Error ? err.message : 'Failed to demote';
+		} finally {
+			promotingUser = null;
+		}
+	}
+
+	const URGENCY_COLORS: Record<string, string> = {
+		low: 'var(--color-text-muted)',
+		medium: 'var(--color-warning)',
+		high: '#f97316',
+		critical: 'var(--color-error)'
+	};
+
+	const TICKET_TYPE_LABELS: Record<string, string> = {
+		request: 'Request',
+		offer: 'Offer',
+		emergency_ping: 'Emergency Ping'
+	};
 </script>
 
 <div class="detail-page">
@@ -278,6 +454,135 @@
 			{/if}
 		</div>
 
+		<!-- Crisis Mode Status -->
+		{#if crisisStatus}
+			<section class="crisis-section slide-up" style="animation-delay: 0.04s">
+				<div class="crisis-header">
+					<div class="crisis-indicator" class:crisis-red={crisisStatus.mode === 'red'}>
+						<span class="crisis-dot"></span>
+						<span class="crisis-label">
+							{crisisStatus.mode === 'red' ? 'Red Sky (Crisis)' : 'Blue Sky (Normal)'}
+						</span>
+					</div>
+					{#if isAdmin}
+						{#if crisisStatus.mode === 'blue'}
+							<button class="btn-crisis-activate" onclick={() => toggleCrisisMode('red')} disabled={togglingCrisis}>
+								{togglingCrisis ? 'Activating...' : 'Activate Crisis Mode'}
+							</button>
+						{:else}
+							<button class="btn-crisis-deactivate" onclick={() => toggleCrisisMode('blue')} disabled={togglingCrisis}>
+								{togglingCrisis ? 'Deactivating...' : 'Deactivate Crisis Mode'}
+							</button>
+						{/if}
+					{/if}
+				</div>
+
+				{#if isMember}
+					<div class="vote-section">
+						<div class="vote-bar">
+							<div class="vote-info">
+								<span>Activate votes: <strong>{crisisStatus.votes_to_activate}</strong></span>
+								<span>Deactivate votes: <strong>{crisisStatus.votes_to_deactivate}</strong></span>
+								<span class="vote-threshold">Threshold: {crisisStatus.threshold_pct}% of {crisisStatus.total_members} members</span>
+							</div>
+							<div class="vote-actions">
+								<button class="btn-vote btn-vote-red" onclick={() => castVote('activate')} disabled={votingCrisis}>
+									Vote to Activate
+								</button>
+								<button class="btn-vote btn-vote-blue" onclick={() => castVote('deactivate')} disabled={votingCrisis}>
+									Vote to Deactivate
+								</button>
+							</div>
+						</div>
+					</div>
+				{/if}
+			</section>
+		{/if}
+
+		<!-- Emergency Tickets -->
+		{#if isMember}
+			<section class="tickets-section slide-up" style="animation-delay: 0.045s">
+				<div class="section-header">
+					<h2>Emergency Tickets ({ticketTotal})</h2>
+					<button class="btn-small" onclick={() => (showTicketForm = !showTicketForm)}>
+						{showTicketForm ? 'Cancel' : 'New Ticket'}
+					</button>
+				</div>
+
+				{#if showTicketForm}
+					<div class="ticket-form fade-in">
+						<div class="ticket-form-row">
+							<label>
+								<span>Type</span>
+								<select bind:value={ticketType}>
+									<option value="request">Request</option>
+									<option value="offer">Offer</option>
+									{#if community?.mode === 'red'}
+										<option value="emergency_ping">Emergency Ping</option>
+									{/if}
+								</select>
+							</label>
+							<label>
+								<span>Urgency</span>
+								<select bind:value={ticketUrgency}>
+									<option value="low">Low</option>
+									<option value="medium">Medium</option>
+									<option value="high">High</option>
+									<option value="critical">Critical</option>
+								</select>
+							</label>
+						</div>
+						<label>
+							<span>Title</span>
+							<input type="text" bind:value={ticketTitle} placeholder="Short description..." maxlength="300" />
+						</label>
+						<label>
+							<span>Description (optional)</span>
+							<textarea bind:value={ticketDesc} rows="3" placeholder="More details..." maxlength="5000"></textarea>
+						</label>
+						<button class="btn-primary" onclick={createTicket} disabled={creatingTicket || !ticketTitle.trim()}>
+							{creatingTicket ? 'Creating...' : 'Create Ticket'}
+						</button>
+					</div>
+				{/if}
+
+				{#if tickets.length === 0}
+					<p class="section-hint">No emergency tickets yet.</p>
+				{:else}
+					<div class="tickets-list">
+						{#each tickets as t (t.id)}
+							<div class="ticket-card" class:ticket-resolved={t.status === 'resolved'}>
+								<div class="ticket-top">
+									<span class="ticket-type-badge" style="background: {t.ticket_type === 'emergency_ping' ? 'var(--color-error)' : t.ticket_type === 'offer' ? 'var(--color-success)' : 'var(--color-primary)'}">
+										{TICKET_TYPE_LABELS[t.ticket_type] ?? t.ticket_type}
+									</span>
+									<span class="ticket-urgency" style="color: {URGENCY_COLORS[t.urgency] ?? 'var(--color-text-muted)'}">
+										{t.urgency}
+									</span>
+									<span class="ticket-status">{t.status.replace('_', ' ')}</span>
+								</div>
+								<h3>{t.title}</h3>
+								{#if t.description}
+									<p class="ticket-desc">{t.description}</p>
+								{/if}
+								<div class="ticket-footer">
+									<span class="ticket-meta">by {t.author.display_name} &middot; {new Date(t.created_at).toLocaleDateString()}</span>
+									{#if (isAdmin || isLeader || t.author.id === $user?.id) && t.status !== 'resolved'}
+										<div class="ticket-actions">
+											{#if t.status === 'open'}
+												<button class="btn-tiny" onclick={() => updateTicketStatus(t.id, 'in_progress')}>Start</button>
+											{/if}
+											<button class="btn-tiny btn-tiny-success" onclick={() => updateTicketStatus(t.id, 'resolved')}>Resolve</button>
+										</div>
+									{/if}
+								</div>
+							</div>
+						{/each}
+					</div>
+				{/if}
+			</section>
+		{/if}
+
 		<section class="members-section slide-up" style="animation-delay: 0.05s">
 			<h2>Members</h2>
 			<div class="members-list">
@@ -287,9 +592,24 @@
 							<span class="member-name">{m.user.display_name}</span>
 							{#if m.role === 'admin'}
 								<span class="role-badge">Admin</span>
+							{:else if m.role === 'leader'}
+								<span class="role-badge role-badge-leader">Leader</span>
 							{/if}
 						</div>
-						<span class="member-date">Joined {new Date(m.joined_at).toLocaleDateString()}</span>
+						<div class="member-right">
+							{#if isAdmin && m.user.id !== $user?.id && m.role !== 'admin'}
+								{#if m.role === 'leader'}
+									<button class="btn-tiny" onclick={() => demoteLeader(m.user.id)} disabled={promotingUser === m.user.id}>
+										Demote
+									</button>
+								{:else}
+									<button class="btn-tiny" onclick={() => promoteToLeader(m.user.id)} disabled={promotingUser === m.user.id}>
+										Make Leader
+									</button>
+								{/if}
+							{/if}
+							<span class="member-date">Joined {new Date(m.joined_at).toLocaleDateString()}</span>
+						</div>
 					</div>
 				{/each}
 			</div>
@@ -913,5 +1233,333 @@
 	.btn-small-danger:hover {
 		background: var(--color-error) !important;
 		color: white !important;
+	}
+
+	/* ── Crisis mode ────────────────────────── */
+
+	.crisis-section {
+		margin-top: 1.5rem;
+		padding: 1rem 1.25rem;
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-lg);
+	}
+
+	.crisis-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem;
+		flex-wrap: wrap;
+	}
+
+	.crisis-indicator {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.crisis-dot {
+		width: 10px;
+		height: 10px;
+		border-radius: 50%;
+		background: var(--color-primary);
+	}
+
+	.crisis-red .crisis-dot {
+		background: var(--color-error);
+		animation: pulse-crisis 1.5s infinite;
+	}
+
+	@keyframes pulse-crisis {
+		0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+		50% { opacity: 0.8; box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+	}
+
+	.crisis-label {
+		font-size: 0.92rem;
+		font-weight: 600;
+	}
+
+	.crisis-red .crisis-label {
+		color: var(--color-error);
+	}
+
+	.btn-crisis-activate {
+		padding: 0.4rem 0.9rem;
+		background: var(--color-error);
+		color: white;
+		border: none;
+		border-radius: var(--radius);
+		font-size: 0.82rem;
+		font-weight: 600;
+		cursor: pointer;
+		transition: all var(--transition-fast);
+	}
+
+	.btn-crisis-activate:hover:not(:disabled) {
+		filter: brightness(1.1);
+		box-shadow: var(--shadow);
+	}
+
+	.btn-crisis-deactivate {
+		padding: 0.4rem 0.9rem;
+		background: var(--color-primary);
+		color: white;
+		border: none;
+		border-radius: var(--radius);
+		font-size: 0.82rem;
+		font-weight: 600;
+		cursor: pointer;
+		transition: all var(--transition-fast);
+	}
+
+	.btn-crisis-deactivate:hover:not(:disabled) {
+		filter: brightness(1.1);
+	}
+
+	.btn-crisis-activate:disabled,
+	.btn-crisis-deactivate:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
+	}
+
+	.vote-section {
+		margin-top: 0.75rem;
+		padding-top: 0.75rem;
+		border-top: 1px solid var(--color-border);
+	}
+
+	.vote-bar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem;
+		flex-wrap: wrap;
+	}
+
+	.vote-info {
+		display: flex;
+		gap: 0.75rem;
+		flex-wrap: wrap;
+		font-size: 0.82rem;
+		color: var(--color-text-muted);
+	}
+
+	.vote-threshold {
+		font-style: italic;
+	}
+
+	.vote-actions {
+		display: flex;
+		gap: 0.4rem;
+	}
+
+	.btn-vote {
+		padding: 0.3rem 0.7rem;
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius);
+		font-size: 0.78rem;
+		font-weight: 500;
+		cursor: pointer;
+		transition: all var(--transition-fast);
+		background: var(--color-surface);
+	}
+
+	.btn-vote:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
+	}
+
+	.btn-vote-red {
+		color: var(--color-error);
+		border-color: var(--color-error);
+	}
+
+	.btn-vote-red:hover:not(:disabled) {
+		background: var(--color-error);
+		color: white;
+	}
+
+	.btn-vote-blue {
+		color: var(--color-primary);
+		border-color: var(--color-primary);
+	}
+
+	.btn-vote-blue:hover:not(:disabled) {
+		background: var(--color-primary);
+		color: white;
+	}
+
+	/* ── Emergency tickets ──────────────────── */
+
+	.tickets-section {
+		margin-top: 2rem;
+	}
+
+	.tickets-section h2 {
+		font-size: 1.15rem;
+		font-weight: 600;
+	}
+
+	.ticket-form {
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-lg);
+		padding: 1rem 1.25rem;
+		margin-bottom: 0.75rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.65rem;
+	}
+
+	.ticket-form-row {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 0.65rem;
+	}
+
+	.ticket-form label {
+		display: flex;
+		flex-direction: column;
+		gap: 0.2rem;
+	}
+
+	.ticket-form label span {
+		font-size: 0.82rem;
+		font-weight: 500;
+		color: var(--color-text-muted);
+	}
+
+	.ticket-form input,
+	.ticket-form textarea,
+	.ticket-form select {
+		padding: 0.4rem 0.6rem;
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius);
+		font-size: 0.85rem;
+		background: var(--color-bg);
+		color: var(--color-text);
+	}
+
+	.tickets-list {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.ticket-card {
+		padding: 0.85rem 1rem;
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius);
+		transition: all var(--transition-fast);
+	}
+
+	.ticket-card:hover {
+		border-color: var(--color-border-hover);
+	}
+
+	.ticket-resolved {
+		opacity: 0.6;
+	}
+
+	.ticket-top {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+		margin-bottom: 0.3rem;
+	}
+
+	.ticket-type-badge {
+		font-size: 0.65rem;
+		font-weight: 600;
+		padding: 0.1rem 0.4rem;
+		border-radius: 999px;
+		color: white;
+		text-transform: uppercase;
+		letter-spacing: 0.03em;
+	}
+
+	.ticket-urgency {
+		font-size: 0.72rem;
+		font-weight: 600;
+		text-transform: uppercase;
+	}
+
+	.ticket-status {
+		font-size: 0.72rem;
+		color: var(--color-text-muted);
+		margin-left: auto;
+		text-transform: capitalize;
+	}
+
+	.ticket-card h3 {
+		font-size: 0.92rem;
+		font-weight: 600;
+		margin-bottom: 0.15rem;
+	}
+
+	.ticket-desc {
+		font-size: 0.82rem;
+		color: var(--color-text-muted);
+		line-height: 1.5;
+		margin-bottom: 0.35rem;
+	}
+
+	.ticket-footer {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.5rem;
+	}
+
+	.ticket-meta {
+		font-size: 0.75rem;
+		color: var(--color-text-muted);
+	}
+
+	.ticket-actions {
+		display: flex;
+		gap: 0.3rem;
+	}
+
+	.btn-tiny {
+		font-size: 0.72rem;
+		padding: 0.2rem 0.5rem;
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-sm);
+		background: var(--color-surface);
+		color: var(--color-text-muted);
+		cursor: pointer;
+		transition: all var(--transition-fast);
+	}
+
+	.btn-tiny:hover:not(:disabled) {
+		border-color: var(--color-primary);
+		color: var(--color-primary);
+	}
+
+	.btn-tiny:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	.btn-tiny-success:hover:not(:disabled) {
+		border-color: var(--color-success);
+		color: var(--color-success);
+	}
+
+	/* ── Leader badge ───────────────────────── */
+
+	.role-badge-leader {
+		background: var(--color-accent-light);
+		color: var(--color-accent);
+	}
+
+	.member-right {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
 	}
 </style>

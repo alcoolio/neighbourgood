@@ -7,11 +7,14 @@ from sqlalchemy.orm import Session, joinedload
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.community import Community, CommunityMember
+from app.models.resource import Resource
+from app.models.skill import Skill
 from app.models.user import User
 from app.services.activity import record_activity
 from app.schemas.community import (
     CommunityCreate,
     CommunityList,
+    CommunityMapItem,
     CommunityMemberOut,
     CommunityOut,
     CommunityUpdate,
@@ -31,11 +34,68 @@ def _community_to_out(c: Community, member_count: int | None = None) -> Communit
         city=c.city,
         country_code=c.country_code,
         is_active=c.is_active,
+        mode=c.mode,
+        latitude=c.latitude,
+        longitude=c.longitude,
         member_count=member_count if member_count is not None else len(c.members),
         created_by=c.created_by,
         merged_into_id=c.merged_into_id,
         created_at=c.created_at,
     )
+
+
+# ── Public map data ────────────────────────────────────────────────
+
+
+@router.get("/map", response_model=list[CommunityMapItem])
+def get_communities_for_map(db: Session = Depends(get_db)):
+    """Return lightweight community data for the public explore map. No auth required."""
+    communities = (
+        db.query(Community)
+        .options(joinedload(Community.members))
+        .filter(
+            Community.is_active == True,  # noqa: E712
+            Community.merged_into_id == None,  # noqa: E711
+        )
+        .all()
+    )
+
+    # Batch-count resources and skills per community
+    community_ids = [c.id for c in communities]
+    resource_counts: dict[int, int] = {}
+    skill_counts: dict[int, int] = {}
+    if community_ids:
+        for cid, cnt in (
+            db.query(Resource.community_id, func.count(Resource.id))
+            .filter(Resource.community_id.in_(community_ids))
+            .group_by(Resource.community_id)
+            .all()
+        ):
+            resource_counts[cid] = cnt
+        for cid, cnt in (
+            db.query(Skill.community_id, func.count(Skill.id))
+            .filter(Skill.community_id.in_(community_ids))
+            .group_by(Skill.community_id)
+            .all()
+        ):
+            skill_counts[cid] = cnt
+
+    return [
+        CommunityMapItem(
+            id=c.id,
+            name=c.name,
+            city=c.city,
+            postal_code=c.postal_code,
+            country_code=c.country_code,
+            member_count=len(c.members),
+            resource_count=resource_counts.get(c.id, 0),
+            skill_count=skill_counts.get(c.id, 0),
+            mode=c.mode,
+            latitude=c.latitude,
+            longitude=c.longitude,
+        )
+        for c in communities
+    ]
 
 
 # ── Search / Discovery ──────────────────────────────────────────────
@@ -97,6 +157,8 @@ def create_community(
         postal_code=body.postal_code,
         city=body.city,
         country_code=body.country_code,
+        latitude=body.latitude,
+        longitude=body.longitude,
         created_by_id=current_user.id,
     )
     db.add(community)

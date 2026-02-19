@@ -46,6 +46,9 @@ export interface CommunityOut {
 	postal_code: string;
 	city: string;
 	country_code: string;
+	mode: string;
+	latitude: number | null;
+	longitude: number | null;
 	member_count: number;
 	is_active: boolean;
 	merged_into_id: number | null;
