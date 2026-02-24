@@ -52,7 +52,8 @@
 		}
 	});
 
-	async function handlePasswordChange() {
+	async function handlePasswordChange(e: Event) {
+		e.preventDefault();
 		passwordForm.error = '';
 		passwordForm.success = false;
 
@@ -98,7 +99,8 @@
 		}
 	}
 
-	async function handleEmailChange() {
+	async function handleEmailChange(e: Event) {
+		e.preventDefault();
 		emailForm.error = '';
 		emailForm.success = false;
 
@@ -254,7 +256,7 @@
 						<div class="alert alert-error">{passwordForm.error}</div>
 					{/if}
 
-					<form class="form" onsubmit|preventDefault={handlePasswordChange}>
+					<form class="form" onsubmit={handlePasswordChange}>
 						<div class="form-group">
 							<label for="current-password">Current Password</label>
 							<input
@@ -306,7 +308,7 @@
 						<div class="alert alert-error">{emailForm.error}</div>
 					{/if}
 
-					<form class="form" onsubmit|preventDefault={handleEmailChange}>
+					<form class="form" onsubmit={handleEmailChange}>
 						<div class="form-group">
 							<label for="new-email">New Email</label>
 							<input
