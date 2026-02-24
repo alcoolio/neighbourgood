@@ -4,7 +4,7 @@
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import { isLoggedIn, user } from '$lib/stores/auth';
-	import { bandwidth } from '$lib/stores/theme';
+	import { bandwidth, setPlatformMode } from '$lib/stores/theme';
 
 	interface UserProfile {
 		id: number;
@@ -151,6 +151,10 @@
 			// Load crisis status (public)
 			try {
 				crisisStatus = await api<CrisisStatus>(`/communities/${communityId}/crisis/status`);
+			// Apply the community's mode to the global theme
+			if (crisisStatus) {
+				setPlatformMode(crisisStatus.mode as 'blue' | 'red');
+			}
 			} catch {
 				crisisStatus = null;
 			}
@@ -294,6 +298,8 @@
 			crisisStatus = await api<CrisisStatus>(`/communities/${communityId}/crisis/toggle`, {
 				method: 'POST', auth: true, body: { mode: newMode }
 			});
+			// Apply the mode to the global theme immediately
+			setPlatformMode(newMode as 'blue' | 'red');
 			actionMsg = newMode === 'red' ? 'Crisis mode activated!' : 'Switched back to normal mode.';
 			await loadData();
 		} catch (err) {
