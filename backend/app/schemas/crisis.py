@@ -48,6 +48,7 @@ class EmergencyTicketCreate(BaseModel):
     title: str = Field(..., min_length=1, max_length=300)
     description: str = Field("", max_length=5000)
     urgency: str = Field("medium", pattern="^(low|medium|high|critical)$")
+    due_at: datetime.datetime | None = None
 
 
 class EmergencyTicketUpdate(BaseModel):
@@ -56,6 +57,7 @@ class EmergencyTicketUpdate(BaseModel):
     status: str | None = Field(None, pattern="^(open|in_progress|resolved)$")
     urgency: str | None = Field(None, pattern="^(low|medium|high|critical)$")
     assigned_to_id: int | None = None
+    due_at: datetime.datetime | None = None
 
 
 class EmergencyTicketOut(BaseModel):
@@ -67,6 +69,8 @@ class EmergencyTicketOut(BaseModel):
     description: str
     status: str
     urgency: str
+    due_at: datetime.datetime | None = None
+    triage_score: int = 0
     assigned_to: UserProfile | None = None
     created_at: datetime.datetime
     updated_at: datetime.datetime

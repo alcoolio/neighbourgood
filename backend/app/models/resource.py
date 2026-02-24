@@ -18,6 +18,11 @@ class Resource(Base):
     condition: Mapped[str | None] = mapped_column(String(20), nullable=True)
     image_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
     is_available: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    # Inventory tracking: how many units exist and how many are currently available
+    quantity_total: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    quantity_available: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    # Optional alert threshold – surface a low-stock warning when quantity_available drops to or below this
+    reorder_threshold: Mapped[int | None] = mapped_column(Integer, nullable=True)
     owner_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     community_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("communities.id"), nullable=True, index=True

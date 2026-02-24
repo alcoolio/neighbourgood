@@ -3,7 +3,7 @@
 	import { onMount } from 'svelte';
 	import { isLoggedIn, user, token, logout } from '$lib/stores/auth';
 	import type { UserProfile } from '$lib/stores/auth';
-	import { theme, toggleTheme } from '$lib/stores/theme';
+	import { theme, toggleTheme, bandwidth, toggleBandwidth } from '$lib/stores/theme';
 	import { api } from '$lib/api';
 
 	let { children } = $props();
@@ -29,9 +29,11 @@
 <svelte:head>
 	<title>NeighbourGood</title>
 	<meta name="description" content="Community resource sharing platform" />
-	<link rel="preconnect" href="https://fonts.googleapis.com" />
-	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
-	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+	{#if $bandwidth === 'normal'}
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+	{/if}
 </svelte:head>
 
 <nav class="main-nav">
@@ -60,6 +62,7 @@
 				<a href="/communities" class="nav-link" onclick={closeMobileMenu}>Communities</a>
 				<a href="/bookings" class="nav-link" onclick={closeMobileMenu}>Bookings</a>
 				<a href="/messages" class="nav-link" onclick={closeMobileMenu}>Messages</a>
+				<a href="/triage" class="nav-link" onclick={closeMobileMenu}>Triage</a>
 			{:else}
 				<a href="/explore" class="nav-link" onclick={closeMobileMenu}>Explore</a>
 			{/if}
@@ -75,6 +78,18 @@
 				{:else}
 					<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
 				{/if}
+			</button>
+
+			<button
+				class="theme-toggle bandwidth-toggle"
+				class:active={$bandwidth === 'low'}
+				onclick={toggleBandwidth}
+				aria-label="Toggle low-bandwidth mode"
+				title={$bandwidth === 'normal' ? 'Enable low-bandwidth mode' : 'Disable low-bandwidth mode (currently ON)'}
+			>
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+					<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+				</svg>
 			</button>
 
 			{#if $isLoggedIn}
@@ -243,6 +258,12 @@
 
 	.theme-toggle:active {
 		transform: scale(0.92);
+	}
+
+	.bandwidth-toggle.active {
+		border-color: var(--color-accent);
+		color: var(--color-accent);
+		background: var(--color-accent-light);
 	}
 
 	.nav-user-group {

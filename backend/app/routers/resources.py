@@ -20,6 +20,7 @@ from app.schemas.resource import (
     VALID_CATEGORIES,
     VALID_CONDITIONS,
     CategoryInfo,
+    InventoryUpdate,
     ResourceCreate,
     ResourceList,
     ResourceOut,
@@ -50,7 +51,11 @@ def _validate_image_magic(data: bytes) -> bool:
 
 
 def _resource_to_out(resource: Resource) -> dict:
-    """Convert a Resource ORM object to a dict with image_url computed."""
+    """Convert a Resource ORM object to a dict with image_url and inventory fields computed."""
+    threshold = resource.reorder_threshold
+    low_stock = (
+        threshold is not None and resource.quantity_available <= threshold
+    )
     return {
         "id": resource.id,
         "title": resource.title,
@@ -62,6 +67,10 @@ def _resource_to_out(resource: Resource) -> dict:
         "owner_id": resource.owner_id,
         "community_id": resource.community_id,
         "owner": resource.owner,
+        "quantity_total": resource.quantity_total,
+        "quantity_available": resource.quantity_available,
+        "reorder_threshold": resource.reorder_threshold,
+        "low_stock": low_stock,
         "created_at": resource.created_at,
         "updated_at": resource.updated_at,
     }
@@ -139,6 +148,9 @@ def create_resource(
         condition=body.condition,
         owner_id=current_user.id,
         community_id=body.community_id,
+        quantity_total=body.quantity_total,
+        quantity_available=body.quantity_total,  # start fully stocked
+        reorder_threshold=body.reorder_threshold,
     )
     db.add(resource)
     db.commit()
@@ -202,6 +214,8 @@ def update_resource(
         resource.condition = body.condition
     if body.is_available is not None:
         resource.is_available = body.is_available
+    if "reorder_threshold" in body.model_fields_set:
+        resource.reorder_threshold = body.reorder_threshold
 
     db.commit()
     db.refresh(resource)
@@ -228,6 +242,50 @@ def delete_resource(
             pass
     db.delete(resource)
     db.commit()
+
+
+# ── Inventory management ───────────────────────────────────────────
+
+
+@router.patch("/{resource_id}/inventory", response_model=ResourceOut)
+def update_inventory(
+    resource_id: int,
+    body: InventoryUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Manually adjust the available stock count (owner only).
+
+    Use this to correct inventory after physical stock-takes or when
+    units are damaged / returned outside of the normal booking flow.
+    quantity_available cannot exceed quantity_total.
+    """
+    resource = (
+        db.query(Resource)
+        .options(joinedload(Resource.owner))
+        .filter(Resource.id == resource_id)
+        .first()
+    )
+    if not resource:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resource not found")
+    if resource.owner_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your resource")
+    if body.quantity_available > resource.quantity_total:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"quantity_available ({body.quantity_available}) cannot exceed quantity_total ({resource.quantity_total})",
+        )
+
+    resource.quantity_available = body.quantity_available
+    # Auto-mark unavailable when stock is fully depleted
+    if resource.quantity_available == 0:
+        resource.is_available = False
+    elif not resource.is_available:
+        resource.is_available = True
+
+    db.commit()
+    db.refresh(resource)
+    return ResourceOut(**_resource_to_out(resource))
 
 
 # ── Image upload / download ────────────────────────────────────────

@@ -90,6 +90,44 @@
 	--shadow: none;
 }
 
+/* ── Low-bandwidth Mode ─────────────────────────────────────────── */
+/* Eliminates all transitions, animations, shadows, and decorative  */
+/* images so the UI is usable on slow or metered connections.       */
+
+:root[data-bandwidth='low'] {
+	--transition-fast: 0ms;
+	--transition: 0ms;
+	--transition-slow: 0ms;
+	--transition-spring: 0ms;
+	--shadow-sm: none;
+	--shadow: none;
+	--shadow-md: none;
+	--shadow-lg: none;
+}
+
+:root[data-bandwidth='low'] * {
+	transition: none !important;
+	animation: none !important;
+}
+
+/* Hide decorative resource/avatar images; keep functional icons */
+:root[data-bandwidth='low'] img.decorative,
+:root[data-bandwidth='low'] .resource-image,
+:root[data-bandwidth='low'] .card-image {
+	display: none;
+}
+
+/* Remove the Inter font preconnect effect – browser won't fetch   */
+/* web fonts when the element is hidden via JS (see layout).       */
+:root[data-bandwidth='low'] .low-bw-hide {
+	display: none;
+}
+
+/* Compact layout: tighter padding to reduce scroll distance */
+:root[data-bandwidth='low'] .page-content {
+	padding: 0.75rem 1rem;
+}
+
 /* ── Reset & Base ───────────────────────────────────────────────── */
 
 *, *::before, *::after {
