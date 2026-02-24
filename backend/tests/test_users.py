@@ -15,12 +15,12 @@ def test_update_my_profile(client, auth_headers):
     res = client.patch(
         "/users/me",
         headers=auth_headers,
-        json={"display_name": "Updated Name", "neighbourhood": "New Hood"},
+        json={"display_name": "Updated Name"},
     )
     assert res.status_code == 200
     data = res.json()
     assert data["display_name"] == "Updated Name"
-    assert data["neighbourhood"] == "New Hood"
+    assert data["neighbourhood"] == "Testville"
 
 
 def test_profile_requires_auth(client):

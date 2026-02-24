@@ -68,6 +68,7 @@
 
 		<div class="nav-links" class:mobile-open={mobileMenuOpen}>
 			{#if $isLoggedIn}
+				<a href="/dashboard" class="nav-link" onclick={closeMobileMenu}>Dashboard</a>
 				<a href="/resources" class="nav-link" onclick={closeMobileMenu}>Resources</a>
 				<a href="/skills" class="nav-link" onclick={closeMobileMenu}>Skills</a>
 				<a href="/communities" class="nav-link" onclick={closeMobileMenu}>Communities</a>

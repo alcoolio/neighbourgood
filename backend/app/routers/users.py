@@ -6,10 +6,19 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.booking import Booking
+from app.models.message import Message
 from app.models.resource import Resource
 from app.models.skill import Skill
 from app.models.user import User
-from app.schemas.user import ReputationOut, UserProfile, UserProfileUpdate
+from app.schemas.user import (
+    ChangeEmail,
+    ChangePassword,
+    DashboardOverview,
+    ReputationOut,
+    UserProfile,
+    UserProfileUpdate,
+)
+from app.services.auth import hash_password, verify_password
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -87,8 +96,6 @@ def update_my_profile(
     """Update the authenticated user's profile fields."""
     if body.display_name is not None:
         current_user.display_name = body.display_name
-    if body.neighbourhood is not None:
-        current_user.neighbourhood = body.neighbourhood
     db.commit()
     db.refresh(current_user)
     return current_user
@@ -120,3 +127,88 @@ def get_user_reputation(user_id: int, db: Session = Depends(get_db)):
         display_name=user.display_name,
         **rep,
     )
+
+
+@router.get("/me/dashboard", response_model=DashboardOverview)
+def get_dashboard_overview(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get dashboard overview with counts and reputation."""
+    resources_count = db.query(Resource).filter(Resource.owner_id == current_user.id).count()
+
+    skills_count = (
+        db.query(Skill).filter(Skill.owner_id == current_user.id).count()
+    )
+
+    bookings_count = (
+        db.query(Booking)
+        .filter(
+            ((Booking.borrower_id == current_user.id) | (Booking.resource_id.in_(
+                db.query(Resource.id).filter(Resource.owner_id == current_user.id)
+            )))
+        )
+        .count()
+    )
+
+    messages_unread_count = (
+        db.query(Message)
+        .filter(Message.recipient_id == current_user.id, Message.is_read == False)
+        .count()
+    )
+
+    rep = _compute_reputation(db, current_user.id)
+
+    return DashboardOverview(
+        resources_count=resources_count,
+        skills_count=skills_count,
+        bookings_count=bookings_count,
+        messages_unread_count=messages_unread_count,
+        reputation_score=rep["score"],
+        reputation_level=rep["level"],
+    )
+
+
+@router.post("/me/change-password", response_model=UserProfile)
+def change_password(
+    body: ChangePassword,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Change the authenticated user's password."""
+    if not verify_password(body.current_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Current password is incorrect",
+        )
+
+    current_user.hashed_password = hash_password(body.new_password)
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+
+@router.post("/me/change-email", response_model=UserProfile)
+def change_email(
+    body: ChangeEmail,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Change the authenticated user's email."""
+    if not verify_password(body.password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Password is incorrect",
+        )
+
+    existing_user = db.query(User).filter(User.email == body.new_email).first()
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Email already in use",
+        )
+
+    current_user.email = body.new_email
+    db.commit()
+    db.refresh(current_user)
+    return current_user
