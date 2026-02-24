@@ -232,9 +232,9 @@
 					</div>
 
 					<div class="info-group">
-						<label>Neighbourhood</label>
+						<label>Community/Neighbourhood</label>
 						<p class="info-value">{$user?.neighbourhood || 'Not set'}</p>
-						<p class="info-hint">Town changes are prohibited for security</p>
+						<p class="info-hint">You can only be in one community at a time</p>
 					</div>
 
 					<div class="info-group">
