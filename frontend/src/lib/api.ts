@@ -35,7 +35,18 @@ export async function api<T = unknown>(path: string, opts: RequestOptions = {}):
 
 	if (!res.ok) {
 		const err = await res.json().catch(() => ({ detail: res.statusText }));
-		throw new Error(err.detail || `Request failed: ${res.status}`);
+
+		// Handle Pydantic validation errors (detail is an array of objects)
+		let errorMsg = '';
+		if (Array.isArray(err.detail)) {
+			errorMsg = err.detail.map((e: any) => e.msg || e.toString()).join('; ');
+		} else if (typeof err.detail === 'string') {
+			errorMsg = err.detail;
+		} else if (err.detail) {
+			errorMsg = err.detail.toString();
+		}
+
+		throw new Error(errorMsg || `Request failed: ${res.status}`);
 	}
 
 	if (res.status === 204) return undefined as T;
@@ -61,7 +72,18 @@ export async function apiUpload<T = unknown>(path: string, file: File): Promise<
 
 	if (!res.ok) {
 		const err = await res.json().catch(() => ({ detail: res.statusText }));
-		throw new Error(err.detail || `Upload failed: ${res.status}`);
+
+		// Handle Pydantic validation errors (detail is an array of objects)
+		let errorMsg = '';
+		if (Array.isArray(err.detail)) {
+			errorMsg = err.detail.map((e: any) => e.msg || e.toString()).join('; ');
+		} else if (typeof err.detail === 'string') {
+			errorMsg = err.detail;
+		} else if (err.detail) {
+			errorMsg = err.detail.toString();
+		}
+
+		throw new Error(errorMsg || `Upload failed: ${res.status}`);
 	}
 
 	return res.json();
