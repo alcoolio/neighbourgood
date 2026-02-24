@@ -3,7 +3,7 @@
 	import { onMount } from 'svelte';
 	import { isLoggedIn, user, token, logout } from '$lib/stores/auth';
 	import type { UserProfile } from '$lib/stores/auth';
-	import { theme, toggleTheme, bandwidth, toggleBandwidth } from '$lib/stores/theme';
+	import { theme, toggleTheme, bandwidth, toggleBandwidth, platformMode, setPlatformMode } from '$lib/stores/theme';
 	import { api } from '$lib/api';
 
 	let { children } = $props();
@@ -22,6 +22,17 @@
 			} catch {
 				logout();
 			}
+		}
+
+		// Fetch platform mode and apply Red Sky automatically when active
+		try {
+			const res = await fetch('/api/status');
+			if (res.ok) {
+				const status = await res.json();
+				setPlatformMode(status.mode);
+			}
+		} catch {
+			// Backend unreachable — leave mode at default blue
 		}
 	});
 </script>
@@ -62,7 +73,9 @@
 				<a href="/communities" class="nav-link" onclick={closeMobileMenu}>Communities</a>
 				<a href="/bookings" class="nav-link" onclick={closeMobileMenu}>Bookings</a>
 				<a href="/messages" class="nav-link" onclick={closeMobileMenu}>Messages</a>
-				<a href="/triage" class="nav-link" onclick={closeMobileMenu}>Triage</a>
+				{#if $platformMode === 'red'}
+					<a href="/triage" class="nav-link nav-link-crisis" onclick={closeMobileMenu}>Triage</a>
+				{/if}
 			{:else}
 				<a href="/explore" class="nav-link" onclick={closeMobileMenu}>Explore</a>
 			{/if}
@@ -80,17 +93,19 @@
 				{/if}
 			</button>
 
-			<button
-				class="theme-toggle bandwidth-toggle"
-				class:active={$bandwidth === 'low'}
-				onclick={toggleBandwidth}
-				aria-label="Toggle low-bandwidth mode"
-				title={$bandwidth === 'normal' ? 'Enable low-bandwidth mode' : 'Disable low-bandwidth mode (currently ON)'}
-			>
-				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-					<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-				</svg>
-			</button>
+			{#if $platformMode === 'red'}
+				<button
+					class="theme-toggle bandwidth-toggle"
+					class:active={$bandwidth === 'low'}
+					onclick={toggleBandwidth}
+					aria-label="Toggle low-bandwidth mode"
+					title={$bandwidth === 'normal' ? 'Enable low-bandwidth mode' : 'Disable low-bandwidth mode (currently ON)'}
+				>
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+						<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+					</svg>
+				</button>
+			{/if}
 
 			{#if $isLoggedIn}
 				<div class="nav-user-group">
@@ -264,6 +279,16 @@
 		border-color: var(--color-accent);
 		color: var(--color-accent);
 		background: var(--color-accent-light);
+	}
+
+	.nav-link-crisis {
+		color: var(--color-error);
+		font-weight: 600;
+	}
+
+	.nav-link-crisis:hover {
+		color: var(--color-error);
+		background: var(--color-error-bg);
 	}
 
 	.nav-user-group {

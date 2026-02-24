@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { api } from '$lib/api';
 	import { isLoggedIn } from '$lib/stores/auth';
+	import { bandwidth } from '$lib/stores/theme';
 
 	interface Resource {
 		id: number;
@@ -243,7 +244,7 @@
 		<div class="resource-grid">
 			{#each resources as resource}
 				<a href="/resources/{resource.id}" class="resource-card">
-					{#if resource.image_url}
+					{#if resource.image_url && $bandwidth !== 'low'}
 						<div class="card-image">
 							<img src="/api{resource.image_url}" alt={resource.title} />
 						</div>
