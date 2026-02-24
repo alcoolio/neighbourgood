@@ -1,12 +1,21 @@
 """Tests for booking endpoints: create, list, status transitions, calendar, conflicts."""
 
 
-def _create_resource(client, headers, title="Shared Drill"):
+def _create_community(client, headers, name="Test Community"):
+    res = client.post(
+        "/communities",
+        headers=headers,
+        json={"name": name, "postal_code": "12345", "city": "Teststadt"},
+    )
+    return res.json()["id"]
+
+
+def _create_resource(client, headers, community_id, title="Shared Drill"):
     """Helper: create a resource and return its ID."""
     res = client.post(
         "/resources",
         headers=headers,
-        json={"title": title, "category": "tool"},
+        json={"title": title, "category": "tool", "community_id": community_id},
     )
     return res.json()["id"]
 
@@ -28,8 +37,9 @@ def _register(client, email, name="User"):
 
 
 def test_create_booking(client, auth_headers):
+    cid = _create_community(client, auth_headers)
     borrower_headers = _register(client, "borrower@test.com", "Borrower")
-    resource_id = _create_resource(client, auth_headers)
+    resource_id = _create_resource(client, auth_headers, cid)
 
     res = client.post(
         "/bookings",
@@ -51,8 +61,9 @@ def test_create_booking(client, auth_headers):
 
 
 def test_create_booking_invalid_dates(client, auth_headers):
+    cid = _create_community(client, auth_headers)
     borrower_headers = _register(client, "borrower@test.com", "Borrower")
-    resource_id = _create_resource(client, auth_headers)
+    resource_id = _create_resource(client, auth_headers, cid)
 
     res = client.post(
         "/bookings",
@@ -67,7 +78,8 @@ def test_create_booking_invalid_dates(client, auth_headers):
 
 
 def test_cannot_book_own_resource(client, auth_headers):
-    resource_id = _create_resource(client, auth_headers)
+    cid = _create_community(client, auth_headers)
+    resource_id = _create_resource(client, auth_headers, cid)
 
     res = client.post(
         "/bookings",
@@ -83,8 +95,9 @@ def test_cannot_book_own_resource(client, auth_headers):
 
 
 def test_cannot_book_unavailable_resource(client, auth_headers):
+    cid = _create_community(client, auth_headers)
     borrower_headers = _register(client, "borrower@test.com", "Borrower")
-    resource_id = _create_resource(client, auth_headers)
+    resource_id = _create_resource(client, auth_headers, cid)
 
     # Mark resource unavailable
     client.patch(
@@ -107,9 +120,10 @@ def test_cannot_book_unavailable_resource(client, auth_headers):
 
 
 def test_booking_date_conflict(client, auth_headers):
+    cid = _create_community(client, auth_headers)
     borrower1 = _register(client, "b1@test.com", "Borrower1")
     borrower2 = _register(client, "b2@test.com", "Borrower2")
-    resource_id = _create_resource(client, auth_headers)
+    resource_id = _create_resource(client, auth_headers, cid)
 
     # First booking
     res = client.post(
@@ -138,9 +152,10 @@ def test_booking_date_conflict(client, auth_headers):
 
 
 def test_booking_non_overlapping_dates_ok(client, auth_headers):
+    cid = _create_community(client, auth_headers)
     borrower1 = _register(client, "b1@test.com", "Borrower1")
     borrower2 = _register(client, "b2@test.com", "Borrower2")
-    resource_id = _create_resource(client, auth_headers)
+    resource_id = _create_resource(client, auth_headers, cid)
 
     res = client.post(
         "/bookings",
@@ -195,8 +210,9 @@ def test_create_booking_requires_auth(client):
 
 
 def test_list_bookings_as_borrower(client, auth_headers):
+    cid = _create_community(client, auth_headers)
     borrower_headers = _register(client, "borrower@test.com", "Borrower")
-    resource_id = _create_resource(client, auth_headers)
+    resource_id = _create_resource(client, auth_headers, cid)
 
     client.post(
         "/bookings",
@@ -216,8 +232,9 @@ def test_list_bookings_as_borrower(client, auth_headers):
 
 
 def test_list_bookings_as_owner(client, auth_headers):
+    cid = _create_community(client, auth_headers)
     borrower_headers = _register(client, "borrower@test.com", "Borrower")
-    resource_id = _create_resource(client, auth_headers)
+    resource_id = _create_resource(client, auth_headers, cid)
 
     client.post(
         "/bookings",
@@ -237,8 +254,9 @@ def test_list_bookings_as_owner(client, auth_headers):
 
 
 def test_list_bookings_status_filter(client, auth_headers):
+    cid = _create_community(client, auth_headers)
     borrower_headers = _register(client, "borrower@test.com", "Borrower")
-    resource_id = _create_resource(client, auth_headers)
+    resource_id = _create_resource(client, auth_headers, cid)
 
     client.post(
         "/bookings",
@@ -263,8 +281,9 @@ def test_list_bookings_status_filter(client, auth_headers):
 
 
 def test_owner_approves_booking(client, auth_headers):
+    cid = _create_community(client, auth_headers)
     borrower_headers = _register(client, "borrower@test.com", "Borrower")
-    resource_id = _create_resource(client, auth_headers)
+    resource_id = _create_resource(client, auth_headers, cid)
 
     create_res = client.post(
         "/bookings",
@@ -287,8 +306,9 @@ def test_owner_approves_booking(client, auth_headers):
 
 
 def test_owner_rejects_booking(client, auth_headers):
+    cid = _create_community(client, auth_headers)
     borrower_headers = _register(client, "borrower@test.com", "Borrower")
-    resource_id = _create_resource(client, auth_headers)
+    resource_id = _create_resource(client, auth_headers, cid)
 
     create_res = client.post(
         "/bookings",
@@ -311,8 +331,9 @@ def test_owner_rejects_booking(client, auth_headers):
 
 
 def test_borrower_cancels_pending_booking(client, auth_headers):
+    cid = _create_community(client, auth_headers)
     borrower_headers = _register(client, "borrower@test.com", "Borrower")
-    resource_id = _create_resource(client, auth_headers)
+    resource_id = _create_resource(client, auth_headers, cid)
 
     create_res = client.post(
         "/bookings",
@@ -335,8 +356,9 @@ def test_borrower_cancels_pending_booking(client, auth_headers):
 
 
 def test_borrower_cannot_approve(client, auth_headers):
+    cid = _create_community(client, auth_headers)
     borrower_headers = _register(client, "borrower@test.com", "Borrower")
-    resource_id = _create_resource(client, auth_headers)
+    resource_id = _create_resource(client, auth_headers, cid)
 
     create_res = client.post(
         "/bookings",
@@ -358,8 +380,9 @@ def test_borrower_cannot_approve(client, auth_headers):
 
 
 def test_complete_approved_booking(client, auth_headers):
+    cid = _create_community(client, auth_headers)
     borrower_headers = _register(client, "borrower@test.com", "Borrower")
-    resource_id = _create_resource(client, auth_headers)
+    resource_id = _create_resource(client, auth_headers, cid)
 
     create_res = client.post(
         "/bookings",
@@ -390,8 +413,9 @@ def test_complete_approved_booking(client, auth_headers):
 
 
 def test_cannot_approve_rejected_booking(client, auth_headers):
+    cid = _create_community(client, auth_headers)
     borrower_headers = _register(client, "borrower@test.com", "Borrower")
-    resource_id = _create_resource(client, auth_headers)
+    resource_id = _create_resource(client, auth_headers, cid)
 
     create_res = client.post(
         "/bookings",
@@ -424,8 +448,9 @@ def test_cannot_approve_rejected_booking(client, auth_headers):
 
 
 def test_get_booking(client, auth_headers):
+    cid = _create_community(client, auth_headers)
     borrower_headers = _register(client, "borrower@test.com", "Borrower")
-    resource_id = _create_resource(client, auth_headers)
+    resource_id = _create_resource(client, auth_headers, cid)
 
     create_res = client.post(
         "/bookings",
@@ -448,9 +473,10 @@ def test_get_booking(client, auth_headers):
 
 
 def test_get_booking_forbidden(client, auth_headers):
+    cid = _create_community(client, auth_headers)
     borrower_headers = _register(client, "borrower@test.com", "Borrower")
     stranger_headers = _register(client, "stranger@test.com", "Stranger")
-    resource_id = _create_resource(client, auth_headers)
+    resource_id = _create_resource(client, auth_headers, cid)
 
     create_res = client.post(
         "/bookings",
@@ -477,8 +503,9 @@ def test_get_booking_not_found(client, auth_headers):
 
 
 def test_calendar_endpoint(client, auth_headers):
+    cid = _create_community(client, auth_headers)
     borrower_headers = _register(client, "borrower@test.com", "Borrower")
-    resource_id = _create_resource(client, auth_headers)
+    resource_id = _create_resource(client, auth_headers, cid)
 
     # Create a booking in March 2026
     client.post(
@@ -499,8 +526,9 @@ def test_calendar_endpoint(client, auth_headers):
 
 
 def test_calendar_excludes_cancelled(client, auth_headers):
+    cid = _create_community(client, auth_headers)
     borrower_headers = _register(client, "borrower@test.com", "Borrower")
-    resource_id = _create_resource(client, auth_headers)
+    resource_id = _create_resource(client, auth_headers, cid)
 
     create_res = client.post(
         "/bookings",
@@ -526,8 +554,9 @@ def test_calendar_excludes_cancelled(client, auth_headers):
 
 
 def test_calendar_different_month(client, auth_headers):
+    cid = _create_community(client, auth_headers)
     borrower_headers = _register(client, "borrower@test.com", "Borrower")
-    resource_id = _create_resource(client, auth_headers)
+    resource_id = _create_resource(client, auth_headers, cid)
 
     client.post(
         "/bookings",

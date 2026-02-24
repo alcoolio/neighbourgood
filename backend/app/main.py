@@ -23,7 +23,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(self)"
         response.headers["X-XSS-Protection"] = "0"
         if not settings.debug:
             response.headers["Strict-Transport-Security"] = (
@@ -39,6 +39,25 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    # Migrate existing tables: add columns that may be missing from older schemas
+    from sqlalchemy import inspect as sa_inspect, text  # noqa: E402
+
+    inspector = sa_inspect(engine)
+    if "communities" in inspector.get_table_names():
+        existing = {col["name"] for col in inspector.get_columns("communities")}
+        with engine.begin() as conn:
+            if "mode" not in existing:
+                conn.execute(text(
+                    "ALTER TABLE communities ADD COLUMN mode VARCHAR(10) DEFAULT 'blue'"
+                ))
+            if "latitude" not in existing:
+                conn.execute(text(
+                    "ALTER TABLE communities ADD COLUMN latitude FLOAT"
+                ))
+            if "longitude" not in existing:
+                conn.execute(text(
+                    "ALTER TABLE communities ADD COLUMN longitude FLOAT"
+                ))
     yield
 
 

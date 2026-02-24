@@ -3,16 +3,16 @@
 import io
 
 
-def test_search_by_title(client, auth_headers):
+def test_search_by_title(client, auth_headers, community_id):
     client.post(
         "/resources",
         headers=auth_headers,
-        json={"title": "Electric Drill", "category": "tool"},
+        json={"title": "Electric Drill", "category": "tool", "community_id": community_id},
     )
     client.post(
         "/resources",
         headers=auth_headers,
-        json={"title": "Camping Table", "category": "furniture"},
+        json={"title": "Camping Table", "category": "furniture", "community_id": community_id},
     )
 
     res = client.get("/resources?q=drill")
@@ -21,7 +21,7 @@ def test_search_by_title(client, auth_headers):
     assert data["items"][0]["title"] == "Electric Drill"
 
 
-def test_search_by_description(client, auth_headers):
+def test_search_by_description(client, auth_headers, community_id):
     client.post(
         "/resources",
         headers=auth_headers,
@@ -29,12 +29,13 @@ def test_search_by_description(client, auth_headers):
             "title": "Power Tool",
             "description": "Great for drilling holes in concrete",
             "category": "tool",
+            "community_id": community_id,
         },
     )
     client.post(
         "/resources",
         headers=auth_headers,
-        json={"title": "Sofa", "description": "Comfy blue sofa", "category": "furniture"},
+        json={"title": "Sofa", "description": "Comfy blue sofa", "category": "furniture", "community_id": community_id},
     )
 
     res = client.get("/resources?q=concrete")
@@ -43,11 +44,11 @@ def test_search_by_description(client, auth_headers):
     assert data["items"][0]["title"] == "Power Tool"
 
 
-def test_search_case_insensitive(client, auth_headers):
+def test_search_case_insensitive(client, auth_headers, community_id):
     client.post(
         "/resources",
         headers=auth_headers,
-        json={"title": "LOUD SPEAKER", "category": "electronics"},
+        json={"title": "LOUD SPEAKER", "category": "electronics", "community_id": community_id},
     )
 
     res = client.get("/resources?q=loud")
@@ -57,11 +58,11 @@ def test_search_case_insensitive(client, auth_headers):
     assert res.json()["total"] == 1
 
 
-def test_search_no_results(client, auth_headers):
+def test_search_no_results(client, auth_headers, community_id):
     client.post(
         "/resources",
         headers=auth_headers,
-        json={"title": "Hammer", "category": "tool"},
+        json={"title": "Hammer", "category": "tool", "community_id": community_id},
     )
 
     res = client.get("/resources?q=spaceship")
@@ -79,17 +80,17 @@ def test_list_categories(client):
     assert all("label" in c and "icon" in c for c in data)
 
 
-def test_filter_available(client, auth_headers):
+def test_filter_available(client, auth_headers, community_id):
     # Create one available and one unavailable resource
     r1 = client.post(
         "/resources",
         headers=auth_headers,
-        json={"title": "Available Item", "category": "tool"},
+        json={"title": "Available Item", "category": "tool", "community_id": community_id},
     )
     r2 = client.post(
         "/resources",
         headers=auth_headers,
-        json={"title": "Unavailable Item", "category": "tool"},
+        json={"title": "Unavailable Item", "category": "tool", "community_id": community_id},
     )
     # Mark second as unavailable
     client.patch(
@@ -107,11 +108,11 @@ def test_filter_available(client, auth_headers):
     assert res.json()["items"][0]["title"] == "Unavailable Item"
 
 
-def test_upload_image(client, auth_headers, tmp_path):
+def test_upload_image(client, auth_headers, community_id, tmp_path):
     r = client.post(
         "/resources",
         headers=auth_headers,
-        json={"title": "Photo Item", "category": "electronics"},
+        json={"title": "Photo Item", "category": "electronics", "community_id": community_id},
     )
     resource_id = r.json()["id"]
 
@@ -128,11 +129,11 @@ def test_upload_image(client, auth_headers, tmp_path):
     assert f"/resources/{resource_id}/image" in data["image_url"]
 
 
-def test_upload_image_invalid_type(client, auth_headers):
+def test_upload_image_invalid_type(client, auth_headers, community_id):
     r = client.post(
         "/resources",
         headers=auth_headers,
-        json={"title": "Doc Item", "category": "other"},
+        json={"title": "Doc Item", "category": "other", "community_id": community_id},
     )
     resource_id = r.json()["id"]
 
@@ -145,12 +146,12 @@ def test_upload_image_invalid_type(client, auth_headers):
     assert res.status_code == 422
 
 
-def test_upload_image_not_owner(client, auth_headers):
+def test_upload_image_not_owner(client, auth_headers, community_id):
     # Create resource as first user
     r = client.post(
         "/resources",
         headers=auth_headers,
-        json={"title": "Owned Item", "category": "tool"},
+        json={"title": "Owned Item", "category": "tool", "community_id": community_id},
     )
     resource_id = r.json()["id"]
 
@@ -174,11 +175,11 @@ def test_upload_image_not_owner(client, auth_headers):
     assert res.status_code == 403
 
 
-def test_get_image_no_image(client, auth_headers):
+def test_get_image_no_image(client, auth_headers, community_id):
     r = client.post(
         "/resources",
         headers=auth_headers,
-        json={"title": "No Image", "category": "tool"},
+        json={"title": "No Image", "category": "tool", "community_id": community_id},
     )
     resource_id = r.json()["id"]
 
@@ -186,10 +187,10 @@ def test_get_image_no_image(client, auth_headers):
     assert res.status_code == 404
 
 
-def test_resource_out_has_image_url_null_by_default(client, auth_headers):
+def test_resource_out_has_image_url_null_by_default(client, auth_headers, community_id):
     r = client.post(
         "/resources",
         headers=auth_headers,
-        json={"title": "Plain Item", "category": "tool"},
+        json={"title": "Plain Item", "category": "tool", "community_id": community_id},
     )
     assert r.json()["image_url"] is None

@@ -14,11 +14,20 @@ def _register(client, email, name="User"):
     return {"Authorization": f"Bearer {data['access_token']}"}
 
 
-def _create_resource(client, headers, title="Shared Drill"):
+def _create_community(client, headers, name="Test Community"):
+    res = client.post(
+        "/communities",
+        headers=headers,
+        json={"name": name, "postal_code": "12345", "city": "Teststadt"},
+    )
+    return res.json()["id"]
+
+
+def _create_resource(client, headers, community_id, title="Shared Drill"):
     res = client.post(
         "/resources",
         headers=headers,
-        json={"title": title, "category": "tool"},
+        json={"title": title, "category": "tool", "community_id": community_id},
     )
     return res.json()["id"]
 
@@ -36,12 +45,12 @@ def test_newcomer_reputation(client, auth_headers):
     assert data["breakdown"]["resources_shared"] == 0
 
 
-def test_reputation_after_sharing_resource(client, auth_headers):
+def test_reputation_after_sharing_resource(client, auth_headers, community_id):
     """Sharing a resource earns 5 points."""
     client.post(
         "/resources",
         headers=auth_headers,
-        json={"title": "Drill", "category": "tool"},
+        json={"title": "Drill", "category": "tool", "community_id": community_id},
     )
     res = client.get("/users/me/reputation", headers=auth_headers)
     data = res.json()
@@ -49,40 +58,40 @@ def test_reputation_after_sharing_resource(client, auth_headers):
     assert data["breakdown"]["resources_shared"] == 5
 
 
-def test_reputation_after_offering_skill(client, auth_headers):
+def test_reputation_after_offering_skill(client, auth_headers, community_id):
     """Offering a skill earns 5 points."""
     client.post(
         "/skills",
         headers=auth_headers,
-        json={"title": "Python tutoring", "category": "tutoring", "skill_type": "offer"},
+        json={"title": "Python tutoring", "category": "tutoring", "skill_type": "offer", "community_id": community_id},
     )
     res = client.get("/users/me/reputation", headers=auth_headers)
     data = res.json()
     assert data["breakdown"]["skills_offered"] == 5
 
 
-def test_reputation_after_requesting_skill(client, auth_headers):
+def test_reputation_after_requesting_skill(client, auth_headers, community_id):
     """Requesting a skill earns 2 points."""
     client.post(
         "/skills",
         headers=auth_headers,
-        json={"title": "Need cooking help", "category": "cooking", "skill_type": "request"},
+        json={"title": "Need cooking help", "category": "cooking", "skill_type": "request", "community_id": community_id},
     )
     res = client.get("/users/me/reputation", headers=auth_headers)
     data = res.json()
     assert data["breakdown"]["skills_requested"] == 2
 
 
-def test_reputation_level_progression(client, auth_headers):
+def test_reputation_level_progression(client, auth_headers, community_id):
     """Multiple activities push user to higher levels."""
     # 2 resources = 10 points → Neighbour
     client.post(
         "/resources", headers=auth_headers,
-        json={"title": "Drill", "category": "tool"},
+        json={"title": "Drill", "category": "tool", "community_id": community_id},
     )
     client.post(
         "/resources", headers=auth_headers,
-        json={"title": "Ladder", "category": "tool"},
+        json={"title": "Ladder", "category": "tool", "community_id": community_id},
     )
     res = client.get("/users/me/reputation", headers=auth_headers)
     assert res.json()["level"] == "Neighbour"
@@ -105,10 +114,10 @@ def test_public_reputation_not_found(client):
     assert res.status_code == 404
 
 
-def test_reputation_completed_booking(client, auth_headers):
+def test_reputation_completed_booking(client, auth_headers, community_id):
     """Completed bookings earn points for both lender and borrower."""
     borrower_headers = _register(client, "borrower@test.com", "Borrower")
-    resource_id = _create_resource(client, auth_headers)
+    resource_id = _create_resource(client, auth_headers, community_id)
 
     # Create and complete a booking
     booking = client.post(

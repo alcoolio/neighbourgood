@@ -9,7 +9,7 @@ def test_list_resources_empty(client):
     assert data["total"] == 0
 
 
-def test_create_resource(client, auth_headers):
+def test_create_resource(client, auth_headers, community_id):
     res = client.post(
         "/resources",
         headers=auth_headers,
@@ -18,6 +18,7 @@ def test_create_resource(client, auth_headers):
             "description": "Bosch 18V, works great",
             "category": "tool",
             "condition": "good",
+            "community_id": community_id,
         },
     )
     assert res.status_code == 201
@@ -28,20 +29,20 @@ def test_create_resource(client, auth_headers):
     assert data["owner"]["email"] == "test@example.com"
 
 
-def test_create_resource_invalid_category(client, auth_headers):
+def test_create_resource_invalid_category(client, auth_headers, community_id):
     res = client.post(
         "/resources",
         headers=auth_headers,
-        json={"title": "Thing", "category": "invalid_cat"},
+        json={"title": "Thing", "category": "invalid_cat", "community_id": community_id},
     )
     assert res.status_code == 422
 
 
-def test_get_resource_by_id(client, auth_headers):
+def test_get_resource_by_id(client, auth_headers, community_id):
     create_res = client.post(
         "/resources",
         headers=auth_headers,
-        json={"title": "Projector", "category": "electronics", "condition": "new"},
+        json={"title": "Projector", "category": "electronics", "condition": "new", "community_id": community_id},
     )
     resource_id = create_res.json()["id"]
 
@@ -55,11 +56,11 @@ def test_get_resource_not_found(client):
     assert res.status_code == 404
 
 
-def test_update_resource(client, auth_headers):
+def test_update_resource(client, auth_headers, community_id):
     create_res = client.post(
         "/resources",
         headers=auth_headers,
-        json={"title": "Ladder", "category": "tool"},
+        json={"title": "Ladder", "category": "tool", "community_id": community_id},
     )
     resource_id = create_res.json()["id"]
 
@@ -74,11 +75,11 @@ def test_update_resource(client, auth_headers):
     assert data["is_available"] is False
 
 
-def test_delete_resource(client, auth_headers):
+def test_delete_resource(client, auth_headers, community_id):
     create_res = client.post(
         "/resources",
         headers=auth_headers,
-        json={"title": "Old Chair", "category": "furniture"},
+        json={"title": "Old Chair", "category": "furniture", "community_id": community_id},
     )
     resource_id = create_res.json()["id"]
 
@@ -89,16 +90,16 @@ def test_delete_resource(client, auth_headers):
     assert res.status_code == 404
 
 
-def test_filter_by_category(client, auth_headers):
+def test_filter_by_category(client, auth_headers, community_id):
     client.post(
         "/resources",
         headers=auth_headers,
-        json={"title": "Wrench", "category": "tool"},
+        json={"title": "Wrench", "category": "tool", "community_id": community_id},
     )
     client.post(
         "/resources",
         headers=auth_headers,
-        json={"title": "Sofa", "category": "furniture"},
+        json={"title": "Sofa", "category": "furniture", "community_id": community_id},
     )
 
     res = client.get("/resources?category=tool")
@@ -108,5 +109,5 @@ def test_filter_by_category(client, auth_headers):
 
 
 def test_create_resource_requires_auth(client):
-    res = client.post("/resources", json={"title": "X", "category": "tool"})
+    res = client.post("/resources", json={"title": "X", "category": "tool", "community_id": 1})
     assert res.status_code == 403

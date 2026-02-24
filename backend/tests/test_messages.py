@@ -24,6 +24,7 @@ def _make_community_pair(client, alice_headers, bob_headers):
     )
     cid = res.json()["id"]
     client.post(f"/communities/{cid}/join", headers=bob_headers)
+    return cid
 
 
 def _make_community_trio(client, alice_headers, bob_headers, carol_headers):
@@ -36,6 +37,7 @@ def _make_community_trio(client, alice_headers, bob_headers, carol_headers):
     cid = res.json()["id"]
     client.post(f"/communities/{cid}/join", headers=bob_headers)
     client.post(f"/communities/{cid}/join", headers=carol_headers)
+    return cid
 
 
 # ── Send message ────────────────────────────────────────────────────
@@ -108,13 +110,13 @@ def test_send_message_requires_auth(client):
 def test_send_message_with_booking_id(client, auth_headers):
     bob = _register(client, "bob@test.com", "Bob")
     bob_id = _get_user_id(client, bob)
-    _make_community_pair(client, auth_headers, bob)
+    cid = _make_community_pair(client, auth_headers, bob)
 
     # Create resource and booking for context
     r = client.post(
         "/resources",
         headers=auth_headers,
-        json={"title": "Drill", "category": "tool"},
+        json={"title": "Drill", "category": "tool", "community_id": cid},
     )
     resource_id = r.json()["id"]
     b = client.post(
@@ -215,10 +217,10 @@ def test_list_messages_filter_by_partner(client):
 def test_list_messages_filter_by_booking(client, auth_headers):
     bob = _register(client, "bob@test.com", "Bob")
     bob_id = _get_user_id(client, bob)
-    _make_community_pair(client, auth_headers, bob)
+    cid = _make_community_pair(client, auth_headers, bob)
 
     # Create resource and booking
-    r = client.post("/resources", headers=auth_headers, json={"title": "Saw", "category": "tool"})
+    r = client.post("/resources", headers=auth_headers, json={"title": "Saw", "category": "tool", "community_id": cid})
     resource_id = r.json()["id"]
     b = client.post(
         "/bookings",

@@ -40,7 +40,7 @@ class SkillCreate(BaseModel):
     description: str | None = Field(None, max_length=5000)
     category: str
     skill_type: str  # "offer" or "request"
-    community_id: int | None = None
+    community_id: int
 
 
 class SkillUpdate(BaseModel):

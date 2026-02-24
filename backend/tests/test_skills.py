@@ -38,7 +38,7 @@ def test_list_skill_categories(client):
 # ── CRUD ───────────────────────────────────────────────────────────
 
 
-def test_create_skill_offer(client, auth_headers):
+def test_create_skill_offer(client, auth_headers, community_id):
     res = client.post(
         "/skills",
         headers=auth_headers,
@@ -47,6 +47,7 @@ def test_create_skill_offer(client, auth_headers):
             "description": "Happy to help with Python basics",
             "category": "tutoring",
             "skill_type": "offer",
+            "community_id": community_id,
         },
     )
     assert res.status_code == 201
@@ -57,7 +58,7 @@ def test_create_skill_offer(client, auth_headers):
     assert data["owner"]["email"] == "test@example.com"
 
 
-def test_create_skill_request(client, auth_headers):
+def test_create_skill_request(client, auth_headers, community_id):
     res = client.post(
         "/skills",
         headers=auth_headers,
@@ -65,6 +66,7 @@ def test_create_skill_request(client, auth_headers):
             "title": "Need guitar lessons",
             "category": "music",
             "skill_type": "request",
+            "community_id": community_id,
         },
     )
     assert res.status_code == 201
@@ -74,34 +76,34 @@ def test_create_skill_request(client, auth_headers):
 def test_create_skill_requires_auth(client):
     res = client.post(
         "/skills",
-        json={"title": "Cooking", "category": "cooking", "skill_type": "offer"},
+        json={"title": "Cooking", "category": "cooking", "skill_type": "offer", "community_id": 1},
     )
     assert res.status_code == 403
 
 
-def test_create_skill_invalid_category(client, auth_headers):
+def test_create_skill_invalid_category(client, auth_headers, community_id):
     res = client.post(
         "/skills",
         headers=auth_headers,
-        json={"title": "X", "category": "nonexistent", "skill_type": "offer"},
+        json={"title": "X", "category": "nonexistent", "skill_type": "offer", "community_id": community_id},
     )
     assert res.status_code == 422
 
 
-def test_create_skill_invalid_type(client, auth_headers):
+def test_create_skill_invalid_type(client, auth_headers, community_id):
     res = client.post(
         "/skills",
         headers=auth_headers,
-        json={"title": "X", "category": "cooking", "skill_type": "invalid"},
+        json={"title": "X", "category": "cooking", "skill_type": "invalid", "community_id": community_id},
     )
     assert res.status_code == 422
 
 
-def test_get_skill(client, auth_headers):
+def test_get_skill(client, auth_headers, community_id):
     create = client.post(
         "/skills",
         headers=auth_headers,
-        json={"title": "Bike Repair", "category": "repairs", "skill_type": "offer"},
+        json={"title": "Bike Repair", "category": "repairs", "skill_type": "offer", "community_id": community_id},
     )
     skill_id = create.json()["id"]
 
@@ -115,11 +117,11 @@ def test_get_skill_not_found(client):
     assert res.status_code == 404
 
 
-def test_update_skill(client, auth_headers):
+def test_update_skill(client, auth_headers, community_id):
     create = client.post(
         "/skills",
         headers=auth_headers,
-        json={"title": "Gardening help", "category": "gardening", "skill_type": "offer"},
+        json={"title": "Gardening help", "category": "gardening", "skill_type": "offer", "community_id": community_id},
     )
     skill_id = create.json()["id"]
 
@@ -132,11 +134,11 @@ def test_update_skill(client, auth_headers):
     assert res.json()["title"] == "Gardening & Composting"
 
 
-def test_update_skill_not_owner(client, auth_headers):
+def test_update_skill_not_owner(client, auth_headers, community_id):
     create = client.post(
         "/skills",
         headers=auth_headers,
-        json={"title": "Cooking class", "category": "cooking", "skill_type": "offer"},
+        json={"title": "Cooking class", "category": "cooking", "skill_type": "offer", "community_id": community_id},
     )
     skill_id = create.json()["id"]
 
@@ -149,11 +151,11 @@ def test_update_skill_not_owner(client, auth_headers):
     assert res.status_code == 403
 
 
-def test_delete_skill(client, auth_headers):
+def test_delete_skill(client, auth_headers, community_id):
     create = client.post(
         "/skills",
         headers=auth_headers,
-        json={"title": "Old skill", "category": "other", "skill_type": "offer"},
+        json={"title": "Old skill", "category": "other", "skill_type": "offer", "community_id": community_id},
     )
     skill_id = create.json()["id"]
 
@@ -164,11 +166,11 @@ def test_delete_skill(client, auth_headers):
     assert res.status_code == 404
 
 
-def test_delete_skill_not_owner(client, auth_headers):
+def test_delete_skill_not_owner(client, auth_headers, community_id):
     create = client.post(
         "/skills",
         headers=auth_headers,
-        json={"title": "Protected", "category": "tech", "skill_type": "offer"},
+        json={"title": "Protected", "category": "tech", "skill_type": "offer", "community_id": community_id},
     )
     skill_id = create.json()["id"]
 
@@ -180,14 +182,14 @@ def test_delete_skill_not_owner(client, auth_headers):
 # ── Filters and Search ─────────────────────────────────────────────
 
 
-def test_filter_by_category(client, auth_headers):
+def test_filter_by_category(client, auth_headers, community_id):
     client.post(
         "/skills", headers=auth_headers,
-        json={"title": "Cooking", "category": "cooking", "skill_type": "offer"},
+        json={"title": "Cooking", "category": "cooking", "skill_type": "offer", "community_id": community_id},
     )
     client.post(
         "/skills", headers=auth_headers,
-        json={"title": "Coding", "category": "tech", "skill_type": "offer"},
+        json={"title": "Coding", "category": "tech", "skill_type": "offer", "community_id": community_id},
     )
 
     res = client.get("/skills?category=cooking")
@@ -197,14 +199,14 @@ def test_filter_by_category(client, auth_headers):
     assert data["items"][0]["category"] == "cooking"
 
 
-def test_filter_by_skill_type(client, auth_headers):
+def test_filter_by_skill_type(client, auth_headers, community_id):
     client.post(
         "/skills", headers=auth_headers,
-        json={"title": "Offer gardening", "category": "gardening", "skill_type": "offer"},
+        json={"title": "Offer gardening", "category": "gardening", "skill_type": "offer", "community_id": community_id},
     )
     client.post(
         "/skills", headers=auth_headers,
-        json={"title": "Need gardening", "category": "gardening", "skill_type": "request"},
+        json={"title": "Need gardening", "category": "gardening", "skill_type": "request", "community_id": community_id},
     )
 
     res = client.get("/skills?skill_type=request")
@@ -214,14 +216,14 @@ def test_filter_by_skill_type(client, auth_headers):
     assert data["items"][0]["skill_type"] == "request"
 
 
-def test_search_skills(client, auth_headers):
+def test_search_skills(client, auth_headers, community_id):
     client.post(
         "/skills", headers=auth_headers,
-        json={"title": "Piano Lessons", "category": "music", "skill_type": "offer"},
+        json={"title": "Piano Lessons", "category": "music", "skill_type": "offer", "community_id": community_id},
     )
     client.post(
         "/skills", headers=auth_headers,
-        json={"title": "Yoga Classes", "category": "fitness", "skill_type": "offer"},
+        json={"title": "Yoga Classes", "category": "fitness", "skill_type": "offer", "community_id": community_id},
     )
 
     res = client.get("/skills?q=piano")
