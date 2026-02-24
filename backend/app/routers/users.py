@@ -93,9 +93,11 @@ def update_my_profile(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Update the authenticated user's profile fields."""
+    """Update the authenticated user's profile fields. Username changes are prohibited for security."""
     if body.display_name is not None:
         current_user.display_name = body.display_name
+    if body.neighbourhood is not None:
+        current_user.neighbourhood = body.neighbourhood
     db.commit()
     db.refresh(current_user)
     return current_user
