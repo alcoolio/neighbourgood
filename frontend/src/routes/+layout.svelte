@@ -34,6 +34,23 @@
 		} catch {
 			// Backend unreachable — leave mode at default blue
 		}
+
+		// Check if user is a member of any Red Sky communities
+		if (t) {
+			try {
+				const communities = await api<Array<{ id: number; mode: string }>>(
+					'/communities/my/memberships',
+					{ auth: true }
+				);
+				// If any community is in Red Sky mode, activate it globally
+				const hasRedSky = communities.some((c) => c.mode === 'red');
+				if (hasRedSky) {
+					setPlatformMode('red');
+				}
+			} catch {
+				// If we can't fetch communities, just use the instance mode
+			}
+		}
 	});
 </script>
 
