@@ -58,6 +58,36 @@ async def lifespan(app: FastAPI):
                 conn.execute(text(
                     "ALTER TABLE communities ADD COLUMN longitude FLOAT"
                 ))
+    if "resources" in inspector.get_table_names():
+        existing_res = {col["name"] for col in inspector.get_columns("resources")}
+        with engine.begin() as conn:
+            if "image_path" not in existing_res:
+                conn.execute(text(
+                    "ALTER TABLE resources ADD COLUMN image_path VARCHAR(500)"
+                ))
+            if "community_id" not in existing_res:
+                conn.execute(text(
+                    "ALTER TABLE resources ADD COLUMN community_id INTEGER"
+                ))
+            if "quantity_total" not in existing_res:
+                conn.execute(text(
+                    "ALTER TABLE resources ADD COLUMN quantity_total INTEGER NOT NULL DEFAULT 1"
+                ))
+            if "quantity_available" not in existing_res:
+                conn.execute(text(
+                    "ALTER TABLE resources ADD COLUMN quantity_available INTEGER NOT NULL DEFAULT 1"
+                ))
+            if "reorder_threshold" not in existing_res:
+                conn.execute(text(
+                    "ALTER TABLE resources ADD COLUMN reorder_threshold INTEGER"
+                ))
+    if "emergency_tickets" in inspector.get_table_names():
+        existing_et = {col["name"] for col in inspector.get_columns("emergency_tickets")}
+        with engine.begin() as conn:
+            if "due_at" not in existing_et:
+                conn.execute(text(
+                    "ALTER TABLE emergency_tickets ADD COLUMN due_at DATETIME"
+                ))
     yield
 
 
