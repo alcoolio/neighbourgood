@@ -172,9 +172,14 @@ def create_community(
     )
     db.add(membership)
     db.commit()
-    db.refresh(community)
-    _ = community.created_by
-    _ = community.members
+
+    # Re-fetch with eager-loaded relationships to ensure proper serialization
+    community = (
+        db.query(Community)
+        .options(joinedload(Community.created_by), joinedload(Community.members))
+        .filter(Community.id == community.id)
+        .first()
+    )
     return _community_to_out(community)
 
 
