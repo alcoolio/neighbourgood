@@ -233,7 +233,8 @@
 	}
 
 	h1 {
-		font-size: 1.75rem;
+		font-size: 1.9rem;
+		font-weight: 400;
 		margin-bottom: 1.5rem;
 	}
 
@@ -242,6 +243,7 @@
 		align-items: center;
 		gap: 0.75rem;
 		margin-bottom: 1.5rem;
+		flex-wrap: wrap;
 	}
 
 	.filter-bar select {

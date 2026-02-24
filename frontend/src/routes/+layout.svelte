@@ -4,6 +4,7 @@
 	import { isLoggedIn, user, token, logout } from '$lib/stores/auth';
 	import type { UserProfile } from '$lib/stores/auth';
 	import { theme, toggleTheme, bandwidth, toggleBandwidth, platformMode, setPlatformMode } from '$lib/stores/theme';
+	import { page } from '$app/stores';
 	import { api } from '$lib/api';
 
 	let { children } = $props();
@@ -43,15 +44,21 @@
 	{#if $bandwidth === 'normal'}
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
-		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+		<link href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 	{/if}
 </svelte:head>
 
 <nav class="main-nav">
 	<div class="nav-inner">
 		<a href="/" class="nav-brand" onclick={closeMobileMenu}>
-			<span class="brand-icon">N</span>
-			<span class="brand-text">NeighbourGood</span>
+			<span class="brand-icon" aria-hidden="true">
+				<svg width="18" height="17" viewBox="0 0 18 17" fill="none" xmlns="http://www.w3.org/2000/svg">
+					<path d="M1 8.5L9 1l8 7.5" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+					<path d="M3 8.5v7a.5.5 0 00.5.5H7v-4.5h4V16h3.5a.5.5 0 00.5-.5v-7" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+					<path d="M9 12c0 0-2.2-1.7-2.2-3 0-.8.6-1.3 1.4-1 .3.1.6.4.8.7.2-.3.5-.6.8-.7.8-.3 1.4.2 1.4 1 0 1.3-2.2 3-2.2 3z" fill="white" opacity="0.9"/>
+				</svg>
+			</span>
+			<span class="brand-text">Neighbour<span class="brand-accent">Good</span></span>
 		</a>
 
 		<button
@@ -68,17 +75,17 @@
 
 		<div class="nav-links" class:mobile-open={mobileMenuOpen}>
 			{#if $isLoggedIn}
-				<a href="/dashboard" class="nav-link" onclick={closeMobileMenu}>Dashboard</a>
-				<a href="/resources" class="nav-link" onclick={closeMobileMenu}>Resources</a>
-				<a href="/skills" class="nav-link" onclick={closeMobileMenu}>Skills</a>
-				<a href="/communities" class="nav-link" onclick={closeMobileMenu}>Communities</a>
-				<a href="/bookings" class="nav-link" onclick={closeMobileMenu}>Bookings</a>
-				<a href="/messages" class="nav-link" onclick={closeMobileMenu}>Messages</a>
+				<a href="/dashboard" class="nav-link" class:active={$page.url.pathname === '/dashboard'} onclick={closeMobileMenu}>Dashboard</a>
+				<a href="/resources" class="nav-link" class:active={$page.url.pathname.startsWith('/resources')} onclick={closeMobileMenu}>Resources</a>
+				<a href="/skills" class="nav-link" class:active={$page.url.pathname.startsWith('/skills')} onclick={closeMobileMenu}>Skills</a>
+				<a href="/communities" class="nav-link" class:active={$page.url.pathname.startsWith('/communities')} onclick={closeMobileMenu}>Communities</a>
+				<a href="/bookings" class="nav-link" class:active={$page.url.pathname === '/bookings'} onclick={closeMobileMenu}>Bookings</a>
+				<a href="/messages" class="nav-link" class:active={$page.url.pathname === '/messages'} onclick={closeMobileMenu}>Messages</a>
 				{#if $platformMode === 'red'}
-					<a href="/triage" class="nav-link nav-link-crisis" onclick={closeMobileMenu}>Triage</a>
+					<a href="/triage" class="nav-link nav-link-crisis" class:active={$page.url.pathname === '/triage'} onclick={closeMobileMenu}>Triage</a>
 				{/if}
 			{:else}
-				<a href="/explore" class="nav-link" onclick={closeMobileMenu}>Explore</a>
+				<a href="/explore" class="nav-link" class:active={$page.url.pathname === '/explore'} onclick={closeMobileMenu}>Explore</a>
 			{/if}
 
 			<button
@@ -146,7 +153,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 0.6rem 1.5rem;
+		padding: 0.75rem 1.5rem;
 		max-width: 1100px;
 		margin: 0 auto;
 	}
@@ -169,19 +176,24 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		width: 32px;
-		height: 32px;
+		width: 34px;
+		height: 34px;
 		border-radius: var(--radius-sm);
 		background: var(--color-primary);
 		color: white;
-		font-weight: 700;
-		font-size: 1rem;
+		flex-shrink: 0;
 	}
 
 	.brand-text {
-		font-weight: 700;
-		font-size: 1.1rem;
-		letter-spacing: -0.02em;
+		font-family: var(--font-heading, 'Abril Fatface', Georgia, serif);
+		font-weight: 400;
+		font-size: 1.2rem;
+		letter-spacing: -0.01em;
+		color: var(--color-text);
+	}
+
+	.brand-accent {
+		color: var(--color-primary);
 	}
 
 	/* ── Hamburger button (hidden on desktop) ────────────────── */
@@ -243,12 +255,19 @@
 		padding: 0.4rem 0.7rem;
 		border-radius: var(--radius-sm);
 		transition: color var(--transition-fast), background-color var(--transition-fast);
+		position: relative;
 	}
 
 	.nav-link:hover {
 		color: var(--color-text);
 		background: var(--color-primary-light);
 		text-decoration: none;
+	}
+
+	.nav-link.active {
+		color: var(--color-primary);
+		background: var(--color-primary-light);
+		font-weight: 600;
 	}
 
 	.theme-toggle {
@@ -375,6 +394,12 @@
 
 		.nav-links.mobile-open {
 			display: flex;
+			animation: slideDown 0.18s ease-out;
+		}
+
+		@keyframes slideDown {
+			from { opacity: 0; transform: translateY(-6px); }
+			to   { opacity: 1; transform: translateY(0); }
 		}
 
 		.nav-link {
@@ -416,7 +441,7 @@
 		}
 
 		.brand-text {
-			font-size: 1rem;
+			font-size: 1.05rem;
 		}
 	}
 
