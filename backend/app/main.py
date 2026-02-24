@@ -86,7 +86,7 @@ async def lifespan(app: FastAPI):
         with engine.begin() as conn:
             if "due_at" not in existing_et:
                 conn.execute(text(
-                    "ALTER TABLE emergency_tickets ADD COLUMN due_at DATETIME"
+                    "ALTER TABLE emergency_tickets ADD COLUMN due_at TIMESTAMP"
                 ))
     yield
 
