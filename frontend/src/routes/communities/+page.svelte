@@ -95,9 +95,9 @@
 	}
 
 	.page-header h1 {
-		font-size: 1.75rem;
-		font-weight: 700;
-		letter-spacing: -0.02em;
+		font-size: 1.9rem;
+		font-weight: 400;
+		letter-spacing: -0.01em;
 	}
 
 	.btn-find {

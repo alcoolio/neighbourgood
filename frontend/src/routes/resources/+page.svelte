@@ -287,10 +287,13 @@
 		align-items: center;
 		justify-content: space-between;
 		margin-bottom: 1.5rem;
+		gap: 1rem;
+		flex-wrap: wrap;
 	}
 
 	h1 {
-		font-size: 1.75rem;
+		font-size: 1.9rem;
+		font-weight: 400;
 	}
 
 	.btn-primary {
@@ -368,6 +371,7 @@
 		align-items: center;
 		gap: 0.75rem;
 		margin-bottom: 1.5rem;
+		flex-wrap: wrap;
 	}
 
 	.search-input {
@@ -410,6 +414,8 @@
 
 	.resource-card:hover {
 		border-color: var(--color-primary);
+		box-shadow: var(--shadow-md);
+		transform: translateY(-2px);
 		text-decoration: none;
 	}
 

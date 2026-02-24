@@ -349,15 +349,15 @@
 	}
 
 	h1 {
-		font-size: 1.75rem;
-		font-weight: 700;
+		font-size: 1.9rem;
+		font-weight: 400;
 		color: var(--color-text);
 		margin: 0;
 	}
 
 	h2 {
-		font-size: 1.3rem;
-		font-weight: 600;
+		font-size: 1.35rem;
+		font-weight: 400;
 		color: var(--color-text);
 		margin: 1.5rem 0 1rem 0;
 	}
