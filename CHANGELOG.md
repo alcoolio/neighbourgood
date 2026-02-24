@@ -4,6 +4,41 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.9.5] - 2026-02-24
+
+### Added
+
+- **Low-bandwidth mode** – Text-only, image-free UI for reduced data usage
+  - Hidden by default in Blue Sky; auto-enabled in Red Sky mode
+  - Triage dashboard for managing emergency tickets (Red Sky only)
+  - Inventory tracking system for essential resource quantities
+- **CLAUDE.md codebase guide** – Comprehensive reference for AI assistants
+  - Model usage policy and token efficiency guidelines
+  - Project overview, tech stack, and repository structure
+  - Development workflows, testing patterns, and common task recipes
+  - Security state tracking with pending items and implementation status
+- **Community-filtered resources and skills** – Search/filter now respects joined communities
+  - API endpoints filter results to only show resources/skills from communities the user has joined
+  - Prevents information leakage of resources in other communities
+- **Eager-loading for community relationships** – N+1 query fix
+  - Communities serialize with members, resources, and skills without extra round-trips
+  - Improved API response time and database efficiency
+- **Enhanced API error handling** – Better Pydantic validation error messages
+  - Detailed field-level error information for easier client-side debugging
+  - Consistent error response format across all endpoints
+
+### Fixed
+
+- **Community 500 error** – Fixed serialization issues when accessing community endpoints
+- **Community-scoped resource/skill filtering** – Correct community membership checks on queries
+- **Other bug fixes** – Stability improvements across multiple endpoints
+
+### Changed
+
+- Backend version bumped to 0.9.5
+- **Red Sky Mode improvements** – Low-bandwidth mode now defaults to on when crisis mode is active
+- Low-bandwidth and triage features are production-ready and integrated into crisis workflow
+
 ## [0.9.0] - 2026-02-19
 
 ### Added

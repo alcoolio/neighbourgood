@@ -1,6 +1,6 @@
 # 🏘️ NeighbourGood
 
-**v0.9.0** · A self-hostable web platform that helps communities share resources and coordinate during crises.
+**v0.9.5** · A self-hostable web platform that helps communities share resources and coordinate during crises.
 
 ## 💡 Vision
 
@@ -169,9 +169,9 @@ See [API_ENDPOINTS.md](API_ENDPOINTS.md) for the full endpoint reference. Intera
 - [x] Emergency ticketing system (Request / Offer / Emergency Ping)
 - [x] Neighbourhood leader roles and assignment
 - [x] Explore page with community map for unregistered users
-- [ ] Low-bandwidth UI variant
-- [ ] Essential resource inventory tracking
-- [ ] Priority-based ticket triage
+- [x] Low-bandwidth UI variant (text-only, image-free mode)
+- [x] Essential resource inventory tracking (quantity-based stock management)
+- [x] Priority-based ticket triage (triage dashboard for leaders/admins)
 
 #### Security Phase 4a — Hardening ✅
 
