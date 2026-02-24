@@ -56,6 +56,7 @@
 	let loading = $state(true);
 	let filterCategory = $state('');
 	let filterType = $state('');
+	let filterCommunity = $state('');
 	let searchQuery = $state('');
 	let searchTimeout: ReturnType<typeof setTimeout> | null = $state(null);
 	let showCreateForm = $state(false);
@@ -73,6 +74,7 @@
 		loading = true;
 		try {
 			const params = new URLSearchParams();
+			if (filterCommunity) params.set('community_id', filterCommunity);
 			if (filterCategory) params.set('category', filterCategory);
 			if (filterType) params.set('skill_type', filterType);
 			if (searchQuery.trim()) params.set('q', searchQuery.trim());
@@ -96,6 +98,10 @@
 	async function handleCreate(e: Event) {
 		e.preventDefault();
 		createError = '';
+		if (!newCommunityId) {
+			createError = 'Please select a community';
+			return;
+		}
 		try {
 			await api('/skills', {
 				method: 'POST',
@@ -105,13 +111,12 @@
 					description: newDescription || null,
 					category: newCategory,
 					skill_type: newSkillType,
-					community_id: newCommunityId ? Number(newCommunityId) : null
+					community_id: Number(newCommunityId)
 				}
 			});
 			showCreateForm = false;
 			newTitle = '';
 			newDescription = '';
-			newCommunityId = '';
 			await loadSkills();
 		} catch (err) {
 			createError = err instanceof Error ? err.message : 'Failed to create skill listing';
@@ -123,19 +128,26 @@
 			myCommunities = await api<MyCommunity[]>(
 				'/communities/my/memberships', { auth: true }
 			);
+			if (myCommunities.length > 0) {
+				filterCommunity = String(myCommunities[0].id);
+				newCommunityId = String(myCommunities[0].id);
+			}
 		} catch {
 			myCommunities = [];
 		}
 	}
 
-	onMount(() => {
+	onMount(async () => {
+		if ($isLoggedIn) {
+			await loadMyCommunities();
+		}
 		loadSkills();
-		if ($isLoggedIn) loadMyCommunities();
 	});
 
 	$effect(() => {
 		filterCategory;
 		filterType;
+		filterCommunity;
 		loadSkills();
 	});
 </script>
@@ -185,15 +197,16 @@
 				{#if myCommunities.length > 0}
 					<label>
 						<span>Community</span>
-						<select bind:value={newCommunityId}>
-							<option value="">No community (personal)</option>
+						<select bind:value={newCommunityId} required>
 							{#each myCommunities as c}
 								<option value={c.id}>{c.name} ({c.postal_code})</option>
 							{/each}
 						</select>
 					</label>
+				{:else}
+					<p class="hint">You need to <a href="/communities">join a community</a> before sharing skills.</p>
 				{/if}
-				<button type="submit" class="btn-primary">Post Skill Listing</button>
+				<button type="submit" class="btn-primary" disabled={myCommunities.length === 0}>Post Skill Listing</button>
 			</form>
 		</div>
 	{/if}
@@ -206,6 +219,13 @@
 			bind:value={searchQuery}
 			oninput={handleSearchInput}
 		/>
+		{#if myCommunities.length > 0}
+			<select bind:value={filterCommunity}>
+				{#each myCommunities as c}
+					<option value={c.id}>{c.name}</option>
+				{/each}
+			</select>
+		{/if}
 		<select bind:value={filterCategory}>
 			{#each CATEGORIES as cat}
 				<option value={cat.value}>{cat.label}</option>
@@ -339,6 +359,11 @@
 		color: var(--color-error);
 		font-size: 0.9rem;
 		margin-bottom: 0.5rem;
+	}
+
+	.hint {
+		font-size: 0.85rem;
+		color: var(--color-text-muted);
 	}
 
 	.filter-bar {

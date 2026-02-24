@@ -61,6 +61,8 @@ def list_skills(
     """List skill listings with optional filters and text search."""
     query = db.query(Skill).options(joinedload(Skill.owner))
 
+    # Only show community-scoped skills
+    query = query.filter(Skill.community_id.isnot(None))
     if community_id is not None:
         query = query.filter(Skill.community_id == community_id)
     if category:

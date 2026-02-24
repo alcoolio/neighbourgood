@@ -9,11 +9,20 @@ def _register(client, email, name="User"):
     return {"Authorization": f"Bearer {res.json()['access_token']}"}
 
 
-def _create_completed_booking(client, lender_headers, borrower_headers):
+def _create_community(client, headers, name="Test Community"):
+    res = client.post(
+        "/communities",
+        headers=headers,
+        json={"name": name, "postal_code": "12345", "city": "Teststadt"},
+    )
+    return res.json()["id"]
+
+
+def _create_completed_booking(client, lender_headers, borrower_headers, community_id):
     """Helper: create a resource, book it, approve, and complete."""
     r = client.post(
         "/resources", headers=lender_headers,
-        json={"title": "Drill", "category": "tool"},
+        json={"title": "Drill", "category": "tool", "community_id": community_id},
     )
     resource_id = r.json()["id"]
 
@@ -31,10 +40,10 @@ def _create_completed_booking(client, lender_headers, borrower_headers):
 # ── Create review ──────────────────────────────────────────────────
 
 
-def test_borrower_reviews_lender(client, auth_headers):
+def test_borrower_reviews_lender(client, auth_headers, community_id):
     """Borrower can review the lender after completion."""
     borrower = _register(client, "borrower@test.com", "Borrower")
-    booking_id = _create_completed_booking(client, auth_headers, borrower)
+    booking_id = _create_completed_booking(client, auth_headers, borrower, community_id)
 
     res = client.post(
         "/reviews",
@@ -49,10 +58,10 @@ def test_borrower_reviews_lender(client, auth_headers):
     assert data["reviewee"]["email"] == "test@example.com"
 
 
-def test_lender_reviews_borrower(client, auth_headers):
+def test_lender_reviews_borrower(client, auth_headers, community_id):
     """Lender can review the borrower after completion."""
     borrower = _register(client, "borrower@test.com", "Borrower")
-    booking_id = _create_completed_booking(client, auth_headers, borrower)
+    booking_id = _create_completed_booking(client, auth_headers, borrower, community_id)
 
     res = client.post(
         "/reviews",
@@ -65,10 +74,10 @@ def test_lender_reviews_borrower(client, auth_headers):
     assert data["reviewee"]["email"] == "borrower@test.com"
 
 
-def test_both_parties_can_review(client, auth_headers):
+def test_both_parties_can_review(client, auth_headers, community_id):
     """Both borrower and lender can review the same booking."""
     borrower = _register(client, "borrower@test.com", "Borrower")
-    booking_id = _create_completed_booking(client, auth_headers, borrower)
+    booking_id = _create_completed_booking(client, auth_headers, borrower, community_id)
 
     # Borrower reviews lender
     res1 = client.post(
@@ -85,12 +94,12 @@ def test_both_parties_can_review(client, auth_headers):
     assert res2.status_code == 201
 
 
-def test_cannot_review_pending_booking(client, auth_headers):
+def test_cannot_review_pending_booking(client, auth_headers, community_id):
     """Cannot review a booking that is not completed."""
     borrower = _register(client, "borrower@test.com", "Borrower")
     r = client.post(
         "/resources", headers=auth_headers,
-        json={"title": "Drill", "category": "tool"},
+        json={"title": "Drill", "category": "tool", "community_id": community_id},
     )
     b = client.post(
         "/bookings", headers=borrower,
@@ -103,10 +112,10 @@ def test_cannot_review_pending_booking(client, auth_headers):
     assert res.status_code == 409
 
 
-def test_cannot_review_twice(client, auth_headers):
+def test_cannot_review_twice(client, auth_headers, community_id):
     """Same person cannot review the same booking twice."""
     borrower = _register(client, "borrower@test.com", "Borrower")
-    booking_id = _create_completed_booking(client, auth_headers, borrower)
+    booking_id = _create_completed_booking(client, auth_headers, borrower, community_id)
 
     client.post(
         "/reviews", headers=borrower,
@@ -119,10 +128,10 @@ def test_cannot_review_twice(client, auth_headers):
     assert res.status_code == 409
 
 
-def test_unrelated_user_cannot_review(client, auth_headers):
+def test_unrelated_user_cannot_review(client, auth_headers, community_id):
     """A user not involved in the booking cannot review it."""
     borrower = _register(client, "borrower@test.com", "Borrower")
-    booking_id = _create_completed_booking(client, auth_headers, borrower)
+    booking_id = _create_completed_booking(client, auth_headers, borrower, community_id)
 
     outsider = _register(client, "outsider@test.com", "Outsider")
     res = client.post(
@@ -132,10 +141,10 @@ def test_unrelated_user_cannot_review(client, auth_headers):
     assert res.status_code == 403
 
 
-def test_rating_out_of_range(client, auth_headers):
+def test_rating_out_of_range(client, auth_headers, community_id):
     """Rating must be 1-5."""
     borrower = _register(client, "borrower@test.com", "Borrower")
-    booking_id = _create_completed_booking(client, auth_headers, borrower)
+    booking_id = _create_completed_booking(client, auth_headers, borrower, community_id)
 
     res = client.post(
         "/reviews", headers=borrower,
@@ -159,10 +168,10 @@ def test_review_requires_auth(client, auth_headers):
 # ── Read reviews ───────────────────────────────────────────────────
 
 
-def test_get_booking_reviews(client, auth_headers):
+def test_get_booking_reviews(client, auth_headers, community_id):
     """Get all reviews for a booking."""
     borrower = _register(client, "borrower@test.com", "Borrower")
-    booking_id = _create_completed_booking(client, auth_headers, borrower)
+    booking_id = _create_completed_booking(client, auth_headers, borrower, community_id)
 
     client.post("/reviews", headers=borrower, json={"booking_id": booking_id, "rating": 5})
     client.post("/reviews", headers=auth_headers, json={"booking_id": booking_id, "rating": 4})
@@ -172,10 +181,10 @@ def test_get_booking_reviews(client, auth_headers):
     assert len(res.json()) == 2
 
 
-def test_get_user_reviews(client, auth_headers):
+def test_get_user_reviews(client, auth_headers, community_id):
     """Get all reviews received by a user."""
     borrower = _register(client, "borrower@test.com", "Borrower")
-    booking_id = _create_completed_booking(client, auth_headers, borrower)
+    booking_id = _create_completed_booking(client, auth_headers, borrower, community_id)
 
     # Borrower reviews lender (auth_headers user)
     client.post("/reviews", headers=borrower, json={"booking_id": booking_id, "rating": 5})
@@ -189,16 +198,16 @@ def test_get_user_reviews(client, auth_headers):
     assert res.json()[0]["rating"] == 5
 
 
-def test_get_user_review_summary(client, auth_headers):
+def test_get_user_review_summary(client, auth_headers, community_id):
     """Review summary shows average rating and total count."""
     borrower1 = _register(client, "b1@test.com", "B1")
-    booking_id1 = _create_completed_booking(client, auth_headers, borrower1)
+    booking_id1 = _create_completed_booking(client, auth_headers, borrower1, community_id)
     client.post("/reviews", headers=borrower1, json={"booking_id": booking_id1, "rating": 5})
 
     borrower2 = _register(client, "b2@test.com", "B2")
     r2 = client.post(
         "/resources", headers=auth_headers,
-        json={"title": "Saw", "category": "tool"},
+        json={"title": "Saw", "category": "tool", "community_id": community_id},
     )
     b2 = client.post(
         "/bookings", headers=borrower2,

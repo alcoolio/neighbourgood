@@ -65,3 +65,14 @@ def auth_headers(client):
     )
     token = res.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture()
+def community_id(client, auth_headers):
+    """Create a community owned by the default test user and return its ID."""
+    res = client.post(
+        "/communities",
+        headers=auth_headers,
+        json={"name": "Test Community", "postal_code": "12345", "city": "Teststadt"},
+    )
+    return res.json()["id"]

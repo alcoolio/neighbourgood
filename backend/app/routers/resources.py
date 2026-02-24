@@ -89,6 +89,8 @@ def list_resources(
     """List resources with optional filters and text search."""
     query = db.query(Resource).options(joinedload(Resource.owner))
 
+    # Only show community-scoped resources
+    query = query.filter(Resource.community_id.isnot(None))
     if community_id is not None:
         query = query.filter(Resource.community_id == community_id)
     if category:

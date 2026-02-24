@@ -98,9 +98,15 @@
 
 			map = L.map(mapContainer).setView([userLat, userLng], userLocated ? 12 : 6);
 
-			L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-				attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-				maxZoom: 18,
+			// Themed tiles: dark or light based on system preference
+			const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+			const tileUrl = prefersDark
+				? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+				: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+			L.tileLayer(tileUrl, {
+				attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
+				maxZoom: 19,
+				subdomains: 'abcd',
 			}).addTo(map);
 
 			// User position marker

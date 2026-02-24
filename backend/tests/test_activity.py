@@ -30,12 +30,12 @@ def test_empty_feed(client):
     assert data["total"] == 0
 
 
-def test_resource_creates_activity(client, auth_headers):
+def test_resource_creates_activity(client, auth_headers, community_id):
     """Sharing a resource generates a resource_shared event."""
     client.post(
         "/resources",
         headers=auth_headers,
-        json={"title": "Drill", "category": "tool"},
+        json={"title": "Drill", "category": "tool", "community_id": community_id},
     )
     res = client.get("/activity")
     data = res.json()
@@ -44,12 +44,12 @@ def test_resource_creates_activity(client, auth_headers):
     assert "Drill" in data["items"][0]["summary"]
 
 
-def test_skill_offer_creates_activity(client, auth_headers):
+def test_skill_offer_creates_activity(client, auth_headers, community_id):
     """Offering a skill generates a skill_offered event."""
     client.post(
         "/skills",
         headers=auth_headers,
-        json={"title": "Piano Lessons", "category": "music", "skill_type": "offer"},
+        json={"title": "Piano Lessons", "category": "music", "skill_type": "offer", "community_id": community_id},
     )
     res = client.get("/activity")
     data = res.json()
@@ -58,12 +58,12 @@ def test_skill_offer_creates_activity(client, auth_headers):
     assert "Piano" in events[0]["summary"]
 
 
-def test_skill_request_creates_activity(client, auth_headers):
+def test_skill_request_creates_activity(client, auth_headers, community_id):
     """Requesting a skill generates a skill_requested event."""
     client.post(
         "/skills",
         headers=auth_headers,
-        json={"title": "Need cooking help", "category": "cooking", "skill_type": "request"},
+        json={"title": "Need cooking help", "category": "cooking", "skill_type": "request", "community_id": community_id},
     )
     res = client.get("/activity")
     data = res.json()
@@ -71,12 +71,12 @@ def test_skill_request_creates_activity(client, auth_headers):
     assert len(events) == 1
 
 
-def test_booking_creates_activity(client, auth_headers):
+def test_booking_creates_activity(client, auth_headers, community_id):
     """Creating a booking generates a resource_borrowed event."""
     borrower = _register(client, "borrower@test.com", "Borrower")
     r = client.post(
         "/resources", headers=auth_headers,
-        json={"title": "Ladder", "category": "tool"},
+        json={"title": "Ladder", "category": "tool", "community_id": community_id},
     )
     resource_id = r.json()["id"]
 
@@ -96,12 +96,12 @@ def test_booking_creates_activity(client, auth_headers):
     assert "Ladder" in events[0]["summary"]
 
 
-def test_completed_booking_creates_activity(client, auth_headers):
+def test_completed_booking_creates_activity(client, auth_headers, community_id):
     """Completing a booking generates a booking_completed event."""
     borrower = _register(client, "borrower@test.com", "Borrower")
     r = client.post(
         "/resources", headers=auth_headers,
-        json={"title": "Drill", "category": "tool"},
+        json={"title": "Drill", "category": "tool", "community_id": community_id},
     )
     resource_id = r.json()["id"]
 
@@ -138,13 +138,14 @@ def test_join_community_creates_activity(client, auth_headers):
 def test_filter_by_community(client, auth_headers):
     """Activity can be filtered by community_id."""
     community_id = _create_community(client, auth_headers)
+    second_community_id = _create_community(client, auth_headers, name="Second Community")
     client.post(
         "/resources", headers=auth_headers,
         json={"title": "Community Drill", "category": "tool", "community_id": community_id},
     )
     client.post(
         "/resources", headers=auth_headers,
-        json={"title": "Personal Saw", "category": "tool"},
+        json={"title": "Personal Saw", "category": "tool", "community_id": second_community_id},
     )
 
     all_activity = client.get("/activity")
@@ -159,16 +160,17 @@ def test_filter_by_community(client, auth_headers):
     )
 
 
-def test_my_activity(client, auth_headers):
+def test_my_activity(client, auth_headers, community_id):
     """The /my endpoint returns only the current user's activity."""
     other = _register(client, "other@test.com", "Other")
+    other_community_id = _create_community(client, other, name="Other Community")
     client.post(
         "/resources", headers=auth_headers,
-        json={"title": "My Drill", "category": "tool"},
+        json={"title": "My Drill", "category": "tool", "community_id": community_id},
     )
     client.post(
         "/resources", headers=other,
-        json={"title": "Other Drill", "category": "tool"},
+        json={"title": "Other Drill", "category": "tool", "community_id": other_community_id},
     )
 
     res = client.get("/activity/my", headers=auth_headers)

@@ -35,35 +35,35 @@ def test_create_resource_with_community(client, auth_headers):
     assert res.json()["community_id"] == cid
 
 
-def test_create_resource_without_community(client, auth_headers):
-    """Resource without community_id still works (personal / global)."""
+def test_create_resource_requires_community(client, auth_headers):
+    """Resource without community_id is rejected (community_id is required)."""
     res = client.post(
         "/resources",
         json={"title": "Saw", "category": "tool"},
         headers=auth_headers,
     )
-    assert res.status_code == 201
-    assert res.json()["community_id"] is None
+    assert res.status_code == 422
 
 
 def test_filter_resources_by_community(client, auth_headers):
     """GET /resources?community_id= filters correctly."""
-    cid = _create_community(client, auth_headers)
+    cid1 = _create_community(client, auth_headers, name="Community A")
+    cid2 = _create_community(client, auth_headers, name="Community B", plz="54321")
 
-    # Create one resource in the community and one without
+    # Create one resource in each community
     client.post(
         "/resources",
-        json={"title": "Community Drill", "category": "tool", "community_id": cid},
+        json={"title": "Community Drill", "category": "tool", "community_id": cid1},
         headers=auth_headers,
     )
     client.post(
         "/resources",
-        json={"title": "Personal Saw", "category": "tool"},
+        json={"title": "Other Saw", "category": "tool", "community_id": cid2},
         headers=auth_headers,
     )
 
     # Filter by community
-    res = client.get(f"/resources?community_id={cid}")
+    res = client.get(f"/resources?community_id={cid1}")
     assert res.status_code == 200
     data = res.json()
     assert data["total"] == 1
@@ -76,9 +76,10 @@ def test_filter_resources_by_community(client, auth_headers):
 
 def test_filter_by_nonexistent_community(client, auth_headers):
     """Filtering by a community with no resources returns empty list."""
+    cid = _create_community(client, auth_headers)
     client.post(
         "/resources",
-        json={"title": "Drill", "category": "tool"},
+        json={"title": "Drill", "category": "tool", "community_id": cid},
         headers=auth_headers,
     )
     res = client.get("/resources?community_id=9999")

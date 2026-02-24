@@ -30,7 +30,7 @@ class ResourceCreate(BaseModel):
     description: str | None = Field(None, max_length=5000)
     category: str
     condition: str | None = None
-    community_id: int | None = None
+    community_id: int
 
 
 class ResourceUpdate(BaseModel):
