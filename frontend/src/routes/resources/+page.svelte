@@ -30,13 +30,12 @@
 		{ value: 'furniture', label: 'Furniture' },
 		{ value: 'food', label: 'Food' },
 		{ value: 'clothing', label: 'Clothing' },
-		{ value: 'skill', label: 'Skills' },
 		{ value: 'other', label: 'Other' }
 	];
 
 	const CATEGORY_ICONS: Record<string, string> = {
 		tool: '🔧', vehicle: '🚗', electronics: '⚡', furniture: '🪑',
-		food: '🍎', clothing: '👕', skill: '💡', other: '📦'
+		food: '🍎', clothing: '👕', other: '📦'
 	};
 
 	let resources: Resource[] = $state([]);

@@ -73,7 +73,7 @@ def test_list_categories(client):
     res = client.get("/resources/categories")
     assert res.status_code == 200
     data = res.json()
-    assert len(data) == 8
+    assert len(data) == 7
     values = [c["value"] for c in data]
     assert "tool" in values
     assert "furniture" in values

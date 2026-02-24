@@ -154,8 +154,15 @@ def create_resource(
     )
     db.add(resource)
     db.commit()
-    db.refresh(resource)
-    _ = resource.owner
+
+    # Re-fetch with eager-loaded relationships to ensure proper serialization
+    resource = (
+        db.query(Resource)
+        .options(joinedload(Resource.owner))
+        .filter(Resource.id == resource.id)
+        .first()
+    )
+
     record_activity(
         db,
         event_type="resource_shared",

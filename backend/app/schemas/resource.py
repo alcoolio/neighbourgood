@@ -8,7 +8,7 @@ from app.schemas.user import UserProfile
 
 VALID_CATEGORIES = [
     "tool", "vehicle", "electronics", "furniture",
-    "food", "clothing", "skill", "other",
+    "food", "clothing", "other",
 ]
 
 VALID_CONDITIONS = ["new", "good", "fair", "worn"]
@@ -20,7 +20,6 @@ CATEGORY_META = {
     "furniture":   {"label": "Furniture",   "icon": "armchair"},
     "food":        {"label": "Food",        "icon": "utensils"},
     "clothing":    {"label": "Clothing",    "icon": "shirt"},
-    "skill":       {"label": "Skills",      "icon": "lightbulb"},
     "other":       {"label": "Other",       "icon": "box"},
 }
 
