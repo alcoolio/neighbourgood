@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { isLoggedIn } from '$lib/stores/auth';
+	import { bandwidth, platformMode } from '$lib/stores/theme';
 
 	interface PlatformStatus {
 		status: string;
@@ -16,9 +17,6 @@
 			const res = await fetch('/api/status');
 			if (res.ok) {
 				platformStatus = await res.json();
-				if (platformStatus?.mode === 'red') {
-					document.documentElement.setAttribute('data-mode', 'red');
-				}
 			} else {
 				error = 'Backend unavailable';
 			}
@@ -28,9 +26,9 @@
 	});
 
 	const modeLabel = $derived(
-		platformStatus?.mode === 'red' ? 'Red Sky (Crisis)' : 'Blue Sky (Normal)'
+		$platformMode === 'red' ? 'Red Sky (Crisis)' : 'Blue Sky (Normal)'
 	);
-	const modeClass = $derived(platformStatus?.mode === 'red' ? 'mode-red' : 'mode-blue');
+	const modeClass = $derived($platformMode === 'red' ? 'mode-red' : 'mode-blue');
 </script>
 
 <main class="landing">
@@ -51,13 +49,15 @@
 		</div>
 	</section>
 
-	<section class="hero-image slide-up" style="animation-delay: 0.05s">
-		<img
-			src="https://repository-images.githubusercontent.com/1157105951/d1f4dfb1-a28b-4cd3-8994-c4f2906d0354"
-			alt="NeighbourGood – a local network for neighbours to share stuff and skills"
-			class="social-preview"
-		/>
-	</section>
+	{#if $bandwidth !== 'low'}
+		<section class="hero-image slide-up" style="animation-delay: 0.05s">
+			<img
+				src="https://repository-images.githubusercontent.com/1157105951/d1f4dfb1-a28b-4cd3-8994-c4f2906d0354"
+				alt="NeighbourGood – a local network for neighbours to share stuff and skills"
+				class="social-preview"
+			/>
+		</section>
+	{/if}
 
 	<section class="features">
 		<div class="feature-grid">

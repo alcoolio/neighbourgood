@@ -91,8 +91,9 @@
 }
 
 /* ── Low-bandwidth Mode ─────────────────────────────────────────── */
-/* Eliminates all transitions, animations, shadows, and decorative  */
-/* images so the UI is usable on slow or metered connections.       */
+/* Eliminates all transitions, animations, shadows, and images so   */
+/* the UI is usable on slow or metered connections. Activated       */
+/* automatically when the platform is in Red Sky (crisis) mode.     */
 
 :root[data-bandwidth='low'] {
 	--transition-fast: 0ms;
@@ -108,13 +109,23 @@
 :root[data-bandwidth='low'] * {
 	transition: none !important;
 	animation: none !important;
+	/* Prevent CSS background-image URLs from being fetched */
+	background-image: none !important;
 }
 
-/* Hide decorative resource/avatar images; keep functional icons */
-:root[data-bandwidth='low'] img.decorative,
-:root[data-bandwidth='low'] .resource-image,
-:root[data-bandwidth='low'] .card-image {
-	display: none;
+/* Suppress all <img> elements — components gate rendering via {#if}
+   but this catches any that slip through and prevents layout shift */
+:root[data-bandwidth='low'] img {
+	display: none !important;
+}
+
+/* Collapse image container slots so they don't reserve empty space */
+:root[data-bandwidth='low'] .card-image,
+:root[data-bandwidth='low'] .detail-image,
+:root[data-bandwidth='low'] .res-image,
+:root[data-bandwidth='low'] .hero-image,
+:root[data-bandwidth='low'] .resource-image {
+	display: none !important;
 }
 
 /* Remove the Inter font preconnect effect – browser won't fetch   */
@@ -126,6 +137,14 @@
 /* Compact layout: tighter padding to reduce scroll distance */
 :root[data-bandwidth='low'] .page-content {
 	padding: 0.75rem 1rem;
+}
+
+/* Flatten card borders and remove rounded corners for faster paint */
+:root[data-bandwidth='low'] .feature-card,
+:root[data-bandwidth='low'] .resource-card,
+:root[data-bandwidth='low'] .section-card {
+	border-radius: 0 !important;
+	box-shadow: none !important;
 }
 
 /* ── Reset & Base ───────────────────────────────────────────────── */

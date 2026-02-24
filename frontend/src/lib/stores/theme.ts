@@ -52,3 +52,22 @@ bandwidth.subscribe((val) => {
 export function toggleBandwidth() {
 	bandwidth.update((b) => (b === 'normal' ? 'low' : 'normal'));
 }
+
+// ── Platform mode ─────────────────────────────────────────────────────────────
+// Tracks whether the instance is in Blue Sky (normal) or Red Sky (crisis) mode.
+// Setting Red Sky automatically forces low-bandwidth mode to reduce data usage
+// during emergencies.
+
+export const platformMode = writable<'blue' | 'red'>('blue');
+
+export function setPlatformMode(mode: 'blue' | 'red') {
+	platformMode.set(mode);
+	if (typeof document !== 'undefined') {
+		if (mode === 'red') {
+			document.documentElement.setAttribute('data-mode', 'red');
+			bandwidth.set('low');
+		} else {
+			document.documentElement.removeAttribute('data-mode');
+		}
+	}
+}

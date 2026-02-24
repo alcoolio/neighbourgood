@@ -4,6 +4,7 @@
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import { isLoggedIn, user } from '$lib/stores/auth';
+	import { bandwidth } from '$lib/stores/theme';
 
 	interface UserProfile {
 		id: number;
@@ -628,7 +629,7 @@
 				<div class="resource-grid">
 					{#each resources as r (r.id)}
 						<a href="/resources/{r.id}" class="resource-card">
-							{#if r.image_url}
+							{#if r.image_url && $bandwidth !== 'low'}
 								<div class="res-image">
 									<img src="/api{r.image_url}" alt={r.title} />
 								</div>

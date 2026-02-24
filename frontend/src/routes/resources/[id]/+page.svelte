@@ -5,6 +5,7 @@
 	import { isLoggedIn, user } from '$lib/stores/auth';
 	import { goto } from '$app/navigation';
 	import { statusColor, type Resource, type Booking } from '$lib/types';
+	import { bandwidth } from '$lib/stores/theme';
 
 	let resource: Resource | null = $state(null);
 	let bookings: Booking[] = $state([]);
@@ -128,7 +129,7 @@
 	<article class="resource-detail">
 		<a href="/resources" class="back-link">&larr; Back to resources</a>
 
-		{#if resource.image_url}
+		{#if resource.image_url && $bandwidth !== 'low'}
 			<div class="detail-image">
 				<img src="/api{resource.image_url}" alt={resource.title} />
 			</div>
