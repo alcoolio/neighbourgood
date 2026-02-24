@@ -31,6 +31,8 @@ class ResourceCreate(BaseModel):
     category: str
     condition: str | None = None
     community_id: int
+    quantity_total: int = Field(1, ge=1, description="Total units of this resource")
+    reorder_threshold: int | None = Field(None, ge=0, description="Warn when available stock falls to or below this")
 
 
 class ResourceUpdate(BaseModel):
@@ -39,6 +41,12 @@ class ResourceUpdate(BaseModel):
     category: str | None = None
     condition: str | None = None
     is_available: bool | None = None
+    reorder_threshold: int | None = Field(None, ge=0)
+
+
+class InventoryUpdate(BaseModel):
+    """Manual stock-level adjustment by the resource owner."""
+    quantity_available: int = Field(..., ge=0, description="Current available units (must not exceed quantity_total)")
 
 
 class ResourceOut(BaseModel):
@@ -52,6 +60,10 @@ class ResourceOut(BaseModel):
     owner_id: int
     community_id: int | None = None
     owner: UserProfile
+    quantity_total: int
+    quantity_available: int
+    reorder_threshold: int | None = None
+    low_stock: bool
     created_at: datetime.datetime
     updated_at: datetime.datetime
 

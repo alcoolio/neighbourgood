@@ -53,6 +53,8 @@ class EmergencyTicket(Base):
     assigned_to_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("users.id"), nullable=True
     )
+    # Optional deadline for SLA tracking; drives triage score age bonus
+    due_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime, server_default=func.now(), nullable=False
     )

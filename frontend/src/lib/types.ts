@@ -21,9 +21,30 @@ export interface Resource {
 	image_url: string | null;
 	is_available: boolean;
 	owner_id: number;
+	community_id: number | null;
 	owner: UserInfo;
+	quantity_total: number;
+	quantity_available: number;
+	reorder_threshold: number | null;
+	low_stock: boolean;
 	created_at: string;
 	updated_at?: string;
+}
+
+export interface EmergencyTicket {
+	id: number;
+	community_id: number;
+	author: UserInfo;
+	ticket_type: string;
+	title: string;
+	description: string;
+	status: string;
+	urgency: string;
+	due_at: string | null;
+	triage_score: number;
+	assigned_to: UserInfo | null;
+	created_at: string;
+	updated_at: string;
 }
 
 export interface Booking {

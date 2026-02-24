@@ -1,5 +1,7 @@
 """Red Sky (crisis) mode endpoints – toggle, voting, emergency tickets, leaders."""
 
+import datetime
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session, joinedload
 
@@ -25,6 +27,44 @@ from app.schemas.community import CommunityMemberOut
 router = APIRouter(prefix="/communities/{community_id}", tags=["crisis"])
 
 VOTE_THRESHOLD_PCT = 60  # percentage of members needed to trigger mode change
+
+# Urgency levels mapped to integer weights for triage scoring
+_URGENCY_RANK: dict[str, int] = {"low": 1, "medium": 2, "high": 3, "critical": 4}
+
+
+def _triage_score(ticket: EmergencyTicket) -> int:
+    """Compute a triage priority score for a ticket.
+
+    Score = urgency_weight * 100 + age_hours (capped at 99).
+    Higher score → show first in the triage view.
+    When a due_at is set and overdue, add 200 to escalate above non-overdue tickets.
+    """
+    urgency_weight = _URGENCY_RANK.get(ticket.urgency, 1)
+    now = datetime.datetime.utcnow()
+    age_hours = min(int((now - ticket.created_at).total_seconds() / 3600), 99)
+    score = urgency_weight * 100 + age_hours
+    if ticket.due_at and ticket.due_at < now:
+        score += 200  # escalate overdue tickets above everything else
+    return score
+
+
+def _ticket_to_out(ticket: EmergencyTicket) -> EmergencyTicketOut:
+    """Build EmergencyTicketOut with the computed triage_score."""
+    return EmergencyTicketOut(
+        id=ticket.id,
+        community_id=ticket.community_id,
+        author=ticket.author,
+        ticket_type=ticket.ticket_type,
+        title=ticket.title,
+        description=ticket.description,
+        status=ticket.status,
+        urgency=ticket.urgency,
+        due_at=ticket.due_at,
+        triage_score=_triage_score(ticket),
+        assigned_to=ticket.assigned_to,
+        created_at=ticket.created_at,
+        updated_at=ticket.updated_at,
+    )
 
 
 # ── Helpers ───────────────────────────────────────────────────────
@@ -302,6 +342,7 @@ def create_ticket(
         title=body.title,
         description=body.description,
         urgency=body.urgency,
+        due_at=body.due_at,
     )
     db.add(ticket)
     db.commit()
@@ -316,7 +357,7 @@ def create_ticket(
         actor_id=current_user.id,
         community_id=community_id,
     )
-    return ticket
+    return _ticket_to_out(ticket)
 
 
 @router.get("/tickets", response_model=EmergencyTicketList)
@@ -324,6 +365,8 @@ def list_tickets(
     community_id: int,
     ticket_type: str | None = Query(None, description="Filter by type"),
     ticket_status: str | None = Query(None, alias="status", description="Filter by status"),
+    urgency: str | None = Query(None, description="Filter by urgency level"),
+    sort: str = Query("created_desc", description="Sort order: created_desc | priority_desc"),
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     current_user: User = Depends(get_current_user),
@@ -346,10 +389,58 @@ def list_tickets(
         query = query.filter(EmergencyTicket.ticket_type == ticket_type)
     if ticket_status:
         query = query.filter(EmergencyTicket.status == ticket_status)
+    if urgency:
+        query = query.filter(EmergencyTicket.urgency == urgency)
 
     total = query.count()
-    items = query.order_by(EmergencyTicket.created_at.desc()).offset(skip).limit(limit).all()
-    return EmergencyTicketList(items=items, total=total)
+
+    if sort == "priority_desc":
+        # Pull all matching tickets and sort in Python using the triage score
+        # (avoids complex SQL expression for the composite score)
+        all_items = query.all()
+        all_items.sort(key=_triage_score, reverse=True)
+        items = all_items[skip: skip + limit]
+    else:
+        items = query.order_by(EmergencyTicket.created_at.desc()).offset(skip).limit(limit).all()
+
+    return EmergencyTicketList(items=[_ticket_to_out(t) for t in items], total=total)
+
+
+@router.get("/tickets/triage", response_model=EmergencyTicketList)
+def triage_tickets(
+    community_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Return all open/in-progress tickets sorted by triage score (highest first).
+
+    Triage score = urgency_weight * 100 + age_hours (capped at 99).
+    Overdue tickets (due_at < now) receive a +200 escalation bonus.
+    Intended for neighbourhood leaders/admins to prioritise response work.
+    """
+    _get_community(db, community_id)
+    membership = _require_membership(db, community_id, current_user.id)
+
+    if membership.role not in ("admin", "leader"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only leaders and admins can access the triage view",
+        )
+
+    tickets = (
+        db.query(EmergencyTicket)
+        .options(
+            joinedload(EmergencyTicket.author),
+            joinedload(EmergencyTicket.assigned_to),
+        )
+        .filter(
+            EmergencyTicket.community_id == community_id,
+            EmergencyTicket.status != "resolved",
+        )
+        .all()
+    )
+    tickets.sort(key=_triage_score, reverse=True)
+    return EmergencyTicketList(items=[_ticket_to_out(t) for t in tickets], total=len(tickets))
 
 
 @router.get("/tickets/{ticket_id}", response_model=EmergencyTicketOut)
@@ -379,7 +470,7 @@ def get_ticket(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Ticket not found"
         )
-    return ticket
+    return _ticket_to_out(ticket)
 
 
 @router.patch("/tickets/{ticket_id}", response_model=EmergencyTicketOut)
@@ -429,6 +520,8 @@ def update_ticket(
         ticket.status = body.status
     if body.urgency is not None:
         ticket.urgency = body.urgency
+    if "due_at" in body.model_fields_set:
+        ticket.due_at = body.due_at
     if body.assigned_to_id is not None:
         # Verify assignee is a member
         assignee_membership = (
@@ -448,7 +541,8 @@ def update_ticket(
 
     db.commit()
     db.refresh(ticket)
-    return ticket
+    return _ticket_to_out(ticket)
+
 
 
 # ── Leader management ─────────────────────────────────────────────
