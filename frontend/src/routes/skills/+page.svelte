@@ -129,7 +129,6 @@
 				'/communities/my/memberships', { auth: true }
 			);
 			if (myCommunities.length > 0) {
-				filterCommunity = String(myCommunities[0].id);
 				newCommunityId = String(myCommunities[0].id);
 			}
 		} catch {
@@ -219,13 +218,6 @@
 			bind:value={searchQuery}
 			oninput={handleSearchInput}
 		/>
-		{#if myCommunities.length > 0}
-			<select bind:value={filterCommunity}>
-				{#each myCommunities as c}
-					<option value={c.id}>{c.name}</option>
-				{/each}
-			</select>
-		{/if}
 		<select bind:value={filterCategory}>
 			{#each CATEGORIES as cat}
 				<option value={cat.value}>{cat.label}</option>
@@ -236,6 +228,14 @@
 				<option value={t.value}>{t.label}</option>
 			{/each}
 		</select>
+		{#if myCommunities.length > 0}
+			<select bind:value={filterCommunity}>
+				<option value="">All Communities</option>
+				{#each myCommunities as c}
+					<option value={c.id}>{c.name}</option>
+				{/each}
+			</select>
+		{/if}
 		<span class="result-count">{total} result{total !== 1 ? 's' : ''}</span>
 	</div>
 
@@ -255,7 +255,7 @@
 	{:else}
 		<div class="skill-grid">
 			{#each skills as skill}
-				<div class="skill-card">
+				<a href="/skills/{skill.id}" class="skill-card">
 					<div class="card-icon">
 						<span>{CATEGORY_ICONS[skill.category] ?? '⭐'}</span>
 					</div>
@@ -274,7 +274,7 @@
 							<span class="owner">by {skill.owner.display_name}</span>
 						</div>
 					</div>
-				</div>
+				</a>
 			{/each}
 		</div>
 	{/if}
@@ -407,10 +407,13 @@
 		border-radius: var(--radius);
 		padding: 1rem 1.25rem;
 		transition: border-color 0.15s;
+		text-decoration: none;
+		color: var(--color-text);
 	}
 
 	.skill-card:hover {
 		border-color: var(--color-primary);
+		text-decoration: none;
 	}
 
 	.card-icon {

@@ -11,7 +11,8 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.config import settings
 from app.database import get_db
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, get_current_user_optional
+from app.models.community import CommunityMember
 from app.models.resource import Resource
 from app.models.user import User
 from app.services.activity import record_activity
@@ -94,14 +95,33 @@ def list_resources(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_current_user_optional),
 ):
-    """List resources with optional filters and text search."""
+    """List resources with optional filters and text search.
+
+    If authenticated and no community_id provided, shows resources from user's joined communities.
+    If not authenticated or community_id provided, shows public community resources.
+    """
     query = db.query(Resource).options(joinedload(Resource.owner))
 
     # Only show community-scoped resources
     query = query.filter(Resource.community_id.isnot(None))
-    if community_id is not None:
+
+    # Auto-filter by user's communities if logged in and no specific community requested
+    if current_user is not None and community_id is None:
+        user_community_ids = db.query(CommunityMember.community_id).filter(
+            CommunityMember.user_id == current_user.id
+        ).all()
+        user_community_ids = [cid[0] for cid in user_community_ids]
+
+        if user_community_ids:
+            query = query.filter(Resource.community_id.in_(user_community_ids))
+        else:
+            # User not in any communities, return empty results
+            query = query.filter(False)
+    elif community_id is not None:
         query = query.filter(Resource.community_id == community_id)
+
     if category:
         query = query.filter(Resource.category == category)
     if available is not None:

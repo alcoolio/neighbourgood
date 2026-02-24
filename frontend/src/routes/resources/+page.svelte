@@ -43,7 +43,7 @@
 	let total = $state(0);
 	let loading = $state(true);
 	let filterCategory = $state('');
-	let filterCommunity = $state('');
+	let filterCommunity = $state(''); // Only used to filter a specific community, auto-filters to joined communities if empty
 	let searchQuery = $state('');
 	let searchTimeout: ReturnType<typeof setTimeout> | null = $state(null);
 	let showCreateForm = $state(false);
@@ -115,7 +115,6 @@
 				'/communities/my/memberships', { auth: true }
 			);
 			if (myCommunities.length > 0) {
-				filterCommunity = String(myCommunities[0].id);
 				newCommunityId = String(myCommunities[0].id);
 			}
 		} catch {
@@ -211,18 +210,19 @@
 			bind:value={searchQuery}
 			oninput={handleSearchInput}
 		/>
-		{#if myCommunities.length > 0}
-			<select bind:value={filterCommunity}>
-				{#each myCommunities as c}
-					<option value={c.id}>{c.name}</option>
-				{/each}
-			</select>
-		{/if}
 		<select bind:value={filterCategory}>
 			{#each CATEGORIES as cat}
 				<option value={cat.value}>{cat.label}</option>
 			{/each}
 		</select>
+		{#if myCommunities.length > 0}
+			<select bind:value={filterCommunity}>
+				<option value="">All Communities</option>
+				{#each myCommunities as c}
+					<option value={c.id}>{c.name}</option>
+				{/each}
+			</select>
+		{/if}
 		<span class="result-count">{total} result{total !== 1 ? 's' : ''}</span>
 	</div>
 
