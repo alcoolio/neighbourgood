@@ -416,6 +416,8 @@ def test_not_found(client, auth_headers):
 
 | Version | Date | Highlights |
 |---------|------|-----------|
+| 0.9.8 | 2026-02-25 | User dashboard, ticket detail page with discussion, global Red Sky awareness, UI redesign (warm palette, Abril Fatface headings, SVG logo), navigation restructuring |
+| 0.9.5 | 2026-02-24 | Low-bandwidth mode, triage dashboard, community-filtered resources/skills, eager-loading N+1 fix, enhanced API error handling |
 | 0.9.0 | 2026-02-19 | Red Sky mode per community, crisis voting (60%), emergency tickets, leader roles, explore map, 198 tests |
 | 0.8.0 | 2026-02-19 | Mobile nav, community-scoped messaging, Security Phase 4a hardening |
 | 0.7.0 | 2026-02-18 | Skill exchange, reputation/trust scores, activity feed, invite system, reviews |
