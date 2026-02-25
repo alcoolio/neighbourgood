@@ -113,6 +113,26 @@
 			</div>
 		{/if}
 
+		<!-- My community -->
+		{#if communities.length > 0}
+			<section>
+				<h2>Your community</h2>
+				{#each communities.slice(0, 1) as c (c.id)}
+					<a href="/communities/{c.id}" class="community-card-link">
+						<div class="community-card-inner">
+							<div class="community-info">
+								<h3>{c.name}</h3>
+								{#if c.mode === 'red'}
+									<span class="community-crisis-badge">Crisis Active</span>
+								{/if}
+							</div>
+							<span class="community-arrow">→</span>
+						</div>
+					</a>
+				{/each}
+			</section>
+		{/if}
+
 		<!-- Needs your attention -->
 		{#if hasPendingActions}
 			<section class="attention-section">
@@ -288,6 +308,56 @@
 		background: var(--color-primary-hover);
 		text-decoration: none;
 		box-shadow: var(--shadow-md);
+	}
+
+	/* ── Community card ───────────────────────────────────────── */
+
+	.community-card-link {
+		display: block;
+		padding: 1rem 1.25rem;
+		background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-primary-light) 100%);
+		border: 1px solid var(--color-primary);
+		border-left: 4px solid var(--color-primary);
+		border-radius: var(--radius-md);
+		text-decoration: none;
+		color: inherit;
+		transition: all var(--transition-fast);
+	}
+
+	.community-card-link:hover {
+		box-shadow: var(--shadow-sm);
+		transform: translateY(-1px);
+		text-decoration: none;
+	}
+
+	.community-card-inner {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.community-info h3 {
+		font-size: 1.05rem;
+		font-weight: 600;
+		color: var(--color-text);
+		margin: 0;
+	}
+
+	.community-crisis-badge {
+		display: inline-block;
+		font-size: 0.7rem;
+		font-weight: 600;
+		padding: 0.15rem 0.5rem;
+		border-radius: 999px;
+		background: var(--color-error);
+		color: white;
+		margin-top: 0.3rem;
+	}
+
+	.community-arrow {
+		font-size: 1.1rem;
+		color: var(--color-primary);
+		font-weight: 600;
 	}
 
 	/* ── Needs attention ──────────────────────────────────────── */

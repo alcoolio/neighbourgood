@@ -83,6 +83,24 @@ class EmergencyTicketList(BaseModel):
     total: int
 
 
+# ── Ticket comments ──────────────────────────────────────────────
+
+
+class TicketCommentCreate(BaseModel):
+    body: str = Field(..., min_length=1, max_length=5000)
+
+
+class TicketCommentOut(BaseModel):
+    id: int
+    ticket_id: int
+    author: UserProfile
+    body: str
+    created_at: datetime.datetime
+    updated_at: datetime.datetime
+
+    model_config = {"from_attributes": True}
+
+
 # ── Leader management ─────────────────────────────────────────────
 
 
