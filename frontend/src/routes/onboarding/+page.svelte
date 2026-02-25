@@ -205,7 +205,7 @@
 	{/if}
 
 	<div class="skip-section">
-		<a href="/resources" class="skip-link">Skip for now and browse resources</a>
+		<a href="/dashboard" class="skip-link">Skip for now</a>
 	</div>
 </div>
 

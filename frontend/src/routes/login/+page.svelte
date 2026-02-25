@@ -24,7 +24,7 @@
 			const profile = await api<UserProfile>('/users/me', { auth: true });
 			user.set(profile);
 
-			goto('/resources');
+			goto('/dashboard');
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Login failed';
 		} finally {

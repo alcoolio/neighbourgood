@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { isLoggedIn, user, token } from '$lib/stores/auth';
+	import { isLoggedIn, user } from '$lib/stores/auth';
 	import { api } from '$lib/api';
 
 	interface DashboardData {
@@ -13,29 +13,28 @@
 		reputation_level: string;
 	}
 
-	let dashboard: DashboardData | null = null;
-	let loading = true;
-	let error = '';
-	let activeTab = 'overview';
+	interface BookingItem {
+		id: number;
+		resource_title: string;
+		borrower_name: string;
+		start_date: string;
+		end_date: string;
+		status: string;
+		is_owner: boolean;
+	}
 
-	// Password change form state
-	let passwordForm = {
-		current_password: '',
-		new_password: '',
-		confirm_password: '',
-		error: '',
-		success: false,
-		loading: false
-	};
+	interface CommunityMembership {
+		id: number;
+		name: string;
+		mode: string;
+	}
 
-	// Email change form state
-	let emailForm = {
-		new_email: '',
-		password: '',
-		error: '',
-		success: false,
-		loading: false
-	};
+	let dashboard: DashboardData | null = $state(null);
+	let pendingIncoming: BookingItem[] = $state([]);
+	let pendingOutgoing: BookingItem[] = $state([]);
+	let communities: CommunityMembership[] = $state([]);
+	let loading = $state(true);
+	let error = $state('');
 
 	onMount(async () => {
 		if (!$isLoggedIn) {
@@ -44,7 +43,36 @@
 		}
 
 		try {
-			dashboard = await api<DashboardData>('/users/me/dashboard', { auth: true });
+			const [dashData, commData] = await Promise.all([
+				api<DashboardData>('/users/me/dashboard', { auth: true }),
+				api<CommunityMembership[]>('/communities/my/memberships', { auth: true })
+			]);
+			dashboard = dashData;
+			communities = commData;
+
+			// Fetch pending bookings for "needs attention" section
+			const bookingsData = await api<{ items: any[] }>('/bookings?status=pending', { auth: true });
+			if (bookingsData.items) {
+				for (const b of bookingsData.items) {
+					const item: BookingItem = {
+						id: b.id,
+						resource_title: b.resource?.title ?? `Resource #${b.resource_id}`,
+						borrower_name: b.borrower?.display_name ?? 'Someone',
+						start_date: b.start_date,
+						end_date: b.end_date,
+						status: b.status,
+						is_owner: b.borrower_id !== $user?.id
+					};
+					if (item.is_owner) {
+						pendingIncoming.push(item);
+					} else {
+						pendingOutgoing.push(item);
+					}
+				}
+				// Trigger reactivity
+				pendingIncoming = [...pendingIncoming];
+				pendingOutgoing = [...pendingOutgoing];
+			}
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to load dashboard';
 		} finally {
@@ -52,291 +80,124 @@
 		}
 	});
 
-	async function handlePasswordChange(e: Event) {
-		e.preventDefault();
-		passwordForm.error = '';
-		passwordForm.success = false;
-
-		if (!passwordForm.current_password || !passwordForm.new_password) {
-			passwordForm.error = 'All fields are required';
-			return;
-		}
-
-		if (passwordForm.new_password !== passwordForm.confirm_password) {
-			passwordForm.error = 'New passwords do not match';
-			return;
-		}
-
-		if (passwordForm.new_password === passwordForm.current_password) {
-			passwordForm.error = 'New password must be different from current password';
-			return;
-		}
-
-		passwordForm.loading = true;
-
-		try {
-			await api('/users/me/change-password', {
-				method: 'POST',
-				body: {
-					current_password: passwordForm.current_password,
-					new_password: passwordForm.new_password
-				},
-				auth: true
-			});
-
-			passwordForm.success = true;
-			passwordForm.current_password = '';
-			passwordForm.new_password = '';
-			passwordForm.confirm_password = '';
-
-			setTimeout(() => {
-				passwordForm.success = false;
-			}, 3000);
-		} catch (err) {
-			passwordForm.error = err instanceof Error ? err.message : 'Failed to change password';
-		} finally {
-			passwordForm.loading = false;
-		}
-	}
-
-	async function handleEmailChange(e: Event) {
-		e.preventDefault();
-		emailForm.error = '';
-		emailForm.success = false;
-
-		if (!emailForm.new_email || !emailForm.password) {
-			emailForm.error = 'Email and password are required';
-			return;
-		}
-
-		if (emailForm.new_email === $user?.email) {
-			emailForm.error = 'New email must be different from current email';
-			return;
-		}
-
-		emailForm.loading = true;
-
-		try {
-			const updatedUser = await api('/users/me/change-email', {
-				method: 'POST',
-				body: {
-					new_email: emailForm.new_email,
-					password: emailForm.password
-				},
-				auth: true
-			});
-
-			user.set(updatedUser);
-			emailForm.success = true;
-			emailForm.new_email = '';
-			emailForm.password = '';
-
-			setTimeout(() => {
-				emailForm.success = false;
-			}, 3000);
-		} catch (err) {
-			emailForm.error = err instanceof Error ? err.message : 'Failed to change email';
-		} finally {
-			emailForm.loading = false;
-		}
-	}
+	const hasPendingActions = $derived(
+		pendingIncoming.length > 0 ||
+		pendingOutgoing.length > 0 ||
+		(dashboard?.messages_unread_count ?? 0) > 0
+	);
 </script>
 
 <svelte:head>
-	<title>Dashboard - NeighbourGood</title>
+	<title>Home - NeighbourGood</title>
 </svelte:head>
 
 <div class="dashboard">
-	<h1>My Dashboard</h1>
+	<h1>Welcome back{$user?.display_name ? `, ${$user.display_name}` : ''}</h1>
 
 	{#if loading}
-		<div class="loading">Loading dashboard...</div>
+		<div class="loading">Loading...</div>
 	{:else if error}
 		<div class="alert alert-error">{error}</div>
 	{:else}
-		<div class="tabs">
-			<button
-				class="tab-button"
-				class:active={activeTab === 'overview'}
-				onclick={() => activeTab = 'overview'}
-			>
-				Overview
-			</button>
-			<button
-				class="tab-button"
-				class:active={activeTab === 'settings'}
-				onclick={() => activeTab = 'settings'}
-			>
-				Account Settings
-			</button>
-		</div>
+		<!-- Onboarding nudge -->
+		{#if communities.length === 0}
+			<div class="nudge-banner">
+				<div class="nudge-icon">
+					<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+				</div>
+				<div class="nudge-text">
+					<strong>Join a community to get started</strong>
+					<span>Browse nearby communities or create your own to share resources and skills with neighbours.</span>
+				</div>
+				<a href="/onboarding" class="nudge-btn">Find Community</a>
+			</div>
+		{/if}
 
-		{#if activeTab === 'overview'}
-			<div class="tab-content">
+		<!-- Needs your attention -->
+		{#if hasPendingActions}
+			<section class="attention-section">
+				<h2>Needs your attention</h2>
+				<div class="attention-list">
+					{#each pendingIncoming as booking}
+						<a href="/bookings" class="attention-item">
+							<span class="attention-dot attention-dot-warning"></span>
+							<span class="attention-text">
+								<strong>{booking.borrower_name}</strong> wants to borrow <strong>{booking.resource_title}</strong>
+							</span>
+							<span class="attention-action">Review</span>
+						</a>
+					{/each}
+					{#each pendingOutgoing as booking}
+						<a href="/bookings" class="attention-item">
+							<span class="attention-dot attention-dot-info"></span>
+							<span class="attention-text">
+								Your request for <strong>{booking.resource_title}</strong> is waiting for approval
+							</span>
+							<span class="attention-action">View</span>
+						</a>
+					{/each}
+					{#if (dashboard?.messages_unread_count ?? 0) > 0}
+						<a href="/messages" class="attention-item">
+							<span class="attention-dot attention-dot-primary"></span>
+							<span class="attention-text">
+								You have <strong>{dashboard?.messages_unread_count}</strong> unread message{(dashboard?.messages_unread_count ?? 0) > 1 ? 's' : ''}
+							</span>
+							<span class="attention-action">Read</span>
+						</a>
+					{/if}
+				</div>
+			</section>
+		{/if}
+
+		<!-- Quick stats -->
+		{#if dashboard}
+			<section>
+				<h2>Your activity</h2>
 				<div class="overview-grid">
-					<div class="overview-card">
+					<a href="/resources" class="overview-card">
 						<div class="card-icon">📦</div>
 						<div class="card-content">
 							<div class="card-label">Resources</div>
 							<div class="card-value">{dashboard.resources_count}</div>
 						</div>
-					</div>
+					</a>
 
-					<div class="overview-card">
+					<a href="/skills" class="overview-card">
 						<div class="card-icon">🎯</div>
 						<div class="card-content">
 							<div class="card-label">Skills</div>
 							<div class="card-value">{dashboard.skills_count}</div>
 						</div>
-					</div>
+					</a>
 
-					<div class="overview-card">
+					<a href="/bookings" class="overview-card">
 						<div class="card-icon">📋</div>
 						<div class="card-content">
 							<div class="card-label">Bookings</div>
 							<div class="card-value">{dashboard.bookings_count}</div>
 						</div>
-					</div>
+					</a>
 
-					<div class="overview-card">
+					<a href="/messages" class="overview-card">
 						<div class="card-icon">💬</div>
 						<div class="card-content">
 							<div class="card-label">Unread Messages</div>
 							<div class="card-value">{dashboard.messages_unread_count}</div>
 						</div>
+					</a>
+				</div>
+			</section>
+
+			<section class="reputation-section">
+				<h2>Your Reputation</h2>
+				<div class="reputation-card">
+					<div class="reputation-score">{dashboard.reputation_score}</div>
+					<div class="reputation-info">
+						<div class="reputation-level">{dashboard.reputation_level}</div>
+						<div class="reputation-subtitle">Community Member</div>
 					</div>
 				</div>
-
-				<div class="reputation-section">
-					<h2>Your Reputation</h2>
-					<div class="reputation-card">
-						<div class="reputation-score">{dashboard.reputation_score}</div>
-						<div class="reputation-info">
-							<div class="reputation-level">{dashboard.reputation_level}</div>
-							<div class="reputation-subtitle">Community Member</div>
-						</div>
-					</div>
-				</div>
-			</div>
-		{:else if activeTab === 'settings'}
-			<div class="tab-content">
-				<div class="settings-section">
-					<h2>Account Information</h2>
-					<div class="info-group">
-						<label>Display Name</label>
-						<p class="info-value">{$user?.display_name}</p>
-						<p class="info-hint">Username changes are prohibited for security</p>
-					</div>
-
-					<div class="info-group">
-						<label>Email</label>
-						<p class="info-value">{$user?.email}</p>
-					</div>
-
-					<div class="info-group">
-						<label>Community/Neighbourhood</label>
-						<p class="info-value">{$user?.neighbourhood || 'Not set'}</p>
-						<p class="info-hint">You can only be in one community at a time</p>
-					</div>
-
-					<div class="info-group">
-						<label>Member Since</label>
-						<p class="info-value">{new Date($user?.created_at || '').toLocaleDateString()}</p>
-					</div>
-				</div>
-
-				<hr class="section-divider" />
-
-				<div class="settings-section">
-					<h2>Change Password</h2>
-
-					{#if passwordForm.success}
-						<div class="alert alert-success">Password changed successfully!</div>
-					{:else if passwordForm.error}
-						<div class="alert alert-error">{passwordForm.error}</div>
-					{/if}
-
-					<form class="form" onsubmit={handlePasswordChange}>
-						<div class="form-group">
-							<label for="current-password">Current Password</label>
-							<input
-								id="current-password"
-								type="password"
-								bind:value={passwordForm.current_password}
-								required
-								disabled={passwordForm.loading}
-							/>
-						</div>
-
-						<div class="form-group">
-							<label for="new-password">New Password</label>
-							<input
-								id="new-password"
-								type="password"
-								bind:value={passwordForm.new_password}
-								required
-								disabled={passwordForm.loading}
-								placeholder="Min 8 chars, 1 uppercase, 1 lowercase, 1 digit"
-							/>
-						</div>
-
-						<div class="form-group">
-							<label for="confirm-password">Confirm New Password</label>
-							<input
-								id="confirm-password"
-								type="password"
-								bind:value={passwordForm.confirm_password}
-								required
-								disabled={passwordForm.loading}
-							/>
-						</div>
-
-						<button type="submit" class="btn btn-primary" disabled={passwordForm.loading}>
-							{passwordForm.loading ? 'Changing...' : 'Change Password'}
-						</button>
-					</form>
-				</div>
-
-				<hr class="section-divider" />
-
-				<div class="settings-section">
-					<h2>Change Email</h2>
-
-					{#if emailForm.success}
-						<div class="alert alert-success">Email changed successfully!</div>
-					{:else if emailForm.error}
-						<div class="alert alert-error">{emailForm.error}</div>
-					{/if}
-
-					<form class="form" onsubmit={handleEmailChange}>
-						<div class="form-group">
-							<label for="new-email">New Email</label>
-							<input
-								id="new-email"
-								type="email"
-								bind:value={emailForm.new_email}
-								required
-								disabled={emailForm.loading}
-							/>
-						</div>
-
-						<div class="form-group">
-							<label for="email-password">Password (to confirm change)</label>
-							<input
-								id="email-password"
-								type="password"
-								bind:value={emailForm.password}
-								required
-								disabled={emailForm.loading}
-							/>
-						</div>
-
-						<button type="submit" class="btn btn-primary" disabled={emailForm.loading}>
-							{emailForm.loading ? 'Changing...' : 'Change Email'}
-						</button>
-					</form>
-				</div>
-			</div>
+			</section>
 		{/if}
 	{/if}
 </div>
@@ -345,7 +206,7 @@
 	.dashboard {
 		display: flex;
 		flex-direction: column;
-		gap: 2rem;
+		gap: 1.5rem;
 	}
 
 	h1 {
@@ -356,10 +217,10 @@
 	}
 
 	h2 {
-		font-size: 1.35rem;
-		font-weight: 400;
+		font-size: 1.2rem;
+		font-weight: 600;
 		color: var(--color-text);
-		margin: 1.5rem 0 1rem 0;
+		margin: 0 0 0.75rem 0;
 	}
 
 	.loading {
@@ -368,79 +229,158 @@
 		color: var(--color-text-muted);
 	}
 
-	/* ── Tabs ──────────────────────────────────────────────────── */
+	/* ── Onboarding nudge ─────────────────────────────────────── */
 
-	.tabs {
+	.nudge-banner {
 		display: flex;
-		gap: 0.5rem;
-		border-bottom: 2px solid var(--color-border);
-		margin-bottom: 1.5rem;
+		align-items: center;
+		gap: 1rem;
+		padding: 1.25rem 1.5rem;
+		background: linear-gradient(135deg, var(--color-primary-light), var(--color-surface));
+		border: 1px solid var(--color-primary);
+		border-radius: var(--radius-md);
 	}
 
-	.tab-button {
-		background: none;
-		border: none;
-		padding: 0.75rem 1rem;
+	.nudge-icon {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 44px;
+		height: 44px;
+		border-radius: var(--radius);
+		background: var(--color-primary);
+		color: white;
+		flex-shrink: 0;
+	}
+
+	.nudge-text {
+		display: flex;
+		flex-direction: column;
+		gap: 0.2rem;
+		flex: 1;
+		min-width: 0;
+	}
+
+	.nudge-text strong {
 		font-size: 0.95rem;
-		font-weight: 500;
-		color: var(--color-text-muted);
-		cursor: pointer;
-		border-bottom: 3px solid transparent;
-		margin-bottom: -2px;
-		transition: all var(--transition-fast);
-	}
-
-	.tab-button:hover {
 		color: var(--color-text);
 	}
 
-	.tab-button.active {
+	.nudge-text span {
+		font-size: 0.85rem;
+		color: var(--color-text-muted);
+	}
+
+	.nudge-btn {
+		padding: 0.5rem 1.2rem;
+		background: var(--color-primary);
+		color: white;
+		border-radius: var(--radius-sm);
+		font-size: 0.88rem;
+		font-weight: 600;
+		text-decoration: none;
+		white-space: nowrap;
+		transition: all var(--transition-fast);
+	}
+
+	.nudge-btn:hover {
+		background: var(--color-primary-hover);
+		text-decoration: none;
+		box-shadow: var(--shadow-md);
+	}
+
+	/* ── Needs attention ──────────────────────────────────────── */
+
+	.attention-section {
+		margin-top: 0.5rem;
+	}
+
+	.attention-list {
+		display: flex;
+		flex-direction: column;
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+		overflow: hidden;
+	}
+
+	.attention-item {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 0.85rem 1.25rem;
+		text-decoration: none;
+		color: inherit;
+		transition: background-color var(--transition-fast);
+		border-bottom: 1px solid var(--color-border);
+	}
+
+	.attention-item:last-child {
+		border-bottom: none;
+	}
+
+	.attention-item:hover {
+		background: var(--color-primary-light);
+		text-decoration: none;
+	}
+
+	.attention-dot {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		flex-shrink: 0;
+	}
+
+	.attention-dot-warning { background: var(--color-warning); }
+	.attention-dot-info { background: var(--color-text-muted); }
+	.attention-dot-primary { background: var(--color-primary); }
+
+	.attention-text {
+		flex: 1;
+		font-size: 0.9rem;
+		color: var(--color-text);
+		min-width: 0;
+	}
+
+	.attention-text strong {
+		font-weight: 600;
+	}
+
+	.attention-action {
+		font-size: 0.82rem;
+		font-weight: 600;
 		color: var(--color-primary);
-		border-bottom-color: var(--color-primary);
+		white-space: nowrap;
 	}
 
-	.tab-content {
-		animation: fadeIn 0.2s ease-in-out;
-	}
-
-	@keyframes fadeIn {
-		from {
-			opacity: 0;
-			transform: translateY(5px);
-		}
-		to {
-			opacity: 1;
-			transform: translateY(0);
-		}
-	}
-
-	/* ── Overview Grid ─────────────────────────────────────────── */
+	/* ── Quick Stats Grid ─────────────────────────────────────── */
 
 	.overview-grid {
 		display: grid;
 		grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-		gap: 1.5rem;
-		margin-bottom: 2rem;
+		gap: 1rem;
 	}
 
 	.overview-card {
 		display: flex;
 		align-items: center;
 		gap: 1rem;
-		padding: 1.5rem;
+		padding: 1.25rem;
 		background: var(--color-surface);
 		border: 1px solid var(--color-border);
 		border-radius: var(--radius-md);
 		transition: all var(--transition-fast);
+		text-decoration: none;
+		color: inherit;
 	}
 
 	.overview-card:hover {
 		border-color: var(--color-primary);
 		box-shadow: var(--shadow-sm);
+		text-decoration: none;
 	}
 
 	.card-icon {
-		font-size: 2rem;
+		font-size: 1.75rem;
 	}
 
 	.card-content {
@@ -449,174 +389,56 @@
 	}
 
 	.card-label {
-		font-size: 0.85rem;
+		font-size: 0.8rem;
 		color: var(--color-text-muted);
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
 	}
 
 	.card-value {
-		font-size: 1.75rem;
+		font-size: 1.5rem;
 		font-weight: 700;
 		color: var(--color-text);
 	}
 
-	/* ── Reputation Section ────────────────────────────────────── */
+	/* ── Reputation ───────────────────────────────────────────── */
 
 	.reputation-section {
-		margin-top: 2rem;
+		margin-top: 0.5rem;
 	}
 
 	.reputation-card {
 		display: flex;
 		align-items: center;
 		gap: 2rem;
-		padding: 2rem;
+		padding: 1.5rem 2rem;
 		background: linear-gradient(135deg, var(--color-primary-light), var(--color-surface));
 		border: 1px solid var(--color-border);
 		border-radius: var(--radius-md);
 	}
 
 	.reputation-score {
-		font-size: 3.5rem;
+		font-size: 3rem;
 		font-weight: 700;
 		color: var(--color-primary);
-		min-width: 80px;
+		min-width: 70px;
 	}
 
 	.reputation-info {
 		display: flex;
 		flex-direction: column;
-		gap: 0.25rem;
+		gap: 0.2rem;
 	}
 
 	.reputation-level {
-		font-size: 1.3rem;
+		font-size: 1.2rem;
 		font-weight: 600;
 		color: var(--color-text);
 	}
 
 	.reputation-subtitle {
-		font-size: 0.9rem;
-		color: var(--color-text-muted);
-	}
-
-	/* ── Settings Section ──────────────────────────────────────── */
-
-	.settings-section {
-		margin-bottom: 2rem;
-	}
-
-	.info-group {
-		margin-bottom: 1.5rem;
-		padding-bottom: 1.5rem;
-		border-bottom: 1px solid var(--color-border);
-	}
-
-	.info-group:last-child {
-		border-bottom: none;
-		padding-bottom: 0;
-		margin-bottom: 0;
-	}
-
-	.info-group label {
-		display: block;
-		font-size: 0.85rem;
-		font-weight: 600;
-		color: var(--color-text-muted);
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		margin-bottom: 0.5rem;
-	}
-
-	.info-value {
-		font-size: 1rem;
-		color: var(--color-text);
-		margin: 0;
-		word-break: break-all;
-	}
-
-	.info-hint {
 		font-size: 0.85rem;
 		color: var(--color-text-muted);
-		margin: 0.5rem 0 0 0;
-		font-style: italic;
-	}
-
-	.section-divider {
-		border: none;
-		border-top: 1px solid var(--color-border);
-		margin: 2rem 0;
-	}
-
-	/* ── Forms ─────────────────────────────────────────────────── */
-
-	.form {
-		display: flex;
-		flex-direction: column;
-		gap: 1rem;
-	}
-
-	.form-group {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-	}
-
-	.form-group label {
-		font-size: 0.9rem;
-		font-weight: 600;
-		color: var(--color-text);
-	}
-
-	.form-group input {
-		padding: 0.75rem 1rem;
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-sm);
-		font-size: 0.95rem;
-		background: var(--color-surface);
-		color: var(--color-text);
-		transition: border-color var(--transition-fast);
-	}
-
-	.form-group input:focus {
-		outline: none;
-		border-color: var(--color-primary);
-		box-shadow: 0 0 0 2px var(--color-primary-light);
-	}
-
-	.form-group input:disabled {
-		background: var(--color-border);
-		cursor: not-allowed;
-		opacity: 0.6;
-	}
-
-	/* ── Buttons ───────────────────────────────────────────────── */
-
-	.btn {
-		padding: 0.75rem 1.5rem;
-		border: none;
-		border-radius: var(--radius-sm);
-		font-size: 0.95rem;
-		font-weight: 600;
-		cursor: pointer;
-		transition: all var(--transition-fast);
-	}
-
-	.btn-primary {
-		background: var(--color-primary);
-		color: white;
-	}
-
-	.btn-primary:hover:not(:disabled) {
-		background: var(--color-primary-hover);
-		box-shadow: var(--shadow-md);
-		transform: translateY(-2px);
-	}
-
-	.btn:disabled {
-		opacity: 0.6;
-		cursor: not-allowed;
 	}
 
 	/* ── Alerts ────────────────────────────────────────────────── */
@@ -624,15 +446,7 @@
 	.alert {
 		padding: 1rem;
 		border-radius: var(--radius-sm);
-		margin-bottom: 1rem;
 		font-size: 0.95rem;
-	}
-
-	.alert-success {
-		background: var(--color-success);
-		background-color: rgba(34, 197, 94, 0.1);
-		border: 1px solid rgba(34, 197, 94, 0.3);
-		color: var(--color-success);
 	}
 
 	.alert-error {
@@ -646,12 +460,13 @@
 			font-size: 1.5rem;
 		}
 
-		h2 {
-			font-size: 1.1rem;
-		}
-
 		.overview-grid {
 			grid-template-columns: 1fr;
+		}
+
+		.nudge-banner {
+			flex-direction: column;
+			text-align: center;
 		}
 
 		.reputation-card {

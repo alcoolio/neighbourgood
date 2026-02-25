@@ -152,6 +152,11 @@
 </script>
 
 <div class="skills-page">
+	<nav class="browse-tabs">
+		<a href="/resources" class="browse-tab">Resources</a>
+		<a href="/skills" class="browse-tab active">Skills</a>
+	</nav>
+
 	<div class="page-header">
 		<h1>Skill Exchange</h1>
 		{#if $isLoggedIn}
@@ -281,6 +286,35 @@
 </div>
 
 <style>
+	.browse-tabs {
+		display: flex;
+		gap: 0.25rem;
+		border-bottom: 2px solid var(--color-border);
+		margin-bottom: 1.5rem;
+	}
+
+	.browse-tab {
+		padding: 0.6rem 1.25rem;
+		font-size: 0.95rem;
+		font-weight: 500;
+		color: var(--color-text-muted);
+		text-decoration: none;
+		border-bottom: 3px solid transparent;
+		margin-bottom: -2px;
+		transition: all var(--transition-fast);
+	}
+
+	.browse-tab:hover {
+		color: var(--color-text);
+		text-decoration: none;
+	}
+
+	.browse-tab.active {
+		color: var(--color-primary);
+		border-bottom-color: var(--color-primary);
+		font-weight: 600;
+	}
+
 	.skills-page {
 		max-width: 900px;
 	}
