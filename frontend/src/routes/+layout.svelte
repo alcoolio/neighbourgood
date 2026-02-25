@@ -9,6 +9,8 @@
 
 	let { children } = $props();
 	let mobileMenuOpen = $state(false);
+	let unreadCount = $state(0);
+	let crisisBannerDismissed = $state(false);
 
 	function closeMobileMenu() {
 		mobileMenuOpen = false;
@@ -52,7 +54,25 @@
 				// If we can't fetch communities, just use the instance mode
 			}
 		}
+
+		// Fetch unread message count for nav badge
+		if (t) {
+			try {
+				const data = await api<{ count: number }>('/messages/unread', { auth: true });
+				unreadCount = data.count;
+			} catch {
+				// Ignore — badge just won't show
+			}
+		}
+
+		// Restore crisis banner dismissal from session
+		crisisBannerDismissed = sessionStorage.getItem('ng_crisis_banner_dismissed') === 'true';
 	});
+
+	function dismissCrisisBanner() {
+		crisisBannerDismissed = true;
+		sessionStorage.setItem('ng_crisis_banner_dismissed', 'true');
+	}
 </script>
 
 <svelte:head>
@@ -67,7 +87,7 @@
 
 <nav class="main-nav">
 	<div class="nav-inner">
-		<a href="/" class="nav-brand" onclick={closeMobileMenu}>
+		<a href={$isLoggedIn ? '/dashboard' : '/'} class="nav-brand" onclick={closeMobileMenu}>
 			<span class="brand-icon" aria-hidden="true">
 				<svg width="18" height="17" viewBox="0 0 18 17" fill="none" xmlns="http://www.w3.org/2000/svg">
 					<path d="M1 8.5L9 1l8 7.5" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
@@ -92,14 +112,17 @@
 
 		<div class="nav-links" class:mobile-open={mobileMenuOpen}>
 			{#if $isLoggedIn}
-				<a href="/dashboard" class="nav-link" class:active={$page.url.pathname === '/dashboard'} onclick={closeMobileMenu}>Dashboard</a>
-				<a href="/resources" class="nav-link" class:active={$page.url.pathname.startsWith('/resources')} onclick={closeMobileMenu}>Resources</a>
-				<a href="/skills" class="nav-link" class:active={$page.url.pathname.startsWith('/skills')} onclick={closeMobileMenu}>Skills</a>
-				<a href="/communities" class="nav-link" class:active={$page.url.pathname.startsWith('/communities')} onclick={closeMobileMenu}>Communities</a>
-				<a href="/bookings" class="nav-link" class:active={$page.url.pathname === '/bookings'} onclick={closeMobileMenu}>Bookings</a>
-				<a href="/messages" class="nav-link" class:active={$page.url.pathname === '/messages'} onclick={closeMobileMenu}>Messages</a>
+				<a href="/dashboard" class="nav-link" class:active={$page.url.pathname === '/dashboard'} onclick={closeMobileMenu}>Home</a>
+				<a href="/resources" class="nav-link" class:active={$page.url.pathname.startsWith('/resources') || $page.url.pathname.startsWith('/skills')} onclick={closeMobileMenu}>Browse</a>
+				<a href="/communities" class="nav-link" class:active={$page.url.pathname.startsWith('/communities') || $page.url.pathname === '/explore'} onclick={closeMobileMenu}>Communities</a>
+				<a href="/messages" class="nav-link" class:active={$page.url.pathname === '/messages'} onclick={closeMobileMenu}>
+					Messages
+					{#if unreadCount > 0}
+						<span class="nav-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
+					{/if}
+				</a>
 				{#if $platformMode === 'red'}
-					<a href="/triage" class="nav-link nav-link-crisis" class:active={$page.url.pathname === '/triage'} onclick={closeMobileMenu}>Triage</a>
+					<a href="/triage" class="nav-link nav-link-crisis" class:active={$page.url.pathname === '/triage'} onclick={closeMobileMenu}>Emergency</a>
 				{/if}
 			{:else}
 				<a href="/explore" class="nav-link" class:active={$page.url.pathname === '/explore'} onclick={closeMobileMenu}>Explore</a>
@@ -134,6 +157,9 @@
 
 			{#if $isLoggedIn}
 				<div class="nav-user-group">
+					<a href="/settings" class="nav-icon-btn" title="Settings" onclick={closeMobileMenu}>
+						<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+					</a>
 					<span class="nav-user">{$user?.display_name ?? 'Account'}</span>
 					<button class="nav-btn" onclick={() => { closeMobileMenu(); logout(); window.location.href = '/'; }}>
 						Logout
@@ -149,6 +175,15 @@
 
 {#if mobileMenuOpen}
 	<button class="mobile-overlay" onclick={closeMobileMenu} aria-label="Close menu"></button>
+{/if}
+
+{#if $isLoggedIn && $platformMode === 'red' && !crisisBannerDismissed}
+	<div class="crisis-banner">
+		<span class="crisis-banner-dot"></span>
+		<span>A community is in crisis mode. Emergency coordination is active.</span>
+		<a href="/triage" class="crisis-banner-link">Go to Emergency</a>
+		<button class="crisis-banner-dismiss" onclick={dismissCrisisBanner} aria-label="Dismiss">&times;</button>
+	</div>
 {/if}
 
 <div class="page-content fade-in">
@@ -285,6 +320,41 @@
 		color: var(--color-primary);
 		background: var(--color-primary-light);
 		font-weight: 600;
+	}
+
+	.nav-badge {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 18px;
+		height: 18px;
+		padding: 0 5px;
+		border-radius: 999px;
+		background: var(--color-error);
+		color: white;
+		font-size: 0.7rem;
+		font-weight: 700;
+		line-height: 1;
+		margin-left: 4px;
+		vertical-align: middle;
+	}
+
+	.nav-icon-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 32px;
+		height: 32px;
+		border-radius: var(--radius-sm);
+		color: var(--color-text-muted);
+		transition: all var(--transition-fast);
+		text-decoration: none;
+	}
+
+	.nav-icon-btn:hover {
+		color: var(--color-primary);
+		background: var(--color-primary-light);
+		text-decoration: none;
 	}
 
 	.theme-toggle {
@@ -466,5 +536,60 @@
 		max-width: 1000px;
 		margin: 0 auto;
 		padding: 2rem 1.25rem;
+	}
+
+	/* ── Crisis banner ──────────────────────────────────────── */
+
+	.crisis-banner {
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+		padding: 0.6rem 1.5rem;
+		background: var(--color-error-bg, rgba(239, 68, 68, 0.1));
+		border-bottom: 1px solid var(--color-error);
+		font-size: 0.88rem;
+		color: var(--color-error);
+		max-width: 100%;
+	}
+
+	.crisis-banner-dot {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		background: var(--color-error);
+		flex-shrink: 0;
+		animation: pulse 1.5s ease-in-out infinite;
+	}
+
+	@keyframes pulse {
+		0%, 100% { opacity: 1; }
+		50% { opacity: 0.4; }
+	}
+
+	.crisis-banner-link {
+		margin-left: auto;
+		font-weight: 600;
+		color: var(--color-error);
+		text-decoration: none;
+		white-space: nowrap;
+	}
+
+	.crisis-banner-link:hover {
+		text-decoration: underline;
+	}
+
+	.crisis-banner-dismiss {
+		background: none;
+		border: none;
+		font-size: 1.2rem;
+		color: var(--color-error);
+		cursor: pointer;
+		padding: 0 0.25rem;
+		opacity: 0.7;
+		line-height: 1;
+	}
+
+	.crisis-banner-dismiss:hover {
+		opacity: 1;
 	}
 </style>

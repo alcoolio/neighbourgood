@@ -403,6 +403,8 @@
 		offer: 'Offer',
 		emergency_ping: 'Emergency Ping'
 	};
+
+	let activeTab = $state('overview');
 </script>
 
 <div class="detail-page">
@@ -461,7 +463,21 @@
 			{/if}
 		</div>
 
-		<!-- Crisis Mode Status -->
+		<!-- Tab navigation -->
+		<nav class="community-tabs">
+			<button class="community-tab" class:active={activeTab === 'overview'} onclick={() => activeTab = 'overview'}>Overview</button>
+			<button class="community-tab" class:active={activeTab === 'members'} onclick={() => activeTab = 'members'}>Members ({members.length})</button>
+			<button class="community-tab" class:active={activeTab === 'resources'} onclick={() => activeTab = 'resources'}>Resources ({resourceTotal})</button>
+			{#if isMember}
+				<button class="community-tab" class:active={activeTab === 'emergency'} onclick={() => activeTab = 'emergency'}>Emergency {ticketTotal > 0 ? `(${ticketTotal})` : ''}</button>
+			{/if}
+			{#if isAdmin}
+				<button class="community-tab" class:active={activeTab === 'admin'} onclick={() => activeTab = 'admin'}>Admin</button>
+			{/if}
+		</nav>
+
+		<!-- Crisis Mode Status (overview tab) -->
+		{#if activeTab === 'overview'}
 		{#if crisisStatus}
 			<section class="crisis-section slide-up" style="animation-delay: 0.04s">
 				<div class="crisis-header">
@@ -471,17 +487,6 @@
 							{crisisStatus.mode === 'red' ? 'Red Sky (Crisis)' : 'Blue Sky (Normal)'}
 						</span>
 					</div>
-					{#if isAdmin}
-						{#if crisisStatus.mode === 'blue'}
-							<button class="btn-crisis-activate" onclick={() => toggleCrisisMode('red')} disabled={togglingCrisis}>
-								{togglingCrisis ? 'Activating...' : 'Activate Crisis Mode'}
-							</button>
-						{:else}
-							<button class="btn-crisis-deactivate" onclick={() => toggleCrisisMode('blue')} disabled={togglingCrisis}>
-								{togglingCrisis ? 'Deactivating...' : 'Deactivate Crisis Mode'}
-							</button>
-						{/if}
-					{/if}
 				</div>
 
 				{#if isMember}
@@ -505,9 +510,10 @@
 				{/if}
 			</section>
 		{/if}
+		{/if}
 
 		<!-- Emergency Tickets -->
-		{#if isMember}
+		{#if activeTab === 'emergency' && isMember}
 			<section class="tickets-section slide-up" style="animation-delay: 0.045s">
 				<div class="section-header">
 					<h2>Emergency Tickets ({ticketTotal})</h2>
@@ -590,6 +596,7 @@
 			</section>
 		{/if}
 
+		{#if activeTab === 'members'}
 		<section class="members-section slide-up" style="animation-delay: 0.05s">
 			<h2>Members</h2>
 			<div class="members-list">
@@ -621,7 +628,9 @@
 				{/each}
 			</div>
 		</section>
+		{/if}
 
+		{#if activeTab === 'resources'}
 		<section class="resources-section slide-up" style="animation-delay: 0.1s">
 			<div class="section-header">
 				<h2>Shared Resources ({resourceTotal})</h2>
@@ -654,8 +663,31 @@
 				</div>
 			{/if}
 		</section>
+		{/if}
 
-		{#if isMember}
+		{#if activeTab === 'admin' && isAdmin}
+			<!-- Crisis toggle (admin only) -->
+			{#if crisisStatus}
+				<section class="crisis-section slide-up" style="animation-delay: 0.04s">
+					<div class="crisis-header">
+						<div class="crisis-indicator" class:crisis-red={crisisStatus.mode === 'red'}>
+							<span class="crisis-dot"></span>
+							<span class="crisis-label">
+								{crisisStatus.mode === 'red' ? 'Red Sky (Crisis)' : 'Blue Sky (Normal)'}
+							</span>
+						</div>
+						{#if crisisStatus.mode === 'blue'}
+							<button class="btn-crisis-activate" onclick={() => toggleCrisisMode('red')} disabled={togglingCrisis}>
+								{togglingCrisis ? 'Activating...' : 'Activate Crisis Mode'}
+							</button>
+						{:else}
+							<button class="btn-crisis-deactivate" onclick={() => toggleCrisisMode('blue')} disabled={togglingCrisis}>
+								{togglingCrisis ? 'Deactivating...' : 'Deactivate Crisis Mode'}
+							</button>
+						{/if}
+					</div>
+				</section>
+			{/if}
 			<section class="invites-section slide-up" style="animation-delay: 0.15s">
 				<div class="section-header">
 					<h2>Invite Links</h2>
@@ -708,9 +740,8 @@
 					</div>
 				{/if}
 			</section>
-		{/if}
 
-		{#if isAdmin && suggestions.length > 0}
+			{#if suggestions.length > 0}
 			<section class="merge-section slide-up" style="animation-delay: 0.1s">
 				<h2>Merge Suggestions</h2>
 				<p class="section-hint">These communities share your postal code or city. Merging combines members into one group.</p>
@@ -737,6 +768,7 @@
 					{/each}
 				</div>
 			</section>
+			{/if}
 		{/if}
 	{/if}
 </div>
@@ -751,6 +783,40 @@
 		text-align: center;
 		color: var(--color-text-muted);
 		padding: 3rem;
+	}
+
+	/* ── Community tabs ─────────────────────────────────────── */
+
+	.community-tabs {
+		display: flex;
+		gap: 0.15rem;
+		border-bottom: 2px solid var(--color-border);
+		margin: 1.5rem 0 1.25rem 0;
+		overflow-x: auto;
+	}
+
+	.community-tab {
+		background: none;
+		border: none;
+		padding: 0.6rem 1rem;
+		font-size: 0.88rem;
+		font-weight: 500;
+		color: var(--color-text-muted);
+		cursor: pointer;
+		border-bottom: 3px solid transparent;
+		margin-bottom: -2px;
+		transition: all var(--transition-fast);
+		white-space: nowrap;
+	}
+
+	.community-tab:hover {
+		color: var(--color-text);
+	}
+
+	.community-tab.active {
+		color: var(--color-primary);
+		border-bottom-color: var(--color-primary);
+		font-weight: 600;
 	}
 
 	.back-link {
