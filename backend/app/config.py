@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 class Settings(BaseSettings):
     app_name: str = "NeighbourGood"
-    app_version: str = "0.9.5"
+    app_version: str = "0.9.8"
     debug: bool = False
     database_url: str = "sqlite:///./neighbourgood.db"
 

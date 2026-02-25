@@ -4,6 +4,53 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.9.8] - 2026-02-25
+
+### Added
+
+- **User dashboard** – Personalized dashboard showing user stats, recent activity, and quick actions
+  - Profile summary with reputation score and member status
+  - Recent bookings, messages, and activity feed
+  - Quick access to create resources, post skills, and manage communities
+- **Ticket detail page** – Comprehensive view for emergency tickets in Red Sky mode
+  - Discussion thread for ticket comments and updates
+  - Assignment controls for leaders and admins to assign tickets to members
+  - Real-time updates and status tracking
+- **Global Red Sky mode awareness** – Users now see Red Sky mode activated if they are members of any crisis community
+  - Platform-wide UI indicator showing active crisis status
+  - Quick access to crisis-mode communities from dashboard
+- **UI redesign and branding refresh** – Complete visual refresh with improved usability
+  - Warm colour palette for better visual hierarchy
+  - Abril Fatface typography for headings (custom branding)
+  - SVG logo replacing bitmap version (better scalability)
+  - Active navigation state indicators for clarity
+  - Consistent widths across all pages (improved alignment)
+- **Navigation restructuring** – Improved user flows and information architecture
+  - Better labeling for Blue Sky vs Red Sky features
+  - More intuitive routing between emergency and resource sections
+  - Improved mobile navigation usability
+- **Hero background improvements** – Landing page visual enhancements
+  - Better responsive image handling
+  - Improved contrast and accessibility
+- **Communities map fixes** – Improved location-based community discovery
+  - Better marker placement and clustering
+  - Fixed zoom level and centering logic
+
+### Fixed
+
+- **Emergency API improvements** – Better error handling and validation
+  - Consistent response format across emergency endpoints
+  - Improved field validation for ticket creation
+- **Consistent page widths** – Resolved layout shifting issues
+  - All pages now maintain consistent max-width and padding
+  - Improved visual stability on different screen sizes
+
+### Changed
+
+- Backend version bumped to 0.9.8
+- Frontend navigation restructured for clarity between normal and crisis operations
+- Dashboard now serves as primary user landing page after login
+
 ## [0.9.5] - 2026-02-24
 
 ### Added
