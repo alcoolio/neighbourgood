@@ -72,8 +72,8 @@
 	async function loadCommunities() {
 		loadingCommunities = true;
 		try {
-			const data = await api<{ items: CommunityOut[] }>('/communities/mine', { auth: true });
-			communities = data.items ?? [];
+			const data = await api<CommunityOut[]>('/communities/my/memberships', { auth: true });
+			communities = data ?? [];
 			if (communities.length > 0) {
 				selectedCommunityId = communities[0].id;
 				selectedCommunityMode = communities[0].mode ?? 'blue';
@@ -345,7 +345,7 @@
 
 <style>
 	.emergency-page {
-		max-width: 820px;
+		max-width: 900px;
 		margin: 0 auto;
 	}
 

@@ -136,14 +136,13 @@
 		position: relative;
 	}
 
-	/* Subtle warm dot-grid background */
+	/* Subtle gradient background */
 	.hero::before {
 		content: '';
 		position: absolute;
 		inset: 0;
-		background-image: radial-gradient(circle, var(--color-border) 1px, transparent 1px);
-		background-size: 22px 22px;
-		opacity: 0.55;
+		background: linear-gradient(180deg, var(--color-primary-light) 0%, transparent 70%);
+		opacity: 0.5;
 		pointer-events: none;
 		border-radius: var(--radius-xl);
 	}
