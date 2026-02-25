@@ -204,6 +204,7 @@
 
 <style>
 	.dashboard {
+		max-width: 900px;
 		display: flex;
 		flex-direction: column;
 		gap: 1.5rem;

@@ -775,7 +775,7 @@
 
 <style>
 	.detail-page {
-		max-width: 700px;
+		max-width: 900px;
 		margin: 0 auto;
 	}
 

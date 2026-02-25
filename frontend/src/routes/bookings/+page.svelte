@@ -229,7 +229,7 @@
 
 <style>
 	.bookings-page {
-		max-width: 800px;
+		max-width: 900px;
 	}
 
 	h1 {
