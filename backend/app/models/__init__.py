@@ -8,10 +8,10 @@ from app.models.activity import Activity
 from app.models.invite import Invite
 from app.models.review import Review
 from app.models.federation import KnownInstance, RedSkyAlert
-from app.models.crisis import CrisisVote, EmergencyTicket
+from app.models.crisis import CrisisVote, EmergencyTicket, TicketComment
 
 __all__ = [
     "User", "Resource", "Booking", "Message", "Community", "CommunityMember",
     "Skill", "Activity", "Invite", "Review", "KnownInstance", "RedSkyAlert",
-    "CrisisVote", "EmergencyTicket",
+    "CrisisVote", "EmergencyTicket", "TicketComment",
 ]

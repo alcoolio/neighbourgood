@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.community import Community, CommunityMember
-from app.models.crisis import CrisisVote, EmergencyTicket
+from app.models.crisis import CrisisVote, EmergencyTicket, TicketComment
 from app.models.user import User
 from app.services.activity import record_activity
 from app.schemas.crisis import (
@@ -21,6 +21,8 @@ from app.schemas.crisis import (
     EmergencyTicketOut,
     EmergencyTicketUpdate,
     LeaderOut,
+    TicketCommentCreate,
+    TicketCommentOut,
 )
 from app.schemas.community import CommunityMemberOut
 
@@ -543,6 +545,84 @@ def update_ticket(
     db.refresh(ticket)
     return _ticket_to_out(ticket)
 
+
+
+# ── Ticket comments ──────────────────────────────────────────────
+
+
+@router.get("/tickets/{ticket_id}/comments", response_model=list[TicketCommentOut])
+def list_ticket_comments(
+    community_id: int,
+    ticket_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """List comments on an emergency ticket. Any community member can view."""
+    _get_community(db, community_id)
+    _require_membership(db, community_id, current_user.id)
+
+    ticket = (
+        db.query(EmergencyTicket)
+        .filter(
+            EmergencyTicket.id == ticket_id,
+            EmergencyTicket.community_id == community_id,
+        )
+        .first()
+    )
+    if not ticket:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Ticket not found"
+        )
+
+    comments = (
+        db.query(TicketComment)
+        .options(joinedload(TicketComment.author))
+        .filter(TicketComment.ticket_id == ticket_id)
+        .order_by(TicketComment.created_at.asc())
+        .all()
+    )
+    return comments
+
+
+@router.post(
+    "/tickets/{ticket_id}/comments",
+    response_model=TicketCommentOut,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_ticket_comment(
+    community_id: int,
+    ticket_id: int,
+    body: TicketCommentCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Add a comment to an emergency ticket. Any community member can comment."""
+    _get_community(db, community_id)
+    _require_membership(db, community_id, current_user.id)
+
+    ticket = (
+        db.query(EmergencyTicket)
+        .filter(
+            EmergencyTicket.id == ticket_id,
+            EmergencyTicket.community_id == community_id,
+        )
+        .first()
+    )
+    if not ticket:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Ticket not found"
+        )
+
+    comment = TicketComment(
+        ticket_id=ticket_id,
+        author_id=current_user.id,
+        body=body.body,
+    )
+    db.add(comment)
+    db.commit()
+    db.refresh(comment)
+    _ = comment.author
+    return comment
 
 
 # ── Leader management ─────────────────────────────────────────────

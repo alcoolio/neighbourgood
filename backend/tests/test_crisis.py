@@ -596,3 +596,112 @@ def test_community_mode_in_response(client, auth_headers):
     res = client.get(f"/communities/{c['id']}")
     assert res.status_code == 200
     assert res.json()["mode"] == "blue"
+
+
+# ── Ticket comments ───────────────────────────────────────────────
+
+
+def test_create_ticket_comment(client, auth_headers):
+    c = _create_community(client, auth_headers)
+    cid = c["id"]
+
+    ticket = client.post(
+        f"/communities/{cid}/tickets",
+        headers=auth_headers,
+        json={"ticket_type": "request", "title": "Need water", "urgency": "high"},
+    ).json()
+    tid = ticket["id"]
+
+    res = client.post(
+        f"/communities/{cid}/tickets/{tid}/comments",
+        headers=auth_headers,
+        json={"body": "I can help!"},
+    )
+    assert res.status_code == 201
+    data = res.json()
+    assert data["body"] == "I can help!"
+    assert "author" in data
+
+
+def test_list_ticket_comments(client, auth_headers):
+    c = _create_community(client, auth_headers)
+    cid = c["id"]
+
+    ticket = client.post(
+        f"/communities/{cid}/tickets",
+        headers=auth_headers,
+        json={"ticket_type": "request", "title": "Need water", "urgency": "high"},
+    ).json()
+    tid = ticket["id"]
+
+    client.post(
+        f"/communities/{cid}/tickets/{tid}/comments",
+        headers=auth_headers,
+        json={"body": "First comment"},
+    )
+    client.post(
+        f"/communities/{cid}/tickets/{tid}/comments",
+        headers=auth_headers,
+        json={"body": "Second comment"},
+    )
+
+    res = client.get(
+        f"/communities/{cid}/tickets/{tid}/comments",
+        headers=auth_headers,
+    )
+    assert res.status_code == 200
+    items = res.json()
+    assert len(items) == 2
+    assert items[0]["body"] == "First comment"
+    assert items[1]["body"] == "Second comment"
+
+
+def test_comment_requires_membership(client, auth_headers):
+    c = _create_community(client, auth_headers)
+    cid = c["id"]
+
+    ticket = client.post(
+        f"/communities/{cid}/tickets",
+        headers=auth_headers,
+        json={"ticket_type": "request", "title": "Need water", "urgency": "high"},
+    ).json()
+    tid = ticket["id"]
+
+    outsider = _register(client, "outsider@test.com", "Outsider")
+    res = client.post(
+        f"/communities/{cid}/tickets/{tid}/comments",
+        headers=outsider,
+        json={"body": "I can help!"},
+    )
+    assert res.status_code == 403
+
+
+def test_comment_on_nonexistent_ticket(client, auth_headers):
+    c = _create_community(client, auth_headers)
+    cid = c["id"]
+
+    res = client.post(
+        f"/communities/{cid}/tickets/99999/comments",
+        headers=auth_headers,
+        json={"body": "I can help!"},
+    )
+    assert res.status_code == 404
+
+
+def test_comment_body_required(client, auth_headers):
+    c = _create_community(client, auth_headers)
+    cid = c["id"]
+
+    ticket = client.post(
+        f"/communities/{cid}/tickets",
+        headers=auth_headers,
+        json={"ticket_type": "request", "title": "Need water", "urgency": "high"},
+    ).json()
+    tid = ticket["id"]
+
+    res = client.post(
+        f"/communities/{cid}/tickets/{tid}/comments",
+        headers=auth_headers,
+        json={"body": ""},
+    )
+    assert res.status_code == 422

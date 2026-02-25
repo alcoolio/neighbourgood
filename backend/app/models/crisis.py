@@ -65,3 +65,25 @@ class EmergencyTicket(Base):
     community: Mapped["Community"] = relationship()  # noqa: F821
     author: Mapped["User"] = relationship(foreign_keys=[author_id])  # noqa: F821
     assigned_to: Mapped["User | None"] = relationship(foreign_keys=[assigned_to_id])  # noqa: F821
+
+
+class TicketComment(Base):
+    __tablename__ = "ticket_comments"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    ticket_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("emergency_tickets.id"), nullable=False, index=True
+    )
+    author_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id"), nullable=False, index=True
+    )
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, server_default=func.now(), nullable=False
+    )
+
+    ticket: Mapped["EmergencyTicket"] = relationship()
+    author: Mapped["User"] = relationship()  # noqa: F821

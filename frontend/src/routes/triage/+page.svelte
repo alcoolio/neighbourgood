@@ -297,7 +297,7 @@
 			<p class="count-label">{filtered.length} ticket{filtered.length !== 1 ? 's' : ''}</p>
 			<div class="ticket-list">
 				{#each filtered as ticket (ticket.id)}
-					<div class="ticket-card" class:overdue={isOverdue(ticket.due_at)}>
+					<a href="/triage/{ticket.id}?community={selectedCommunityId}" class="ticket-card" class:overdue={isOverdue(ticket.due_at)}>
 						<div class="ticket-header">
 							<span class="urgency-badge" style="background: {urgencyColor(ticket.urgency)}20; color: {urgencyColor(ticket.urgency)}; border-color: {urgencyColor(ticket.urgency)}40">
 								{ticket.urgency.toUpperCase()}
@@ -330,13 +330,13 @@
 							{#if ticket.status !== 'resolved' && (isAdminOrLeader || ticket.author.id === $user?.id)}
 								<div class="ticket-actions">
 									{#if ticket.status === 'open'}
-										<button class="btn-tiny" onclick={() => updateTicketStatus(ticket.id, 'in_progress')}>Start</button>
+										<button class="btn-tiny" onclick={(e) => { e.preventDefault(); e.stopPropagation(); updateTicketStatus(ticket.id, 'in_progress'); }}>Start</button>
 									{/if}
-									<button class="btn-tiny btn-tiny-success" onclick={() => updateTicketStatus(ticket.id, 'resolved')}>Resolve</button>
+									<button class="btn-tiny btn-tiny-success" onclick={(e) => { e.preventDefault(); e.stopPropagation(); updateTicketStatus(ticket.id, 'resolved'); }}>Resolve</button>
 								</div>
 							{/if}
 						</div>
-					</div>
+					</a>
 				{/each}
 			</div>
 		{/if}
@@ -517,12 +517,16 @@
 	}
 
 	.ticket-card {
+		display: block;
 		padding: 1rem 1.25rem;
 		background: var(--color-surface);
 		border: 1px solid var(--color-border);
 		border-radius: var(--radius-md);
 		border-left: 4px solid transparent;
 		transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+		text-decoration: none;
+		color: inherit;
+		cursor: pointer;
 	}
 
 	.ticket-card:hover {
