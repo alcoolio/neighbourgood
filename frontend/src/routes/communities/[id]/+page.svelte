@@ -5,6 +5,7 @@
 	import { api } from '$lib/api';
 	import { isLoggedIn, user } from '$lib/stores/auth';
 	import { bandwidth, setPlatformMode } from '$lib/stores/theme';
+	import type { ActivityOut, ActivityList } from '$lib/types';
 
 	interface UserProfile {
 		id: number;
@@ -130,6 +131,7 @@
 	let inviteExpiresHours = $state('');
 	let creatingInvite = $state(false);
 	let copiedCode = $state('');
+	let activities = $state<ActivityOut[]>([]);
 
 	const communityId = $derived(Number($page.params.id));
 
@@ -194,11 +196,28 @@
 					);
 				}
 			}
+		// Load activity feed (public endpoint, no auth required)
+		try {
+			const activityData = await api<ActivityList>(
+				`/activity?community_id=${communityId}&limit=20`
+			);
+			activities = activityData.items;
+		} catch {
+			activities = [];
+		}
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to load';
 		} finally {
 			loading = false;
 		}
+	}
+
+	function timeAgo(iso: string): string {
+		const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+		if (diff < 60) return 'just now';
+		if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+		if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+		return `${Math.floor(diff / 86400)}d ago`;
 	}
 
 	async function join() {
@@ -508,6 +527,21 @@
 						</div>
 					</div>
 				{/if}
+			</section>
+		{/if}
+
+		{#if activities.length > 0}
+			<section class="timeline slide-up" style="animation-delay: 0.06s">
+				<h3 class="timeline-heading">Recent Activity</h3>
+				<ul class="timeline-list">
+					{#each activities as item (item.id)}
+						<li class="timeline-item">
+							<span class="timeline-actor">{item.actor.display_name}</span>
+							<span class="timeline-summary">{item.summary}</span>
+							<time class="timeline-time" datetime={item.created_at}>{timeAgo(item.created_at)}</time>
+						</li>
+					{/each}
+				</ul>
 			</section>
 		{/if}
 		{/if}
@@ -1633,5 +1667,64 @@
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
+	}
+
+	/* ── Community timeline ──────────────────── */
+
+	.timeline {
+		margin-top: 1.5rem;
+		padding: 1rem 1.25rem;
+		background: var(--color-surface);
+		border-radius: 0.75rem;
+	}
+
+	.timeline-heading {
+		font-size: 0.8rem;
+		font-weight: 600;
+		color: var(--color-text-muted);
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+		margin: 0 0 0.75rem;
+	}
+
+	.timeline-list {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.timeline-item {
+		display: flex;
+		align-items: baseline;
+		gap: 0.35rem;
+		padding: 0.45rem 0;
+		border-bottom: 1px solid color-mix(in srgb, var(--color-text-muted) 15%, transparent);
+		font-size: 0.875rem;
+		flex-wrap: wrap;
+	}
+
+	.timeline-item:last-child {
+		border-bottom: none;
+		padding-bottom: 0;
+	}
+
+	.timeline-actor {
+		font-weight: 600;
+		color: var(--color-primary);
+		white-space: nowrap;
+	}
+
+	.timeline-summary {
+		flex: 1;
+		color: var(--color-text);
+	}
+
+	.timeline-time {
+		font-size: 0.775rem;
+		color: var(--color-text-muted);
+		white-space: nowrap;
+		margin-left: auto;
 	}
 </style>
