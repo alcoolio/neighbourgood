@@ -59,8 +59,8 @@
 		}
 	}
 
-	function startConversation(ownerId: number) {
-		goto(`/messages?partner=${ownerId}`);
+	function startConversation(ownerId: number, skillId: number) {
+		goto(`/messages?partner=${ownerId}&skill=${skillId}`);
 	}
 </script>
 
@@ -105,7 +105,7 @@
 				<p class="owner-neighbourhood">{skill.owner.neighbourhood}</p>
 			{/if}
 			{#if $isLoggedIn && $user?.id !== skill.owner_id}
-				<button class="btn-message-owner" onclick={() => startConversation(skill!.owner_id)}>
+				<button class="btn-message-owner" onclick={() => startConversation(skill!.owner_id, skill!.id)}>
 					Message {skill.skill_type === 'offer' ? 'Tutor' : 'Requester'}
 				</button>
 			{/if}
