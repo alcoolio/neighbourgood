@@ -11,12 +11,39 @@
 	let mobileMenuOpen = $state(false);
 	let unreadCount = $state(0);
 	let crisisBannerDismissed = $state(false);
+	let showUpdateBanner = $state(false);
+	let installPrompt = $state<Event | null>(null);
 
 	function closeMobileMenu() {
 		mobileMenuOpen = false;
 	}
 
 	onMount(async () => {
+		// ── Service worker registration ───────────────────────────────────────
+		if ('serviceWorker' in navigator) {
+			try {
+				const reg = await navigator.serviceWorker.register('/service-worker.js');
+				reg.addEventListener('updatefound', () => {
+					const newWorker = reg.installing;
+					if (!newWorker) return;
+					newWorker.addEventListener('statechange', () => {
+						// Show update banner once the new SW is active and a prior one existed.
+						if (newWorker.state === 'activated' && navigator.serviceWorker.controller) {
+							showUpdateBanner = true;
+						}
+					});
+				});
+			} catch {
+				// Service worker registration failed — app still works online.
+			}
+		}
+
+		// ── Install prompt (Android / desktop Chrome) ─────────────────────────
+		window.addEventListener('beforeinstallprompt', (e) => {
+			e.preventDefault();
+			installPrompt = e;
+		});
+
 		const t = $token;
 		if (t && !$user) {
 			try {
@@ -72,6 +99,13 @@
 	function dismissCrisisBanner() {
 		crisisBannerDismissed = true;
 		sessionStorage.setItem('ng_crisis_banner_dismissed', 'true');
+	}
+
+	async function installApp() {
+		if (!installPrompt) return;
+		// @ts-expect-error BeforeInstallPromptEvent is not in the standard TS lib
+		await installPrompt.prompt();
+		installPrompt = null;
 	}
 </script>
 
@@ -155,6 +189,13 @@
 				</button>
 			{/if}
 
+			{#if installPrompt}
+				<button class="nav-install-btn" onclick={installApp} title="Install NeighbourGood as an app">
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v13M8 11l4 4 4-4"/><path d="M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2"/></svg>
+					Install
+				</button>
+			{/if}
+
 			{#if $isLoggedIn}
 				<div class="nav-user-group">
 					<a href="/settings" class="nav-icon-btn" title="Settings" onclick={closeMobileMenu}>
@@ -175,6 +216,15 @@
 
 {#if mobileMenuOpen}
 	<button class="mobile-overlay" onclick={closeMobileMenu} aria-label="Close menu"></button>
+{/if}
+
+{#if showUpdateBanner}
+	<div class="update-banner">
+		<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+		<span>A new version of NeighbourGood is available.</span>
+		<button class="update-banner-btn" onclick={() => location.reload()}>Refresh</button>
+		<button class="update-banner-dismiss" onclick={() => (showUpdateBanner = false)} aria-label="Dismiss">&times;</button>
+	</div>
 {/if}
 
 {#if $isLoggedIn && $platformMode === 'red' && !crisisBannerDismissed}
@@ -545,6 +595,72 @@
 	}
 
 	/* ── Crisis banner ──────────────────────────────────────── */
+
+	/* ── Update banner ──────────────────────────────────────────── */
+
+	.update-banner {
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+		padding: 0.55rem 1.5rem;
+		background: var(--color-accent-light);
+		border-bottom: 1px solid var(--color-accent);
+		font-size: 0.85rem;
+		color: var(--color-accent);
+	}
+
+	.update-banner-btn {
+		margin-left: auto;
+		background: var(--color-accent);
+		color: white;
+		border: none;
+		border-radius: var(--radius-sm);
+		padding: 0.25rem 0.75rem;
+		font-size: 0.82rem;
+		font-weight: 600;
+		cursor: pointer;
+		transition: opacity var(--transition-fast);
+	}
+
+	.update-banner-btn:hover { opacity: 0.85; }
+
+	.update-banner-dismiss {
+		background: none;
+		border: none;
+		font-size: 1.1rem;
+		color: var(--color-accent);
+		cursor: pointer;
+		padding: 0 0.2rem;
+		opacity: 0.7;
+		line-height: 1;
+	}
+
+	.update-banner-dismiss:hover { opacity: 1; }
+
+	/* ── Install button ─────────────────────────────────────────── */
+
+	.nav-install-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		background: var(--color-primary-light);
+		color: var(--color-primary);
+		border: 1px solid var(--color-primary);
+		border-radius: var(--radius-sm);
+		padding: 0.3rem 0.7rem;
+		font-size: 0.82rem;
+		font-weight: 600;
+		cursor: pointer;
+		transition: all var(--transition-fast);
+		margin: 0 0.25rem;
+	}
+
+	.nav-install-btn:hover {
+		background: var(--color-primary);
+		color: white;
+	}
+
+	/* ── Crisis banner ──────────────────────────────────────────── */
 
 	.crisis-banner {
 		display: flex;
