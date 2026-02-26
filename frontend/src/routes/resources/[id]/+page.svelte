@@ -195,18 +195,29 @@
 		{/if}
 
 		<!-- Booking section -->
-		{#if bookings.length > 0}
-			<div class="section-card">
-				<h3>Upcoming Bookings</h3>
-				<div class="booking-list">
-					{#each bookings as b}
-						<div class="booking-item">
-							<span class="booking-dates">{b.start_date} &rarr; {b.end_date}</span>
-							<span class="booking-status" style="color: {statusColor(b.status)}">{b.status}</span>
-							<span class="booking-who">{b.borrower.display_name}</span>
-						</div>
-					{/each}
-				</div>
+		{#if isOwner || bookings.length > 0}
+			<div class="section-card" class:owner-bookings-card={isOwner}>
+				<h3>{isOwner ? 'Who Has This Item?' : 'Booked Dates'}</h3>
+				{#if bookings.length > 0}
+					<div class="booking-list">
+						{#each bookings as b}
+							{@const days = Math.ceil((new Date(b.end_date).getTime() - new Date(b.start_date).getTime()) / 86400000)}
+							<div class="booking-item">
+								<span class="booking-dates">{b.start_date} &rarr; {b.end_date}</span>
+								<span class="booking-duration">({days} day{days !== 1 ? 's' : ''})</span>
+								<span class="booking-status" style="color: {statusColor(b.status)}">{b.status}</span>
+								{#if isOwner}
+									<span class="booking-who">{b.borrower.display_name}</span>
+								{/if}
+							</div>
+						{/each}
+					</div>
+					{#if isOwner && bookings.some(b => b.status === 'pending')}
+						<p class="pending-alert">Pending requests waiting — <a href="/bookings">review in Bookings</a>.</p>
+					{/if}
+				{:else if isOwner}
+					<p class="empty-bookings">No current bookings. Your item is available to borrow.</p>
+				{/if}
 			</div>
 		{/if}
 
@@ -261,7 +272,7 @@
 	}
 
 	.resource-detail {
-		max-width: 680px;
+		max-width: 900px;
 	}
 
 	.detail-image {
@@ -282,7 +293,8 @@
 	}
 
 	.detail-header h1 {
-		font-size: 1.75rem;
+		font-size: 1.9rem;
+		font-weight: 400;
 		margin-top: 0.5rem;
 	}
 
@@ -472,9 +484,39 @@
 		text-transform: capitalize;
 	}
 
+	.booking-duration {
+		font-size: 0.8rem;
+		color: var(--color-text-muted);
+	}
+
 	.booking-who {
 		color: var(--color-text-muted);
 		margin-left: auto;
+	}
+
+	.owner-bookings-card {
+		border-color: var(--color-primary);
+	}
+
+	.empty-bookings {
+		font-size: 0.88rem;
+		color: var(--color-text-muted);
+		font-style: italic;
+		margin: 0;
+	}
+
+	.pending-alert {
+		font-size: 0.85rem;
+		color: var(--color-warning);
+		font-weight: 500;
+		margin: 0.75rem 0 0 0;
+		padding-top: 0.75rem;
+		border-top: 1px solid var(--color-border);
+	}
+
+	.pending-alert a {
+		color: var(--color-warning);
+		font-weight: 600;
 	}
 
 	/* Booking form */

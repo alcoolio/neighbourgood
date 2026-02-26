@@ -85,6 +85,27 @@
 		pendingOutgoing.length > 0 ||
 		(dashboard?.messages_unread_count ?? 0) > 0
 	);
+
+	// Reputation tier thresholds (mirrors backend routers/users.py)
+	const TIERS = [
+		{ name: 'Newcomer', min: 0, max: 9 },
+		{ name: 'Neighbour', min: 10, max: 29 },
+		{ name: 'Helper', min: 30, max: 59 },
+		{ name: 'Trusted', min: 60, max: 99 },
+		{ name: 'Pillar', min: 100, max: Infinity }
+	];
+
+	const repProgress = $derived((() => {
+		if (!dashboard) return null;
+		const score = dashboard.reputation_score;
+		const idx = TIERS.findIndex(t => score >= t.min && (t.max === Infinity || score <= t.max));
+		const current = TIERS[idx];
+		const next = TIERS[idx + 1] ?? null;
+		if (!next) return { ptsToNext: 0, progressPct: 100, nextName: null };
+		const range = next.min - current.min;
+		const progressPct = Math.min(100, Math.round(((score - current.min) / range) * 100));
+		return { ptsToNext: next.min - score, progressPct, nextName: next.name };
+	})());
 </script>
 
 <svelte:head>
@@ -211,10 +232,46 @@
 			<section class="reputation-section">
 				<h2>Your Reputation</h2>
 				<div class="reputation-card">
-					<div class="reputation-score">{dashboard.reputation_score}</div>
-					<div class="reputation-info">
-						<div class="reputation-level">{dashboard.reputation_level}</div>
-						<div class="reputation-subtitle">Community Member</div>
+					<div class="rep-top">
+						<div class="reputation-score">{dashboard.reputation_score}</div>
+						<div class="reputation-info">
+							<div class="rep-level-row">
+								<span class="reputation-level">{dashboard.reputation_level}</span>
+								{#if $user?.role === 'admin'}
+									<span class="role-badge">Admin</span>
+								{/if}
+							</div>
+							{#if repProgress?.nextName}
+								<div class="reputation-subtitle">{repProgress.ptsToNext} pts to {repProgress.nextName}</div>
+							{:else}
+								<div class="reputation-subtitle">Top tier — keep it up!</div>
+							{/if}
+							{#if repProgress}
+								<div class="rep-progress-bar">
+									<div class="rep-progress-fill" style="width: {repProgress.progressPct}%"></div>
+								</div>
+							{/if}
+						</div>
+					</div>
+
+					<div class="rep-details">
+						<div class="rep-tiers">
+							{#each TIERS as tier}
+								<span class="rep-tier" class:rep-tier-active={tier.name === dashboard.reputation_level}>
+									{tier.name} <span class="rep-tier-pts">{tier.min === 0 ? '0' : tier.min}+</span>
+								</span>
+							{/each}
+						</div>
+						<div class="rep-breakdown">
+							<span class="rep-breakdown-title">How to earn points</span>
+							<ul class="rep-breakdown-list">
+								<li><span class="rep-pts">+10</span> Complete a lend</li>
+								<li><span class="rep-pts">+5</span> Share a resource</li>
+								<li><span class="rep-pts">+5</span> Offer a skill</li>
+								<li><span class="rep-pts">+3</span> Complete a borrow</li>
+								<li><span class="rep-pts">+2</span> Request a skill</li>
+							</ul>
+						</div>
 					</div>
 				</div>
 			</section>
@@ -480,12 +537,18 @@
 
 	.reputation-card {
 		display: flex;
-		align-items: center;
-		gap: 2rem;
+		flex-direction: column;
+		gap: 1.25rem;
 		padding: 1.5rem 2rem;
 		background: linear-gradient(135deg, var(--color-primary-light), var(--color-surface));
 		border: 1px solid var(--color-border);
 		border-radius: var(--radius-md);
+	}
+
+	.rep-top {
+		display: flex;
+		align-items: center;
+		gap: 2rem;
 	}
 
 	.reputation-score {
@@ -493,12 +556,20 @@
 		font-weight: 700;
 		color: var(--color-primary);
 		min-width: 70px;
+		line-height: 1;
 	}
 
 	.reputation-info {
 		display: flex;
 		flex-direction: column;
-		gap: 0.2rem;
+		gap: 0.35rem;
+		flex: 1;
+	}
+
+	.rep-level-row {
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
 	}
 
 	.reputation-level {
@@ -507,9 +578,109 @@
 		color: var(--color-text);
 	}
 
+	.role-badge {
+		font-size: 0.72rem;
+		font-weight: 600;
+		padding: 0.15rem 0.55rem;
+		border-radius: 999px;
+		background: var(--color-primary);
+		color: white;
+		letter-spacing: 0.03em;
+		text-transform: uppercase;
+	}
+
 	.reputation-subtitle {
 		font-size: 0.85rem;
 		color: var(--color-text-muted);
+	}
+
+	.rep-progress-bar {
+		height: 5px;
+		background: var(--color-border);
+		border-radius: 999px;
+		overflow: hidden;
+		max-width: 200px;
+	}
+
+	.rep-progress-fill {
+		height: 100%;
+		background: var(--color-primary);
+		border-radius: 999px;
+		transition: width var(--transition-slow);
+	}
+
+	/* Tier list + breakdown row */
+	.rep-details {
+		display: flex;
+		gap: 2rem;
+		padding-top: 1rem;
+		border-top: 1px solid var(--color-border);
+		flex-wrap: wrap;
+	}
+
+	.rep-tiers {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.4rem;
+		align-items: center;
+	}
+
+	.rep-tier {
+		font-size: 0.75rem;
+		padding: 0.2rem 0.6rem;
+		border-radius: 999px;
+		background: var(--color-bg);
+		color: var(--color-text-muted);
+		border: 1px solid var(--color-border);
+	}
+
+	.rep-tier-active {
+		background: var(--color-primary-light);
+		color: var(--color-primary);
+		border-color: var(--color-primary);
+		font-weight: 600;
+	}
+
+	.rep-tier-pts {
+		opacity: 0.65;
+	}
+
+	.rep-breakdown {
+		display: flex;
+		flex-direction: column;
+		gap: 0.4rem;
+	}
+
+	.rep-breakdown-title {
+		font-size: 0.78rem;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: var(--color-text-muted);
+	}
+
+	.rep-breakdown-list {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 0.2rem;
+	}
+
+	.rep-breakdown-list li {
+		font-size: 0.82rem;
+		color: var(--color-text-muted);
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+	}
+
+	.rep-pts {
+		font-size: 0.78rem;
+		font-weight: 700;
+		color: var(--color-primary);
+		min-width: 28px;
 	}
 
 	/* ── Alerts ────────────────────────────────────────────────── */
@@ -540,14 +711,23 @@
 			text-align: center;
 		}
 
-		.reputation-card {
+		.rep-top {
 			flex-direction: column;
 			align-items: flex-start;
-			gap: 1rem;
+			gap: 0.75rem;
 		}
 
 		.reputation-score {
 			font-size: 2.5rem;
+		}
+
+		.rep-progress-bar {
+			max-width: 100%;
+		}
+
+		.rep-details {
+			flex-direction: column;
+			gap: 1rem;
 		}
 	}
 </style>

@@ -535,7 +535,13 @@
 	.page-content {
 		max-width: 1000px;
 		margin: 0 auto;
-		padding: 2.75rem 1.25rem;
+		padding: 3.5rem 1.5rem;
+	}
+
+	@media (max-width: 768px) {
+		.page-content {
+			padding: 2rem 1rem;
+		}
 	}
 
 	/* ── Crisis banner ──────────────────────────────────────── */

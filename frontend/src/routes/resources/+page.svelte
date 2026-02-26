@@ -138,11 +138,6 @@
 </script>
 
 <div class="resources-page">
-	<nav class="browse-tabs">
-		<a href="/resources" class="browse-tab active">Resources</a>
-		<a href="/skills" class="browse-tab">Skills</a>
-	</nav>
-
 	<div class="page-header">
 		<h1>Shared Resources</h1>
 		{#if $isLoggedIn}
@@ -151,6 +146,11 @@
 			</button>
 		{/if}
 	</div>
+
+	<nav class="browse-tabs">
+		<a href="/resources" class="browse-tab active">Resources</a>
+		<a href="/skills" class="browse-tab">Skills</a>
+	</nav>
 
 	{#if showCreateForm}
 		<div class="create-form-card">
@@ -287,6 +287,7 @@
 		display: flex;
 		gap: 0.25rem;
 		border-bottom: 2px solid var(--color-border);
+		margin-top: 0.5rem;
 		margin-bottom: 1.5rem;
 	}
 
@@ -320,7 +321,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		margin-bottom: 1.5rem;
+		margin-bottom: 0.75rem;
 		gap: 1rem;
 		flex-wrap: wrap;
 	}
