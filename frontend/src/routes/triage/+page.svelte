@@ -346,7 +346,6 @@
 <style>
 	.emergency-page {
 		max-width: 900px;
-		margin: 0 auto;
 	}
 
 	.page-header {
@@ -354,15 +353,13 @@
 	}
 
 	h1 {
-		font-size: 1.6rem;
-		font-weight: 700;
-		letter-spacing: -0.02em;
-		color: var(--color-text);
+		font-size: 1.9rem;
+		font-weight: 400;
 		margin-bottom: 0.25rem;
 	}
 
 	h2 {
-		font-size: 1.1rem;
+		font-size: 1.2rem;
 		font-weight: 600;
 		color: var(--color-text);
 		margin: 0 0 1rem 0;
