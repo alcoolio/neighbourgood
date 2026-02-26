@@ -416,6 +416,7 @@ def test_not_found(client, auth_headers):
 
 | Version | Date | Highlights |
 |---------|------|-----------|
+| 0.9.9 | 2026-02-26 | PWA support with offline-first service worker, installable web app, dashboard crisis ticket widget, design refinements, enhanced reputation system |
 | 0.9.8 | 2026-02-25 | User dashboard, ticket detail page with discussion, global Red Sky awareness, UI redesign (warm palette, Abril Fatface headings, SVG logo), navigation restructuring |
 | 0.9.5 | 2026-02-24 | Low-bandwidth mode, triage dashboard, community-filtered resources/skills, eager-loading N+1 fix, enhanced API error handling |
 | 0.9.0 | 2026-02-19 | Red Sky mode per community, crisis voting (60%), emergency tickets, leader roles, explore map, 198 tests |

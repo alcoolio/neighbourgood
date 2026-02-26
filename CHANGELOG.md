@@ -4,6 +4,47 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.9.9] - 2026-02-26
+
+### Added
+
+- **Progressive Web App (PWA) support** – Full offline-first capability with service worker caching
+  - Service worker precaches all SvelteKit build chunks and static files on install
+  - Cache-first strategy for hashed build assets (zero network for repeat visits)
+  - Network-first with stale cache fallback for API GET requests
+  - Branded offline fallback page with retry button (dark-mode aware)
+  - Automatic service worker updates with in-app notification banner
+- **PWA installation and manifest** – Full web app manifest with icons and shortcuts
+  - Installable on Android, desktop Chrome, and iOS (via web.app)
+  - SVG + 192/512px PNG icons with automated generation
+  - Shortcuts for quick access to Messages, Resources, and Communities
+  - Correct theme colors matching current warm palette (#c95d1b)
+  - No new npm dependencies required
+- **Dashboard crisis ticket widget** – Quick access to assigned emergency tickets (Red Sky only)
+  - New "Your assigned tickets" section shows tickets assigned to current user
+  - Only visible when user has open assigned tickets in crisis communities
+  - Each ticket links directly to ticket detail/discussion page for quick action
+- **Design refinements and fixes** – Improved visual consistency across all pages
+  - Standardized heading sizes and font weights on triage pages
+  - Removed width alignment inconsistencies in detail pages
+  - Better visual hierarchy across emergency and resource sections
+- **Enhanced reputation system UI** – Improved visibility and browsing of resource/skill lists
+  - Better display of reputation levels and user stats on profile
+  - Improved resource and skill card designs for better scannability
+  - Enhanced filtering and sorting on resource/skill browsing pages
+
+### Fixed
+
+- **Design width inconsistencies** – Fixed double-centering in community pages, triage, and emergency sections
+- **Heading standardization** – Consistent font sizes and weights across all triage pages
+- **Orphan page padding** – Removed duplicate padding in triage detail page
+
+### Changed
+
+- Backend version bumped to 0.9.9
+- Frontend now PWA-enabled with full offline support
+- Dashboard UI enhanced with crisis-mode awareness
+
 ## [0.9.8] - 2026-02-25
 
 ### Added
