@@ -109,6 +109,21 @@ export interface MessageOut {
 	created_at: string;
 }
 
+export interface ActivityOut {
+	id: number;
+	event_type: string;
+	summary: string;
+	actor_id: number;
+	community_id: number | null;
+	actor: { id: number; display_name: string; email: string };
+	created_at: string;
+}
+
+export interface ActivityList {
+	items: ActivityOut[];
+	total: number;
+}
+
 /**
  * Status color utility – maps booking/resource status to CSS variable names.
  */
