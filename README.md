@@ -200,7 +200,7 @@ See [API_ENDPOINTS.md](API_ENDPOINTS.md) for the full endpoint reference. Intera
 
 ### Phase 5 — Offline & Resilience
 
-- [ ] Full PWA with service worker caching
+- [x] Full PWA with service worker caching ✅ (v0.9.9)
 - [ ] Offline item browsing and request queuing
 - [ ] Background sync when connectivity returns
 - [ ] Data export and backup tools
