@@ -376,8 +376,6 @@
 <style>
   .page-container {
     max-width: 900px;
-    margin: 0 auto;
-    padding: 2rem 1.5rem 4rem;
   }
 
   /* Breadcrumb */
@@ -444,8 +442,8 @@
   }
 
   .ticket-title {
-    font-size: 1.75rem;
-    font-weight: 700;
+    font-size: 1.9rem;
+    font-weight: 400;
     color: var(--color-text);
     margin: 0 0 0.5rem;
     line-height: 1.25;
@@ -467,7 +465,7 @@
   }
 
   .section-heading {
-    font-size: 1rem;
+    font-size: 1.2rem;
     font-weight: 600;
     color: var(--color-text);
     margin: 0 0 1rem;
@@ -596,7 +594,6 @@
   }
 
   .discussion-heading {
-    font-size: 1.25rem;
     margin-bottom: 1.25rem;
   }
 

@@ -29,10 +29,21 @@
 		mode: string;
 	}
 
+	interface TicketItem {
+		id: number;
+		title: string;
+		ticket_type: string;
+		status: string;
+		urgency: string;
+		community_id: number;
+		assigned_to: { id: number; display_name: string } | null;
+	}
+
 	let dashboard: DashboardData | null = $state(null);
 	let pendingIncoming: BookingItem[] = $state([]);
 	let pendingOutgoing: BookingItem[] = $state([]);
 	let communities: CommunityMembership[] = $state([]);
+	let assignedTickets: TicketItem[] = $state([]);
 	let loading = $state(true);
 	let error = $state('');
 
@@ -73,6 +84,25 @@
 				pendingIncoming = [...pendingIncoming];
 				pendingOutgoing = [...pendingOutgoing];
 			}
+
+			// Load assigned tickets from Red Sky communities
+			const redCommunities = commData.filter(c => c.mode === 'red');
+			const collected: TicketItem[] = [];
+			for (const c of redCommunities) {
+				try {
+					const data = await api<{ items: TicketItem[] }>(
+						`/communities/${c.id}/tickets`, { auth: true }
+					);
+					for (const t of data.items ?? []) {
+						if (t.assigned_to?.id === $user?.id && t.status !== 'resolved') {
+							collected.push(t);
+						}
+					}
+				} catch {
+					// skip community on failure
+				}
+			}
+			assignedTickets = collected;
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to load dashboard';
 		} finally {
@@ -151,6 +181,23 @@
 						</div>
 					</a>
 				{/each}
+			</section>
+		{/if}
+
+		<!-- Assigned emergency tickets (Red Sky only) -->
+		{#if assignedTickets.length > 0}
+			<section class="crisis-tickets-section">
+				<h2>Your assigned tickets</h2>
+				<div class="assigned-tickets-list">
+					{#each assignedTickets as ticket}
+						<a href="/triage/{ticket.id}" class="assigned-ticket-item">
+							<span class="ticket-urgency-dot urgency-{ticket.urgency}"></span>
+							<span class="assigned-ticket-title">{ticket.title}</span>
+							<span class="assigned-ticket-meta">{ticket.ticket_type.replace('_', ' ')} · {ticket.status.replace('_', ' ')}</span>
+							<span class="assigned-ticket-arrow">→</span>
+						</a>
+					{/each}
+				</div>
 			</section>
 		{/if}
 
@@ -415,6 +462,74 @@
 		font-size: 1.1rem;
 		color: var(--color-primary);
 		font-weight: 600;
+	}
+
+	/* ── Assigned crisis tickets ─────────────────────────────── */
+
+	.crisis-tickets-section {
+		margin-top: 0.5rem;
+	}
+
+	.assigned-tickets-list {
+		display: flex;
+		flex-direction: column;
+		border: 1px solid var(--color-error);
+		border-radius: var(--radius-md);
+		overflow: hidden;
+	}
+
+	.assigned-ticket-item {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 0.85rem 1.25rem;
+		text-decoration: none;
+		color: inherit;
+		transition: background-color var(--transition-fast);
+		border-bottom: 1px solid var(--color-border);
+	}
+
+	.assigned-ticket-item:last-child {
+		border-bottom: none;
+	}
+
+	.assigned-ticket-item:hover {
+		background: var(--color-error-bg);
+		text-decoration: none;
+	}
+
+	.ticket-urgency-dot {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		flex-shrink: 0;
+	}
+
+	.urgency-critical { background: var(--color-error); }
+	.urgency-high     { background: var(--color-warning); }
+	.urgency-medium   { background: var(--color-text-muted); }
+	.urgency-low      { background: var(--color-border); }
+
+	.assigned-ticket-title {
+		flex: 1;
+		font-size: 0.9rem;
+		font-weight: 500;
+		color: var(--color-text);
+		min-width: 0;
+	}
+
+	.assigned-ticket-meta {
+		font-size: 0.8rem;
+		color: var(--color-text-muted);
+		white-space: nowrap;
+		text-transform: capitalize;
+	}
+
+	.assigned-ticket-arrow {
+		font-size: 0.9rem;
+		color: var(--color-error);
+		font-weight: 600;
+		flex-shrink: 0;
 	}
 
 	/* ── Needs attention ──────────────────────────────────────── */
