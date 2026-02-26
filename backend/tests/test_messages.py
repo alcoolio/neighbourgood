@@ -107,6 +107,48 @@ def test_send_message_requires_auth(client):
     assert res.status_code == 403
 
 
+def test_send_message_with_skill_id(client, auth_headers):
+    bob = _register(client, "bob@test.com", "Bob")
+    bob_id = _get_user_id(client, bob)
+    cid = _make_community_pair(client, auth_headers, bob)
+
+    # Create a skill for context
+    s = client.post(
+        "/skills",
+        headers=auth_headers,
+        json={"title": "Python tutoring", "category": "tutoring", "skill_type": "offer", "community_id": cid},
+    )
+    skill_id = s.json()["id"]
+
+    res = client.post(
+        "/messages",
+        headers=bob,
+        json={"recipient_id": _get_user_id(client, auth_headers), "body": "Hi, I'd like to learn Python!", "skill_id": skill_id},
+    )
+    assert res.status_code == 201
+    assert res.json()["skill_id"] == skill_id
+
+
+def test_list_messages_filter_by_skill(client, auth_headers):
+    bob = _register(client, "bob@test.com", "Bob")
+    bob_id = _get_user_id(client, bob)
+    cid = _make_community_pair(client, auth_headers, bob)
+
+    s = client.post(
+        "/skills",
+        headers=auth_headers,
+        json={"title": "Cooking basics", "category": "cooking", "skill_type": "offer", "community_id": cid},
+    )
+    skill_id = s.json()["id"]
+
+    client.post("/messages", headers=auth_headers, json={"recipient_id": bob_id, "body": "About cooking class", "skill_id": skill_id})
+    client.post("/messages", headers=auth_headers, json={"recipient_id": bob_id, "body": "Unrelated message"})
+
+    res = client.get(f"/messages?skill_id={skill_id}", headers=auth_headers)
+    assert res.json()["total"] == 1
+    assert res.json()["items"][0]["body"] == "About cooking class"
+
+
 def test_send_message_with_booking_id(client, auth_headers):
     bob = _register(client, "bob@test.com", "Bob")
     bob_id = _get_user_id(client, bob)

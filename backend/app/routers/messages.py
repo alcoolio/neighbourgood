@@ -107,6 +107,7 @@ def send_message(
         sender_id=current_user.id,
         recipient_id=body.recipient_id,
         booking_id=body.booking_id,
+        skill_id=body.skill_id,
         body=body.body,
     )
     db.add(msg)
@@ -124,6 +125,7 @@ def send_message(
 def list_messages(
     partner_id: int | None = Query(None, description="Filter conversation with a specific user"),
     booking_id: int | None = Query(None, description="Filter messages related to a booking"),
+    skill_id: int | None = Query(None, description="Filter messages related to a skill"),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
     current_user: User = Depends(get_current_user),
@@ -150,6 +152,9 @@ def list_messages(
 
     if booking_id is not None:
         query = query.filter(Message.booking_id == booking_id)
+
+    if skill_id is not None:
+        query = query.filter(Message.skill_id == skill_id)
 
     total = query.count()
     items = query.order_by(Message.created_at.desc()).offset(skip).limit(limit).all()

@@ -10,6 +10,7 @@ from app.schemas.user import UserProfile
 class MessageCreate(BaseModel):
     recipient_id: int
     booking_id: int | None = None
+    skill_id: int | None = None
     body: str = Field(..., min_length=1, max_length=2000)
 
 
@@ -20,6 +21,7 @@ class MessageOut(BaseModel):
     recipient_id: int
     recipient: UserProfile
     booking_id: int | None
+    skill_id: int | None
     body: str
     is_read: bool
     created_at: datetime.datetime

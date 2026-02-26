@@ -24,14 +24,22 @@
 		recipient_id: number;
 		recipient: UserInfo;
 		booking_id: number | null;
+		skill_id: number | null;
 		body: string;
 		is_read: boolean;
 		created_at: string;
 	}
 
+	interface SkillContext {
+		id: number;
+		title: string;
+		skill_type: string;
+	}
+
 	let conversations: Conversation[] = $state([]);
 	let messages: Message[] = $state([]);
 	let selectedPartner: UserInfo | null = $state(null);
+	let skillContext: SkillContext | null = $state(null);
 	let loading = $state(true);
 	let newMessage = $state('');
 	let sending = $state(false);
@@ -92,12 +100,25 @@
 
 	async function openConversation(partner: UserInfo) {
 		selectedPartner = partner;
+		skillContext = null;
 		try {
 			const res = await api<{ items: Message[]; total: number }>(
 				`/messages?partner_id=${partner.id}`,
 				{ auth: true }
 			);
 			messages = res.items.reverse();
+
+			// If no skill context set from URL, check if the oldest message carries one
+			if (!skillContext) {
+				const withSkill = messages.find(m => m.skill_id !== null);
+				if (withSkill?.skill_id) {
+					try {
+						skillContext = await api<SkillContext>(`/skills/${withSkill.skill_id}`);
+					} catch {
+						// skill deleted — silently ignore
+					}
+				}
+			}
 
 			// Mark conversation as read
 			await api(`/messages/conversation/${partner.id}/read`, {
@@ -116,13 +137,16 @@
 	async function sendMessage() {
 		if (!newMessage.trim() || !selectedPartner || sending) return;
 		sending = true;
+		// Attach skill context to the first message in a skill-initiated thread
+		const isFirstMessage = messages.length === 0;
 		try {
 			const msg = await api<Message>('/messages', {
 				method: 'POST',
 				auth: true,
 				body: {
 					recipient_id: selectedPartner.id,
-					body: newMessage.trim()
+					body: newMessage.trim(),
+					...(isFirstMessage && skillContext ? { skill_id: skillContext.id } : {})
 				}
 			});
 			messages = [...messages, msg];
@@ -154,6 +178,17 @@
 	onMount(async () => {
 		await loadConversations();
 		const partnerId = $page.url.searchParams.get('partner');
+		const skillParam = $page.url.searchParams.get('skill');
+
+		// Pre-load skill context when navigating from a skill page
+		if (skillParam) {
+			try {
+				skillContext = await api<SkillContext>(`/skills/${skillParam}`);
+			} catch {
+				// skill not found — proceed without context
+			}
+		}
+
 		if (partnerId) {
 			const pid = Number(partnerId);
 			const existing = conversations.find(c => c.partner.id === pid);
@@ -228,6 +263,14 @@
 					<div class="thread-header">
 						<strong>{selectedPartner.display_name}</strong>
 					</div>
+					{#if skillContext}
+						<div class="skill-context-banner">
+							<span class="skill-context-label">
+								{skillContext.skill_type === 'offer' ? '🎓 Skill offered' : '🔍 Skill wanted'}:
+							</span>
+							<a href="/skills/{skillContext.id}" class="skill-context-link">{skillContext.title}</a>
+						</div>
+					{/if}
 					<div class="thread-messages">
 						{#each messages as msg}
 							<div
@@ -434,6 +477,34 @@
 		padding: 0.75rem 1rem;
 		border-bottom: 1px solid var(--color-border);
 		background: var(--color-surface);
+	}
+
+	.skill-context-banner {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+		padding: 0.4rem 1rem;
+		background: var(--color-primary-light);
+		border-bottom: 1px solid var(--color-border);
+		font-size: 0.8rem;
+	}
+
+	.skill-context-label {
+		color: var(--color-text-muted);
+		white-space: nowrap;
+	}
+
+	.skill-context-link {
+		color: var(--color-primary);
+		font-weight: 600;
+		text-decoration: none;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.skill-context-link:hover {
+		text-decoration: underline;
 	}
 
 	.thread-messages {
