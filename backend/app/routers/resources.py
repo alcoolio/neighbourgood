@@ -4,7 +4,7 @@ import os
 import uuid
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, UploadFile, status
 from fastapi.responses import FileResponse
 from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload
@@ -16,6 +16,7 @@ from app.models.community import CommunityMember
 from app.models.resource import Resource
 from app.models.user import User
 from app.services.activity import record_activity
+from app.services.webhooks import dispatch_event
 from app.schemas.resource import (
     CATEGORY_META,
     VALID_CATEGORIES,
@@ -146,6 +147,7 @@ def list_resources(
 @router.post("", response_model=ResourceOut, status_code=status.HTTP_201_CREATED)
 def create_resource(
     body: ResourceCreate,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -183,6 +185,17 @@ def create_resource(
         actor_id=current_user.id,
         community_id=resource.community_id,
     )
+
+    if resource.community_id:
+        background_tasks.add_task(
+            dispatch_event,
+            db,
+            "resource.shared",
+            {"actor_name": current_user.display_name, "title": resource.title},
+            [],
+            resource.community_id,
+        )
+
     return ResourceOut(**_resource_to_out(resource))
 
 

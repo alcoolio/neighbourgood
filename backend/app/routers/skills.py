@@ -1,6 +1,6 @@
 """Skill exchange CRUD endpoints with search and category metadata."""
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload
 
@@ -10,6 +10,7 @@ from app.models.community import CommunityMember
 from app.models.skill import Skill
 from app.models.user import User
 from app.services.activity import record_activity
+from app.services.webhooks import dispatch_event
 from app.schemas.skill import (
     SKILL_CATEGORY_META,
     VALID_SKILL_CATEGORIES,
@@ -109,6 +110,7 @@ def list_skills(
 @router.post("", response_model=SkillOut, status_code=status.HTTP_201_CREATED)
 def create_skill(
     body: SkillCreate,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -145,6 +147,22 @@ def create_skill(
         actor_id=current_user.id,
         community_id=skill.community_id,
     )
+
+    if skill.community_id:
+        background_tasks.add_task(
+            dispatch_event,
+            db,
+            "skill.created",
+            {
+                "actor_name": current_user.display_name,
+                "title": skill.title,
+                "category": skill.category,
+                "skill_type": skill.skill_type,
+            },
+            [],
+            skill.community_id,
+        )
+
     return SkillOut(**_skill_to_out(skill))
 
 

@@ -3,7 +3,7 @@
 Messages are restricted to users who share at least one community.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy import and_, case, func, or_
 from sqlalchemy.orm import Session, joinedload
 
@@ -13,6 +13,7 @@ from app.models.community import CommunityMember
 from app.models.message import Message
 from app.models.user import User
 from app.services.notifications import notify_new_message
+from app.services.webhooks import dispatch_event
 from app.schemas.message import (
     ConversationSummary,
     MessageCreate,
@@ -83,6 +84,7 @@ def list_messageable_users(
 @router.post("", response_model=MessageOut, status_code=status.HTTP_201_CREATED)
 def send_message(
     body: MessageCreate,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -117,6 +119,14 @@ def send_message(
     _ = msg.recipient
 
     notify_new_message(recipient.email, current_user.display_name)
+
+    background_tasks.add_task(
+        dispatch_event,
+        db,
+        "message.new",
+        {"sender_name": current_user.display_name},
+        [body.recipient_id],
+    )
 
     return msg
 

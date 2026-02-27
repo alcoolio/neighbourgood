@@ -2,7 +2,7 @@
 
 import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session, joinedload
 
@@ -13,6 +13,7 @@ from app.models.resource import Resource
 from app.models.user import User
 from app.services.activity import record_activity
 from app.services.notifications import notify_booking_request, notify_booking_status
+from app.services.webhooks import dispatch_event
 from app.schemas.booking import (
     BookingCreate,
     BookingList,
@@ -57,6 +58,7 @@ def _check_date_conflict(
 @router.post("", response_model=BookingOut, status_code=status.HTTP_201_CREATED)
 def create_booking(
     body: BookingCreate,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -105,6 +107,19 @@ def create_booking(
         summary=f"requested to borrow \"{resource.title}\"",
         actor_id=current_user.id,
         community_id=resource.community_id,
+    )
+
+    background_tasks.add_task(
+        dispatch_event,
+        db,
+        "booking.created",
+        {
+            "borrower_name": current_user.display_name,
+            "resource_title": resource.title,
+            "start_date": str(body.start_date),
+            "end_date": str(body.end_date),
+        },
+        [resource.owner_id],
     )
 
     return _booking_to_out(booking)
@@ -179,6 +194,7 @@ def get_booking(
 def update_booking_status(
     booking_id: int,
     body: BookingStatusUpdate,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -222,6 +238,13 @@ def update_booking_status(
     resource_title = resource.title if resource else "Resource"
     if borrower and borrower.id != current_user.id:
         notify_booking_status(borrower.email, resource_title, body.status)
+        background_tasks.add_task(
+            dispatch_event,
+            db,
+            "booking.status_changed",
+            {"resource_title": resource_title, "status": body.status},
+            [borrower.id],
+        )
 
     if body.status == "completed":
         record_activity(

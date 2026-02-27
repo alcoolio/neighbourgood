@@ -49,6 +49,11 @@ class Settings(BaseSettings):
     admin_name: str = ""
     admin_contact: str = ""
 
+    # Telegram bot integration (optional — leave empty to disable)
+    telegram_bot_token: str = ""
+    telegram_bot_name: str = ""        # Username without @, e.g. "NeighbourGoodBot"
+    telegram_webhook_secret: str = ""  # Random string to validate inbound callbacks
+
     model_config = {"env_prefix": "NG_", "env_file": ".env"}
 
 

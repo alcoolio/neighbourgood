@@ -21,6 +21,7 @@ class Community(Base):
     mode: Mapped[str] = mapped_column(String(10), default="blue", nullable=False)  # blue (normal) / red (crisis)
     latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
     longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+    telegram_group_id: Mapped[str | None] = mapped_column(String(50), nullable=True)
     created_by_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     merged_into_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("communities.id"), nullable=True, index=True)
     created_at: Mapped[datetime.datetime] = mapped_column(

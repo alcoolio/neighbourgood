@@ -124,6 +124,16 @@ export interface ActivityList {
 	total: number;
 }
 
+export interface Webhook {
+	id: number;
+	owner_type: string;
+	owner_id: number;
+	url: string;
+	event_types: string[];
+	is_active: boolean;
+	created_at: string;
+}
+
 /**
  * Status color utility – maps booking/resource status to CSS variable names.
  */

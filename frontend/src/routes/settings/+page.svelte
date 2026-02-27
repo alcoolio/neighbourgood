@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { isLoggedIn, user } from '$lib/stores/auth';
 	import { api } from '$lib/api';
+	import type { Webhook } from '$lib/types';
 
 	let passwordForm = $state({
 		current_password: '',
@@ -21,11 +22,126 @@
 		loading: false
 	});
 
-	onMount(() => {
+	let telegramState = $state({
+		botUrl: '',
+		loading: false,
+		unlinking: false,
+		error: '',
+		success: ''
+	});
+
+	let webhooks = $state<Webhook[]>([]);
+	let webhookForm = $state({
+		url: '',
+		secret: '',
+		event_types: [] as string[],
+		error: '',
+		loading: false
+	});
+
+	const ALL_EVENTS = [
+		'message.new', 'booking.created', 'booking.status_changed',
+		'crisis.mode_changed', 'ticket.created', 'ticket.assigned',
+		'resource.shared', 'skill.created', 'member.joined'
+	];
+
+	onMount(async () => {
 		if (!$isLoggedIn) {
 			goto('/login');
+			return;
+		}
+		// Reload profile to get fresh telegram_chat_id
+		try {
+			const profile = await api('/users/me', { auth: true });
+			user.set(profile as any);
+		} catch {
+			// Ignore – stale data fine
+		}
+		// Load webhooks
+		try {
+			webhooks = await api<Webhook[]>('/webhooks', { auth: true });
+		} catch {
+			// Leave empty
 		}
 	});
+
+	async function startTelegramLink() {
+		telegramState.loading = true;
+		telegramState.error = '';
+		telegramState.botUrl = '';
+		try {
+			const data = await api<{ bot_url: string }>('/users/me/telegram/start-link', {
+				method: 'POST',
+				auth: true
+			});
+			telegramState.botUrl = data.bot_url;
+		} catch (err) {
+			telegramState.error = err instanceof Error ? err.message : 'Telegram not configured on this instance';
+		} finally {
+			telegramState.loading = false;
+		}
+	}
+
+	async function unlinkTelegram() {
+		telegramState.unlinking = true;
+		telegramState.error = '';
+		try {
+			await api('/users/me/telegram', { method: 'DELETE', auth: true });
+			user.update(u => u ? { ...u, telegram_chat_id: null } : u);
+			telegramState.success = 'Telegram unlinked.';
+			setTimeout(() => { telegramState.success = ''; }, 3000);
+		} catch (err) {
+			telegramState.error = err instanceof Error ? err.message : 'Failed to unlink';
+		} finally {
+			telegramState.unlinking = false;
+		}
+	}
+
+	async function addWebhook(e: Event) {
+		e.preventDefault();
+		webhookForm.error = '';
+		if (!webhookForm.url || !webhookForm.secret || webhookForm.event_types.length === 0) {
+			webhookForm.error = 'URL, secret, and at least one event type are required';
+			return;
+		}
+		webhookForm.loading = true;
+		try {
+			const created = await api<Webhook>('/webhooks', {
+				method: 'POST',
+				body: {
+					url: webhookForm.url,
+					secret: webhookForm.secret,
+					event_types: webhookForm.event_types
+				},
+				auth: true
+			});
+			webhooks = [created, ...webhooks];
+			webhookForm.url = '';
+			webhookForm.secret = '';
+			webhookForm.event_types = [];
+		} catch (err) {
+			webhookForm.error = err instanceof Error ? err.message : 'Failed to add webhook';
+		} finally {
+			webhookForm.loading = false;
+		}
+	}
+
+	async function deleteWebhook(id: number) {
+		try {
+			await api(`/webhooks/${id}`, { method: 'DELETE', auth: true });
+			webhooks = webhooks.filter(w => w.id !== id);
+		} catch {
+			// Ignore
+		}
+	}
+
+	function toggleEvent(event: string) {
+		if (webhookForm.event_types.includes(event)) {
+			webhookForm.event_types = webhookForm.event_types.filter(e => e !== event);
+		} else {
+			webhookForm.event_types = [...webhookForm.event_types, event];
+		}
+	}
 
 	async function handlePasswordChange(e: Event) {
 		e.preventDefault();
@@ -239,6 +355,109 @@
 			</button>
 		</form>
 	</div>
+
+	<hr class="section-divider" />
+
+	<div class="settings-section">
+		<h2>Telegram Notifications</h2>
+		<p class="section-desc">
+			Link your Telegram account to receive instant alerts for messages, bookings, and community events.
+		</p>
+
+		{#if telegramState.success}
+			<div class="alert alert-success">{telegramState.success}</div>
+		{:else if telegramState.error}
+			<div class="alert alert-error">{telegramState.error}</div>
+		{/if}
+
+		{#if ($user as any)?.telegram_chat_id}
+			<div class="telegram-linked">
+				<span class="linked-badge">Telegram linked</span>
+				<button
+					class="btn btn-danger"
+					onclick={unlinkTelegram}
+					disabled={telegramState.unlinking}
+				>
+					{telegramState.unlinking ? 'Unlinking...' : 'Unlink Telegram'}
+				</button>
+			</div>
+		{:else if telegramState.botUrl}
+			<div class="telegram-link-step">
+				<p>Open the link below in Telegram and press Start:</p>
+				<a href={telegramState.botUrl} target="_blank" rel="noopener" class="btn btn-telegram">
+					Open in Telegram
+				</a>
+				<p class="info-hint">After pressing Start in Telegram, reload this page to confirm the link.</p>
+			</div>
+		{:else}
+			<button
+				class="btn btn-telegram"
+				onclick={startTelegramLink}
+				disabled={telegramState.loading}
+			>
+				{telegramState.loading ? 'Generating link...' : 'Link Telegram Account'}
+			</button>
+		{/if}
+	</div>
+
+	<hr class="section-divider" />
+
+	<div class="settings-section">
+		<h2>Outbound Webhooks</h2>
+		<p class="section-desc">
+			Register URLs to receive signed HTTP POST callbacks when events happen — for Slack, Discord, or any custom integration.
+		</p>
+
+		{#if webhooks.length > 0}
+			<div class="webhook-list">
+				{#each webhooks as wh}
+					<div class="webhook-row">
+						<div class="webhook-info">
+							<span class="webhook-url">{wh.url}</span>
+							<span class="webhook-events">{wh.event_types.join(', ')}</span>
+						</div>
+						<button class="btn-icon-danger" onclick={() => deleteWebhook(wh.id)} title="Delete webhook">
+							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+						</button>
+					</div>
+				{/each}
+			</div>
+		{/if}
+
+		<form class="form webhook-form" onsubmit={addWebhook}>
+			{#if webhookForm.error}
+				<div class="alert alert-error">{webhookForm.error}</div>
+			{/if}
+			<div class="form-group">
+				<label for="webhook-url">Endpoint URL</label>
+				<input id="webhook-url" type="url" bind:value={webhookForm.url} placeholder="https://..." required disabled={webhookForm.loading} />
+			</div>
+			<div class="form-group">
+				<label for="webhook-secret">Signing Secret</label>
+				<input id="webhook-secret" type="text" bind:value={webhookForm.secret} placeholder="Min 8 characters" required disabled={webhookForm.loading} />
+				<span class="form-hint">Used to generate the X-NeighbourGood-Signature header so you can verify deliveries.</span>
+			</div>
+			<div class="form-group">
+				<label>Events to subscribe</label>
+				<div class="event-grid">
+					{#each ALL_EVENTS as evt}
+						<label class="event-checkbox">
+							<input
+								type="checkbox"
+								checked={webhookForm.event_types.includes(evt)}
+								onchange={() => toggleEvent(evt)}
+								disabled={webhookForm.loading}
+							/>
+							{evt}
+						</label>
+					{/each}
+				</div>
+			</div>
+			<button type="submit" class="btn btn-primary" disabled={webhookForm.loading || webhookForm.event_types.length === 0}>
+				{webhookForm.loading ? 'Adding...' : 'Add Webhook'}
+			</button>
+		</form>
+	</div>
 </div>
 
 <style>
@@ -391,9 +610,185 @@
 		color: var(--color-error);
 	}
 
+	.section-desc {
+		font-size: 0.9rem;
+		color: var(--color-text-muted);
+		margin: 0 0 1rem 0;
+	}
+
+	.telegram-linked {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+	}
+
+	.linked-badge {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		padding: 0.35rem 0.75rem;
+		background: rgba(34, 197, 94, 0.1);
+		border: 1px solid rgba(34, 197, 94, 0.3);
+		border-radius: var(--radius-sm);
+		color: var(--color-success);
+		font-size: 0.85rem;
+		font-weight: 600;
+	}
+
+	.telegram-link-step {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+	}
+
+	.btn-telegram {
+		background: #0088cc;
+		color: white;
+		border: none;
+		border-radius: var(--radius-sm);
+		padding: 0.7rem 1.4rem;
+		font-size: 0.95rem;
+		font-weight: 600;
+		cursor: pointer;
+		transition: all var(--transition-fast);
+		text-decoration: none;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		width: fit-content;
+	}
+
+	.btn-telegram:hover:not(:disabled) {
+		background: #006fa8;
+		box-shadow: var(--shadow-md);
+		text-decoration: none;
+	}
+
+	.btn-telegram:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
+	}
+
+	.btn-danger {
+		background: none;
+		border: 1px solid var(--color-error);
+		color: var(--color-error);
+		border-radius: var(--radius-sm);
+		padding: 0.4rem 0.9rem;
+		font-size: 0.85rem;
+		font-weight: 600;
+		cursor: pointer;
+		transition: all var(--transition-fast);
+	}
+
+	.btn-danger:hover:not(:disabled) {
+		background: var(--color-error);
+		color: white;
+	}
+
+	.btn-danger:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
+	}
+
+	.webhook-list {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		margin-bottom: 1.5rem;
+	}
+
+	.webhook-row {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 1rem;
+		padding: 0.75rem 1rem;
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-sm);
+	}
+
+	.webhook-info {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+		min-width: 0;
+	}
+
+	.webhook-url {
+		font-size: 0.9rem;
+		font-weight: 500;
+		color: var(--color-text);
+		word-break: break-all;
+	}
+
+	.webhook-events {
+		font-size: 0.78rem;
+		color: var(--color-text-muted);
+	}
+
+	.btn-icon-danger {
+		background: none;
+		border: none;
+		color: var(--color-text-muted);
+		cursor: pointer;
+		padding: 0.3rem;
+		border-radius: var(--radius-sm);
+		transition: all var(--transition-fast);
+		flex-shrink: 0;
+	}
+
+	.btn-icon-danger:hover {
+		color: var(--color-error);
+		background: var(--color-error-bg, rgba(239, 68, 68, 0.1));
+	}
+
+	.webhook-form {
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-sm);
+		padding: 1.25rem;
+		background: var(--color-surface);
+	}
+
+	.form-hint {
+		font-size: 0.8rem;
+		color: var(--color-text-muted);
+		margin-top: 0.25rem;
+	}
+
+	.event-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+		gap: 0.5rem;
+		padding: 0.75rem;
+		background: var(--color-bg);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-sm);
+	}
+
+	.event-checkbox {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		font-size: 0.83rem;
+		color: var(--color-text);
+		cursor: pointer;
+	}
+
+	.event-checkbox input[type="checkbox"] {
+		width: 14px;
+		height: 14px;
+		cursor: pointer;
+	}
+
 	@media (max-width: 600px) {
 		h1 {
 			font-size: 1.5rem;
+		}
+
+		.event-grid {
+			grid-template-columns: 1fr 1fr;
 		}
 	}
 </style>
