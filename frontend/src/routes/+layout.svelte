@@ -1,7 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import { onMount } from 'svelte';
-	import { isLoggedIn, user, token, logout } from '$lib/stores/auth';
+	import { isLoggedIn, user, token, logout, syncTokenFromStorage } from '$lib/stores/auth';
 	import type { UserProfile } from '$lib/stores/auth';
 	import { theme, toggleTheme, bandwidth, toggleBandwidth, platformMode, setPlatformMode } from '$lib/stores/theme';
 	import { page } from '$app/stores';
@@ -19,6 +19,9 @@
 	}
 
 	onMount(async () => {
+		// ── Sync token from localStorage after SSR hydration ────────────────────
+		syncTokenFromStorage();
+
 		// ── Service worker registration ───────────────────────────────────────
 		if ('serviceWorker' in navigator) {
 			try {
