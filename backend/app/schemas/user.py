@@ -12,6 +12,7 @@ class UserProfile(BaseModel):
     display_name: str
     neighbourhood: str | None
     role: str
+    telegram_chat_id: str | None = None
     created_at: datetime.datetime
 
     model_config = {"from_attributes": True}

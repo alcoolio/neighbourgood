@@ -2,7 +2,7 @@
 
 import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
@@ -11,6 +11,7 @@ from app.models.community import Community, CommunityMember
 from app.models.crisis import CrisisVote, EmergencyTicket, TicketComment
 from app.models.user import User
 from app.services.activity import record_activity
+from app.services.webhooks import dispatch_event
 from app.schemas.crisis import (
     CrisisModeStatus,
     CrisisModeToggle,
@@ -127,6 +128,7 @@ def _get_community(db: Session, community_id: int) -> Community:
 def toggle_crisis_mode(
     community_id: int,
     body: CrisisModeToggle,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -148,6 +150,22 @@ def toggle_crisis_mode(
         actor_id=current_user.id,
         community_id=community_id,
     )
+
+    if body.mode == "red":
+        member_ids = [
+            row[0]
+            for row in db.query(CommunityMember.user_id)
+            .filter(CommunityMember.community_id == community_id)
+            .all()
+        ]
+        background_tasks.add_task(
+            dispatch_event,
+            db,
+            "crisis.mode_changed",
+            {"community_name": community.name, "new_mode": body.mode},
+            member_ids,
+            community_id,
+        )
 
     total = (
         db.query(CommunityMember)
@@ -323,6 +341,7 @@ def retract_crisis_vote(
 def create_ticket(
     community_id: int,
     body: EmergencyTicketCreate,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -359,6 +378,21 @@ def create_ticket(
         actor_id=current_user.id,
         community_id=community_id,
     )
+
+    background_tasks.add_task(
+        dispatch_event,
+        db,
+        "ticket.created",
+        {
+            "title": body.title,
+            "ticket_type": body.ticket_type,
+            "urgency": body.urgency,
+            "community_name": community.name,
+        },
+        [],
+        community_id,
+    )
+
     return _ticket_to_out(ticket)
 
 
@@ -480,6 +514,7 @@ def update_ticket(
     community_id: int,
     ticket_id: int,
     body: EmergencyTicketUpdate,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -539,7 +574,16 @@ def update_ticket(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Assignee must be a community member",
             )
+        prev_assigned = ticket.assigned_to_id
         ticket.assigned_to_id = body.assigned_to_id
+        if body.assigned_to_id and body.assigned_to_id != prev_assigned:
+            background_tasks.add_task(
+                dispatch_event,
+                db,
+                "ticket.assigned",
+                {"title": ticket.title, "urgency": ticket.urgency},
+                [body.assigned_to_id],
+            )
 
     db.commit()
     db.refresh(ticket)

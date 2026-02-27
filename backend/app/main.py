@@ -8,8 +8,9 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.config import settings
 from app.database import Base, engine
-from app.models import Activity, Booking, Community, CommunityMember, CrisisVote, EmergencyTicket, Invite, KnownInstance, Message, RedSkyAlert, Resource, Review, Skill, User  # noqa: F401 – ensure models are registered
-from app.routers import activity, auth, bookings, communities, crisis, federation, instance, invites, messages, resources, reviews, skills, status, users
+from app.models import Activity, Booking, Community, CommunityMember, CrisisVote, EmergencyTicket, Invite, KnownInstance, Message, RedSkyAlert, Resource, Review, Skill, TelegramLinkToken, User, Webhook  # noqa: F401 – ensure models are registered
+from app.routers import activity, auth, bookings, communities, crisis, federation, instance, invites, messages, resources, reviews, skills, status, users, webhooks
+from app.routers import telegram as telegram_router
 
 
 # ── Security headers middleware ────────────────────────────────────
@@ -88,6 +89,16 @@ async def lifespan(app: FastAPI):
                 conn.execute(text(
                     "ALTER TABLE emergency_tickets ADD COLUMN due_at TIMESTAMP"
                 ))
+    if "users" in inspector.get_table_names():
+        existing_u = {col["name"] for col in inspector.get_columns("users")}
+        with engine.begin() as conn:
+            if "telegram_chat_id" not in existing_u:
+                conn.execute(text("ALTER TABLE users ADD COLUMN telegram_chat_id VARCHAR(50)"))
+    if "communities" in inspector.get_table_names():
+        existing_c = {col["name"] for col in inspector.get_columns("communities")}
+        with engine.begin() as conn:
+            if "telegram_group_id" not in existing_c:
+                conn.execute(text("ALTER TABLE communities ADD COLUMN telegram_group_id VARCHAR(50)"))
     yield
 
 
@@ -122,3 +133,5 @@ app.include_router(invites.router)
 app.include_router(reviews.router)
 app.include_router(instance.router)
 app.include_router(federation.router)
+app.include_router(webhooks.router)
+app.include_router(telegram_router.router)

@@ -1,6 +1,6 @@
 """Community endpoints – neighbourhood groups with PLZ-based discovery and merge."""
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, joinedload
 
@@ -11,6 +11,7 @@ from app.models.resource import Resource
 from app.models.skill import Skill
 from app.models.user import User
 from app.services.activity import record_activity
+from app.services.webhooks import dispatch_event
 from app.schemas.community import (
     CommunityCreate,
     CommunityList,
@@ -238,6 +239,7 @@ def update_community(
 @router.post("/{community_id}/join", response_model=CommunityMemberOut)
 def join_community(
     community_id: int,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -277,6 +279,16 @@ def join_community(
         actor_id=current_user.id,
         community_id=community_id,
     )
+
+    background_tasks.add_task(
+        dispatch_event,
+        db,
+        "member.joined",
+        {"actor_name": current_user.display_name, "community_name": community.name},
+        [],
+        community_id,
+    )
+
     return membership
 
 
