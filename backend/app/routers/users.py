@@ -24,18 +24,18 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 # ── Reputation scoring weights ─────────────────────────────────────
 
-POINTS_RESOURCE_SHARED = 5
+POINTS_RESOURCE_SHARED = 2
 POINTS_BOOKING_COMPLETED_LENDER = 10
-POINTS_BOOKING_COMPLETED_BORROWER = 3
-POINTS_SKILL_OFFERED = 5
-POINTS_SKILL_REQUESTED = 2
+POINTS_BOOKING_COMPLETED_BORROWER = 5
+POINTS_SKILL_OFFERED = 2
+POINTS_SKILL_REQUESTED = 1
 
 REPUTATION_LEVELS = [
     (0, "Newcomer"),
     (10, "Neighbour"),
-    (30, "Helper"),
-    (60, "Trusted"),
-    (100, "Pillar"),
+    (40, "Helper"),
+    (100, "Trusted"),
+    (200, "Pillar"),
 ]
 
 

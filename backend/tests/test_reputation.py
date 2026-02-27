@@ -46,7 +46,7 @@ def test_newcomer_reputation(client, auth_headers):
 
 
 def test_reputation_after_sharing_resource(client, auth_headers, community_id):
-    """Sharing a resource earns 5 points."""
+    """Sharing a resource earns 2 points."""
     client.post(
         "/resources",
         headers=auth_headers,
@@ -54,12 +54,12 @@ def test_reputation_after_sharing_resource(client, auth_headers, community_id):
     )
     res = client.get("/users/me/reputation", headers=auth_headers)
     data = res.json()
-    assert data["score"] == 5
-    assert data["breakdown"]["resources_shared"] == 5
+    assert data["score"] == 2
+    assert data["breakdown"]["resources_shared"] == 2
 
 
 def test_reputation_after_offering_skill(client, auth_headers, community_id):
-    """Offering a skill earns 5 points."""
+    """Offering a skill earns 2 points."""
     client.post(
         "/skills",
         headers=auth_headers,
@@ -67,11 +67,11 @@ def test_reputation_after_offering_skill(client, auth_headers, community_id):
     )
     res = client.get("/users/me/reputation", headers=auth_headers)
     data = res.json()
-    assert data["breakdown"]["skills_offered"] == 5
+    assert data["breakdown"]["skills_offered"] == 2
 
 
 def test_reputation_after_requesting_skill(client, auth_headers, community_id):
-    """Requesting a skill earns 2 points."""
+    """Requesting a skill earns 1 point."""
     client.post(
         "/skills",
         headers=auth_headers,
@@ -79,20 +79,17 @@ def test_reputation_after_requesting_skill(client, auth_headers, community_id):
     )
     res = client.get("/users/me/reputation", headers=auth_headers)
     data = res.json()
-    assert data["breakdown"]["skills_requested"] == 2
+    assert data["breakdown"]["skills_requested"] == 1
 
 
 def test_reputation_level_progression(client, auth_headers, community_id):
     """Multiple activities push user to higher levels."""
-    # 2 resources = 10 points → Neighbour
-    client.post(
-        "/resources", headers=auth_headers,
-        json={"title": "Drill", "category": "tool", "community_id": community_id},
-    )
-    client.post(
-        "/resources", headers=auth_headers,
-        json={"title": "Ladder", "category": "tool", "community_id": community_id},
-    )
+    # 5 resources = 10 points → Neighbour
+    for i in range(5):
+        client.post(
+            "/resources", headers=auth_headers,
+            json={"title": f"Item {i}", "category": "tool", "community_id": community_id},
+        )
     res = client.get("/users/me/reputation", headers=auth_headers)
     assert res.json()["level"] == "Neighbour"
 
@@ -144,14 +141,14 @@ def test_reputation_completed_booking(client, auth_headers, community_id):
         json={"status": "completed"},
     )
 
-    # Lender reputation: 5 (resource) + 10 (lending completed) = 15
+    # Lender reputation: 2 (resource) + 10 (lending completed) = 12
     lender_rep = client.get("/users/me/reputation", headers=auth_headers)
     assert lender_rep.json()["breakdown"]["lending_completed"] == 10
-    assert lender_rep.json()["score"] == 15
+    assert lender_rep.json()["score"] == 12
 
-    # Borrower reputation: 3 (borrowing completed) = 3
+    # Borrower reputation: 5 (borrowing completed) = 5
     borrower_rep = client.get("/users/me/reputation", headers=borrower_headers)
-    assert borrower_rep.json()["breakdown"]["borrowing_completed"] == 3
+    assert borrower_rep.json()["breakdown"]["borrowing_completed"] == 5
 
 
 def test_reputation_requires_auth_for_me(client):

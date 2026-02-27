@@ -372,13 +372,13 @@ Scoring (computed on-the-fly, not stored):
 
 | Action | Points |
 |--------|--------|
-| Resource shared (listed) | +5 |
+| Resource shared (listed) | +2 |
 | Lending completed | +10 |
-| Borrowing completed | +3 |
-| Skill offered | +5 |
-| Skill requested | +2 |
+| Borrowing completed | +5 |
+| Skill offered | +2 |
+| Skill requested | +1 |
 
-Levels: **Newcomer** (0–19) → **Neighbour** (20–49) → **Helper** (50–99) → **Trusted** (100–199) → **Pillar** (200+)
+Levels: **Newcomer** (0–9) → **Neighbour** (10–39) → **Helper** (40–99) → **Trusted** (100–199) → **Pillar** (200+)
 
 ---
 
