@@ -4,6 +4,7 @@
  */
 
 import { writable, derived } from 'svelte/store';
+import { browser } from '$app/environment';
 
 export interface UserProfile {
 	id: number;
@@ -15,7 +16,7 @@ export interface UserProfile {
 }
 
 export const token = writable<string | null>(
-	typeof localStorage !== 'undefined' ? localStorage.getItem('ng_token') : null
+	browser ? localStorage.getItem('ng_token') : null
 );
 export const user = writable<UserProfile | null>(null);
 export const isLoggedIn = derived(token, ($token) => $token !== null);
@@ -30,4 +31,17 @@ token.subscribe((val) => {
 export function logout() {
 	token.set(null);
 	user.set(null);
+}
+
+/**
+ * Synchronize token from localStorage on client-side hydration.
+ * Call this from onMount to ensure token is loaded after server-side rendering.
+ */
+export function syncTokenFromStorage() {
+	if (browser) {
+		const storedToken = localStorage.getItem('ng_token');
+		if (storedToken) {
+			token.set(storedToken);
+		}
+	}
 }
