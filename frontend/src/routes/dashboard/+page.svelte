@@ -119,10 +119,10 @@
 	// Reputation tier thresholds (mirrors backend routers/users.py)
 	const TIERS = [
 		{ name: 'Newcomer', min: 0, max: 9 },
-		{ name: 'Neighbour', min: 10, max: 29 },
-		{ name: 'Helper', min: 30, max: 59 },
-		{ name: 'Trusted', min: 60, max: 99 },
-		{ name: 'Pillar', min: 100, max: Infinity }
+		{ name: 'Neighbour', min: 10, max: 39 },
+		{ name: 'Helper', min: 40, max: 99 },
+		{ name: 'Trusted', min: 100, max: 199 },
+		{ name: 'Pillar', min: 200, max: Infinity }
 	];
 
 	const repProgress = $derived((() => {
@@ -313,10 +313,10 @@
 							<span class="rep-breakdown-title">How to earn points</span>
 							<ul class="rep-breakdown-list">
 								<li><span class="rep-pts">+10</span> Complete a lend</li>
-								<li><span class="rep-pts">+5</span> Share a resource</li>
-								<li><span class="rep-pts">+5</span> Offer a skill</li>
-								<li><span class="rep-pts">+3</span> Complete a borrow</li>
-								<li><span class="rep-pts">+2</span> Request a skill</li>
+								<li><span class="rep-pts">+5</span> Complete a borrow</li>
+								<li><span class="rep-pts">+2</span> Share a resource</li>
+								<li><span class="rep-pts">+2</span> Offer a skill</li>
+								<li><span class="rep-pts">+1</span> Request a skill</li>
 							</ul>
 						</div>
 					</div>
