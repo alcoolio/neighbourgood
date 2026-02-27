@@ -4,6 +4,48 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.0.0] - 2026-02-27
+
+### Added
+
+- **Reputation system rebalancing** (#50) – Fine-tuned scoring weights and tier thresholds for more meaningful progression
+  - Updated point allocations for different community contributions
+  - Adjusted tier breakpoints to better reflect user engagement levels
+  - Improved visibility of reputation impact on platform credibility
+- **3-step onboarding wizard** (#49) – Enhanced initial setup with skills and items discovery
+  - Step 1: Community selection and creation
+  - Step 2: Resources (items) offering discovery
+  - Step 3: Skills offering and requesting
+  - Improved user engagement during first-time setup
+- **Community activity timeline** (#43) – Overview tab now displays chronological community history
+  - Activity events for resources, bookings, skills, and crisis mode changes
+  - Better community context and member discovery through activity
+- **Telegram integration documentation** (#48) – Comprehensive setup guide and bot command reference
+  - Step-by-step webhook configuration instructions
+  - Bot command examples and event mapping
+- **Skill context in messaging** (#44) – Messages linked to skills so both parties understand conversation context
+  - Messages reference the skill offer/request that triggered the conversation
+  - Both sides have context about what skill is being discussed
+- **Full production release** – v1.0.0 marks the stable release of the NeighbourGood platform
+  - All core features implemented and tested
+  - Security Phase 4a hardening complete
+  - PWA support with offline capability
+  - Telegram bot integration ready for production
+  - 198+ backend tests covering all domains
+
+### Changed
+
+- Backend version bumped to 1.0.0
+- Frontend version bumped to 1.0.0
+- Onboarding flow now 3-step wizard instead of single-page search
+- Reputation scoring model updated for clearer tier progression
+
+### Fixed
+
+- Communities page full-width layout (#41) – Removed artificial width constraints
+- Consistent page widths across all sections
+- Improved mobile responsiveness
+
 ## [0.9.9] - 2026-02-26
 
 ### Added
