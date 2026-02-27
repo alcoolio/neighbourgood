@@ -58,7 +58,8 @@ export async function api<T = unknown>(path: string, opts: RequestOptions = {}):
  */
 export async function apiUpload<T = unknown>(path: string, file: File): Promise<T> {
 	const headers: Record<string, string> = {};
-	const t = get(token);
+	// Fall back to localStorage in case the store hasn't synced yet after SSR hydration.
+	const t = get(token) ?? (typeof localStorage !== 'undefined' ? localStorage.getItem('ng_token') : null);
 	if (t) headers['Authorization'] = `Bearer ${t}`;
 
 	const formData = new FormData();
