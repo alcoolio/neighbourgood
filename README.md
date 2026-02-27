@@ -1,6 +1,6 @@
 # 🏘️ NeighbourGood
 
-**v0.9.9** · A self-hostable web platform that helps communities share resources and coordinate during crises.
+**v1.0.0** · A self-hostable web platform that helps communities share resources and coordinate during crises.
 
 ## 💡 Vision
 
