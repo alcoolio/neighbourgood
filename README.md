@@ -220,7 +220,82 @@ See [API_ENDPOINTS.md](API_ENDPOINTS.md) for the full endpoint reference. Intera
 - [ ] Decentralized data sync between instances
 - [ ] Multi-language support (i18n)
 - [ ] Admin dashboard with analytics
-- [ ] Webhook integrations (Telegram, Signal, Matrix)
+- [x] Outbound webhook system with HMAC-SHA256 signing (generic integrations)
+- [x] Telegram bot integration (personal notifications, community group alerts, bot commands)
+- [ ] Signal integration
+- [ ] Matrix integration
+
+## 🤖 Telegram Bot Setup
+
+NeighbourGood can send notifications to personal Telegram accounts and community group chats, and respond to bot commands.
+
+### 1. Create a bot
+
+Open a conversation with [@BotFather](https://t.me/BotFather) and run:
+
+```
+/newbot
+```
+
+Follow the prompts to choose a name and username. Copy the **API token** you receive.
+
+### 2. Configure the environment
+
+Add the following to your `.env` file (or Docker environment):
+
+```env
+NG_TELEGRAM_BOT_TOKEN=123456789:AAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+NG_TELEGRAM_BOT_NAME=your_bot_username   # without the @ prefix
+NG_TELEGRAM_WEBHOOK_SECRET=some-random-string-at-least-32-chars
+```
+
+### 3. Register the webhook with Telegram
+
+After the backend is running, call Telegram's `setWebhook` endpoint once:
+
+```bash
+curl "https://api.telegram.org/bot<TOKEN>/setWebhook" \
+  -d "url=https://<your-domain>/telegram/webhook" \
+  -d "secret_token=<NG_TELEGRAM_WEBHOOK_SECRET>"
+```
+
+Replace `<your-domain>` with the public URL of your NeighbourGood instance (must be HTTPS). For local development you can use a tunnel such as [ngrok](https://ngrok.com/).
+
+### 4. Link accounts
+
+**Personal notifications** — users go to **Settings → Telegram** and click the link button. This opens a deep link (`t.me/your_bot?start=TOKEN`) that lets the bot identify them and store their chat ID.
+
+**Community group chat** — a community admin:
+1. Adds the bot to the Telegram group.
+2. Goes to **Settings → Telegram** (community section) and copies the generated link token.
+3. Types `/link <token>` in the group. The bot then recognises the group and will send community-wide announcements there.
+
+### 5. Bot commands
+
+Once a community group is linked, members can query the community directory:
+
+| Command | Description |
+|---------|-------------|
+| `/profile <name>` | Show a neighbour's reputation score and community role |
+| `/lending <name>` | List resources a neighbour currently has available to borrow |
+| `/skills <name>` | List skills a neighbour is offering or requesting |
+
+### Events sent to Telegram
+
+| Event | Personal | Community group |
+|-------|----------|----------------|
+| New message received | ✅ | — |
+| Booking created | ✅ (resource owner) | — |
+| Booking status changed | ✅ (borrower) | — |
+| New resource shared | — | ✅ (all modes) |
+| New skill posted | — | ✅ (all modes) |
+| Member joined | — | ✅ (all modes) |
+| Emergency ticket created | ✅ | ✅ (Red Sky only) |
+| Crisis mode changed | ✅ (all members) | — |
+
+### Webhooks (generic)
+
+Any external service can receive the same events via **Settings → Webhooks**. POST requests are signed with `X-Signature: sha256=<hmac>` using the secret you provide. Supported events mirror the table above.
 
 ## 🤝 Contributing
 
