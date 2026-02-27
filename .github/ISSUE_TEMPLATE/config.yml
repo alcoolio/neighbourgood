@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security Vulnerability
+    url: https://github.com/alcoolio/neighbourgood/security/advisories
+    about: Report a security vulnerability privately
+  - name: Community Question
+    url: https://github.com/alcoolio/neighbourgood/discussions
+    about: Ask questions or discuss ideas in our community forum
+  - name: Documentation Issue
+    url: https://github.com/alcoolio/neighbourgood/issues/new?template=bug_report.md
+    about: Report a documentation problem or missing information
