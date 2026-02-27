@@ -6,7 +6,7 @@
 
 ### Reporting Process
 
-1. **Email:** Send details to **security@neighbourgood.community**
+1. **Email:** Send details to **security@neighbourgood.eu**
    - Include a clear description of the vulnerability
    - Provide steps to reproduce (if applicable)
    - Include any relevant code snippets or configuration
