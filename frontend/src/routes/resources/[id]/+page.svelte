@@ -1,11 +1,13 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
+	import { get } from 'svelte/store';
 	import { api, apiUpload } from '$lib/api';
-	import { isLoggedIn, user } from '$lib/stores/auth';
+	import { isLoggedIn, user, token } from '$lib/stores/auth';
 	import { goto } from '$app/navigation';
 	import { statusColor, type Resource, type Booking } from '$lib/types';
 	import { bandwidth } from '$lib/stores/theme';
+	import { isOnline, enqueueRequest } from '$lib/stores/offline';
 
 	let resource: Resource | null = $state(null);
 	let bookings: Booking[] = $state([]);
@@ -18,6 +20,7 @@
 	let bookEndDate = $state('');
 	let bookMessage = $state('');
 	let bookError = $state('');
+	let bookQueued = $state(false);
 
 	// Image upload
 	let imageInput: HTMLInputElement;
@@ -94,6 +97,29 @@
 		e.preventDefault();
 		if (!resource) return;
 		bookError = '';
+
+		// When offline, save the request to the queue instead of failing.
+		if (!$isOnline) {
+			enqueueRequest({
+				method: 'POST',
+				path: '/bookings',
+				body: {
+					resource_id: resource.id,
+					start_date: bookStartDate,
+					end_date: bookEndDate,
+					message: bookMessage || null
+				},
+				authToken: get(token),
+				label: `Borrow "${resource.title}": ${bookStartDate} → ${bookEndDate}`
+			});
+			showBookingForm = false;
+			bookQueued = true;
+			bookStartDate = '';
+			bookEndDate = '';
+			bookMessage = '';
+			return;
+		}
+
 		try {
 			await api('/bookings', {
 				method: 'POST',
@@ -221,12 +247,28 @@
 			</div>
 		{/if}
 
-		{#if canBook}
+		{#if bookQueued}
+			<div class="section-card queued-notice">
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+				<div class="queued-notice-body">
+					<strong>Request saved for later</strong>
+					<p>Your borrow request will be sent automatically when you reconnect.</p>
+				</div>
+				<button class="queued-dismiss" onclick={() => (bookQueued = false)} aria-label="Dismiss">&times;</button>
+			</div>
+		{/if}
+
+		{#if canBook && !bookQueued}
 			<div class="section-card">
 				{#if showBookingForm}
 					<h3>Request to Borrow</h3>
 					{#if bookError}
 						<p class="error">{bookError}</p>
+					{/if}
+					{#if !$isOnline}
+						<p class="offline-note">
+							You're offline. Your request will be saved and sent when you reconnect.
+						</p>
 					{/if}
 					<form onsubmit={handleBooking} class="booking-form">
 						<div class="form-row">
@@ -244,7 +286,9 @@
 							<textarea bind:value={bookMessage} rows="2" placeholder="Hi! I'd like to borrow this for..."></textarea>
 						</label>
 						<div class="form-actions">
-							<button type="submit" class="btn-primary">Send Request</button>
+							<button type="submit" class="btn-primary">
+								{$isOnline ? 'Send Request' : 'Queue Request'}
+							</button>
 							<button type="button" class="btn-secondary" onclick={() => (showBookingForm = false)}>Cancel</button>
 						</div>
 					</form>
@@ -574,5 +618,59 @@
 
 	.error-page h1 {
 		color: var(--color-error);
+	}
+
+	/* ── Offline / queued states ─────────────────────────────── */
+
+	.offline-note {
+		font-size: 0.83rem;
+		color: var(--color-warning, #92400e);
+		background: var(--color-warning-bg, rgba(245, 158, 11, 0.08));
+		border: 1px solid var(--color-warning, #f59e0b);
+		border-radius: var(--radius);
+		padding: 0.45rem 0.75rem;
+		margin-bottom: 0.5rem;
+	}
+
+	.queued-notice {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.75rem;
+		background: var(--color-success-bg, rgba(16, 185, 129, 0.08));
+		border-color: var(--color-success, #10b981);
+		color: var(--color-success, #065f46);
+	}
+
+	.queued-notice svg {
+		flex-shrink: 0;
+		margin-top: 0.15rem;
+	}
+
+	.queued-notice-body strong {
+		display: block;
+		font-size: 0.9rem;
+	}
+
+	.queued-notice-body p {
+		font-size: 0.83rem;
+		margin: 0.2rem 0 0;
+		white-space: normal;
+	}
+
+	.queued-dismiss {
+		margin-left: auto;
+		background: none;
+		border: none;
+		font-size: 1.2rem;
+		color: var(--color-success, #10b981);
+		cursor: pointer;
+		padding: 0;
+		line-height: 1;
+		opacity: 0.7;
+		flex-shrink: 0;
+	}
+
+	.queued-dismiss:hover {
+		opacity: 1;
 	}
 </style>

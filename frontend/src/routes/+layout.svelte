@@ -9,6 +9,7 @@
 	import { t } from 'svelte-i18n';
 	import { setupI18n, detectInitialLocale, AVAILABLE_LOCALES } from '$lib/i18n';
 	import { setLocale, hydrateLocale, currentLocale } from '$lib/stores/locale';
+	import { isOnline, queueCount, flushQueue, initOfflineTracking } from '$lib/stores/offline';
 
 	// Initialise svelte-i18n as early as possible.
 	// detectInitialLocale safely reads localStorage (browser-only) and navigator.language.
@@ -21,6 +22,7 @@
 	let showUpdateBanner = $state(false);
 	let installPrompt = $state<Event | null>(null);
 	let langMenuOpen = $state(false);
+	let syncMessage = $state('');
 
 	function closeMobileMenu() {
 		mobileMenuOpen = false;
@@ -128,6 +130,26 @@
 		crisisBannerDismissed = true;
 		sessionStorage.setItem('ng_crisis_banner_dismissed', 'true');
 	}
+
+	// Register online/offline listeners and auto-flush the request queue when
+	// the device reconnects. Runs in a separate (synchronous) onMount so that
+	// the cleanup function is properly returned.
+	onMount(() => {
+		initOfflineTracking();
+		let prevOnline = navigator.onLine;
+		const unsub = isOnline.subscribe((online) => {
+			if (online && !prevOnline && $queueCount > 0) {
+				flushQueue().then(({ succeeded }) => {
+					if (succeeded > 0) {
+						syncMessage = `${succeeded} queued request${succeeded !== 1 ? 's' : ''} sent successfully`;
+						setTimeout(() => { syncMessage = ''; }, 5000);
+					}
+				});
+			}
+			prevOnline = online;
+		});
+		return () => unsub();
+	});
 
 	async function installApp() {
 		if (!installPrompt) return;
@@ -289,6 +311,34 @@
 		<span>{$t('banner.update_available')}</span>
 		<button class="update-banner-btn" onclick={() => location.reload()}>{$t('banner.refresh')}</button>
 		<button class="update-banner-dismiss" onclick={() => (showUpdateBanner = false)} aria-label={$t('banner.dismiss')}>&times;</button>
+	</div>
+{/if}
+
+{#if !$isOnline}
+	<div class="offline-banner">
+		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+			<line x1="1" y1="1" x2="23" y2="23"/>
+			<path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/>
+			<path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/>
+			<path d="M10.71 5.05A16 16 0 0 1 22.56 9"/>
+			<path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/>
+			<path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+			<line x1="12" y1="20" x2="12.01" y2="20"/>
+		</svg>
+		<span>You're offline — browsing cached content</span>
+		{#if $queueCount > 0}
+			<span class="offline-queue-chip">{$queueCount} request{$queueCount !== 1 ? 's' : ''} queued</span>
+		{/if}
+	</div>
+{/if}
+
+{#if syncMessage}
+	<div class="sync-banner">
+		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+			<polyline points="20 6 9 17 4 12"/>
+		</svg>
+		<span>{syncMessage}</span>
+		<button class="sync-banner-dismiss" onclick={() => (syncMessage = '')} aria-label="Dismiss">&times;</button>
 	</div>
 {/if}
 
@@ -855,6 +905,59 @@
 	}
 
 	.crisis-banner-dismiss:hover {
+		opacity: 1;
+	}
+
+	/* ── Offline banner ─────────────────────────────────────────── */
+
+	.offline-banner {
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+		padding: 0.55rem 1.5rem;
+		background: var(--color-warning-bg, rgba(245, 158, 11, 0.1));
+		border-bottom: 1px solid var(--color-warning, #f59e0b);
+		font-size: 0.85rem;
+		color: var(--color-warning, #92400e);
+	}
+
+	.offline-queue-chip {
+		margin-left: auto;
+		background: var(--color-warning, #f59e0b);
+		color: white;
+		font-size: 0.75rem;
+		font-weight: 700;
+		padding: 0.15rem 0.6rem;
+		border-radius: 999px;
+		white-space: nowrap;
+	}
+
+	/* ── Sync success banner ─────────────────────────────────────── */
+
+	.sync-banner {
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+		padding: 0.55rem 1.5rem;
+		background: var(--color-success-bg, rgba(16, 185, 129, 0.1));
+		border-bottom: 1px solid var(--color-success, #10b981);
+		font-size: 0.85rem;
+		color: var(--color-success, #065f46);
+	}
+
+	.sync-banner-dismiss {
+		margin-left: auto;
+		background: none;
+		border: none;
+		font-size: 1.1rem;
+		color: var(--color-success, #10b981);
+		cursor: pointer;
+		padding: 0 0.2rem;
+		opacity: 0.7;
+		line-height: 1;
+	}
+
+	.sync-banner-dismiss:hover {
 		opacity: 1;
 	}
 </style>

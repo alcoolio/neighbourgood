@@ -3,6 +3,7 @@
 	import { api } from '$lib/api';
 	import { isLoggedIn } from '$lib/stores/auth';
 	import { bandwidth } from '$lib/stores/theme';
+	import { isOnline } from '$lib/stores/offline';
 
 	interface Resource {
 		id: number;
@@ -43,6 +44,7 @@
 	let resources: Resource[] = $state([]);
 	let total = $state(0);
 	let loading = $state(true);
+	let fromCache = $state(false);
 	let filterCategory = $state('');
 	let filterCommunity = $state(''); // Only used to filter a specific community, auto-filters to joined communities if empty
 	let searchQuery = $state('');
@@ -60,18 +62,30 @@
 
 	async function loadResources() {
 		loading = true;
+		fromCache = false;
 		try {
 			const params = new URLSearchParams();
 			if (filterCommunity) params.set('community_id', filterCommunity);
 			if (filterCategory) params.set('category', filterCategory);
 			if (searchQuery.trim()) params.set('q', searchQuery.trim());
-			const res = await api<{ items: Resource[]; total: number }>(
-				`/resources?${params.toString()}`
-			);
-			resources = res.items;
-			total = res.total;
+
+			// Use raw fetch so we can inspect the X-Served-From header the
+			// service worker sets when replaying a cached response.
+			const rawRes = await fetch(`/api/resources?${params.toString()}`);
+			if (rawRes.headers.get('X-Served-From') === 'offline-cache') {
+				fromCache = true;
+			}
+			if (rawRes.ok) {
+				const data: { items: Resource[]; total: number } = await rawRes.json();
+				resources = data.items;
+				total = data.total;
+			} else {
+				resources = [];
+				total = 0;
+			}
 		} catch {
 			resources = [];
+			total = 0;
 		} finally {
 			loading = false;
 		}
@@ -138,6 +152,17 @@
 </script>
 
 <div class="resources-page">
+	{#if !$isOnline || fromCache}
+		<div class="cache-notice">
+			<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+				<circle cx="12" cy="12" r="10"/>
+				<line x1="12" y1="8" x2="12" y2="12"/>
+				<line x1="12" y1="16" x2="12.01" y2="16"/>
+			</svg>
+			Showing cached resources — connect to the internet to see the latest listings.
+		</div>
+	{/if}
+
 	<div class="page-header">
 		<h1>Shared Resources</h1>
 		{#if $isLoggedIn}
@@ -541,5 +566,18 @@
 
 	.empty-state p + p {
 		margin-top: 0.5rem;
+	}
+
+	.cache-notice {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.55rem 0.9rem;
+		background: var(--color-warning-bg, rgba(245, 158, 11, 0.08));
+		border: 1px solid var(--color-warning, #f59e0b);
+		border-radius: var(--radius);
+		font-size: 0.82rem;
+		color: var(--color-warning, #92400e);
+		margin-bottom: 1rem;
 	}
 </style>

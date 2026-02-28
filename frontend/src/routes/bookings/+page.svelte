@@ -3,6 +3,7 @@
 	import { api } from '$lib/api';
 	import { isLoggedIn, user } from '$lib/stores/auth';
 	import { statusColor, type Booking } from '$lib/types';
+	import { offlineQueue, removeFromQueue, type QueuedRequest } from '$lib/stores/offline';
 
 	interface ReviewOut {
 		id: number;
@@ -124,6 +125,35 @@
 {:else}
 	<div class="bookings-page">
 		<h1>My Bookings</h1>
+
+		{#if $offlineQueue.length > 0}
+			<div class="queued-section">
+				<h2 class="queued-heading">
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+						<line x1="1" y1="1" x2="23" y2="23"/>
+						<path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/>
+						<path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/>
+						<path d="M10.71 5.05A16 16 0 0 1 22.56 9"/>
+						<path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/>
+						<path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+						<line x1="12" y1="20" x2="12.01" y2="20"/>
+					</svg>
+					Pending offline requests
+				</h2>
+				<p class="queued-subtext">These will be sent automatically when you reconnect to the internet.</p>
+				{#each $offlineQueue as req (req.id)}
+					<div class="queued-row">
+						<div class="queued-info">
+							<span class="queued-label">{req.label}</span>
+							<span class="queued-date">Queued {new Date(req.createdAt).toLocaleString()}</span>
+						</div>
+						<button class="btn-cancel-queued" onclick={() => removeFromQueue(req.id)} title="Remove from queue">
+							Cancel
+						</button>
+					</div>
+				{/each}
+			</div>
+		{/if}
 
 		<div class="filter-bar">
 			<select bind:value={roleFilter}>
@@ -428,5 +458,76 @@
 	.review-actions {
 		display: flex;
 		gap: 0.5rem;
+	}
+
+	/* ── Offline queue section ────────────────────────────────── */
+
+	.queued-section {
+		background: var(--color-warning-bg, rgba(245, 158, 11, 0.08));
+		border: 1px solid var(--color-warning, #f59e0b);
+		border-radius: var(--radius);
+		padding: 1rem 1.25rem;
+		margin-bottom: 1.5rem;
+	}
+
+	.queued-heading {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		font-size: 0.9rem;
+		font-weight: 700;
+		color: var(--color-warning, #92400e);
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		margin-bottom: 0.25rem;
+	}
+
+	.queued-subtext {
+		font-size: 0.82rem;
+		color: var(--color-text-muted);
+		margin-bottom: 0.75rem;
+	}
+
+	.queued-row {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		padding: 0.6rem 0;
+		border-top: 1px solid var(--color-border);
+	}
+
+	.queued-info {
+		flex: 1;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+	}
+
+	.queued-label {
+		font-size: 0.88rem;
+		font-weight: 500;
+		color: var(--color-text);
+	}
+
+	.queued-date {
+		font-size: 0.75rem;
+		color: var(--color-text-muted);
+	}
+
+	.btn-cancel-queued {
+		padding: 0.25rem 0.6rem;
+		border-radius: var(--radius);
+		font-size: 0.78rem;
+		cursor: pointer;
+		border: 1px solid var(--color-error);
+		background: var(--color-error-bg);
+		color: var(--color-error);
+		flex-shrink: 0;
+	}
+
+	.btn-cancel-queued:hover {
+		background: var(--color-error);
+		color: white;
 	}
 </style>
