@@ -9,6 +9,7 @@ export interface UserInfo {
 	email: string;
 	neighbourhood?: string | null;
 	role?: string;
+	language_code?: string;
 	created_at?: string;
 }
 
@@ -67,6 +68,7 @@ export interface CommunityOut {
 	postal_code: string;
 	city: string;
 	country_code: string;
+	primary_language?: string | null;
 	mode: string;
 	latitude: number | null;
 	longitude: number | null;

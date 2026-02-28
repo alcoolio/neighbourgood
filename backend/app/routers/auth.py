@@ -22,6 +22,7 @@ def register(body: UserRegister, db: Session = Depends(get_db)):
         hashed_password=hash_password(body.password),
         display_name=body.display_name,
         neighbourhood=body.neighbourhood,
+        language_code=body.language_code,
     )
     db.add(user)
     db.commit()

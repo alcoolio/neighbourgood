@@ -12,6 +12,7 @@ export interface UserProfile {
 	display_name: string;
 	neighbourhood: string | null;
 	role: string;
+	language_code: string;
 	created_at: string;
 }
 

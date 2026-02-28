@@ -13,6 +13,7 @@ class CommunityCreate(BaseModel):
     postal_code: str = Field(..., min_length=1, max_length=20)
     city: str = Field(..., min_length=1, max_length=150)
     country_code: str = Field("DE", max_length=5)
+    primary_language: str | None = Field(None, max_length=10)
     latitude: float | None = None
     longitude: float | None = None
 
@@ -38,6 +39,7 @@ class CommunityOut(BaseModel):
     postal_code: str
     city: str
     country_code: str
+    primary_language: str | None = None
     is_active: bool
     mode: str = "blue"
     latitude: float | None = None
@@ -56,6 +58,7 @@ class CommunityMapItem(BaseModel):
     city: str
     postal_code: str
     country_code: str
+    primary_language: str | None = None
     member_count: int = 0
     resource_count: int = 0
     skill_count: int = 0

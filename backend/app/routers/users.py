@@ -98,6 +98,8 @@ def update_my_profile(
         current_user.display_name = body.display_name
     if body.neighbourhood is not None:
         current_user.neighbourhood = body.neighbourhood
+    if body.language_code is not None:
+        current_user.language_code = body.language_code
     db.commit()
     db.refresh(current_user)
     return current_user

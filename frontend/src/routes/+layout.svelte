@@ -6,6 +6,13 @@
 	import { theme, toggleTheme, bandwidth, toggleBandwidth, platformMode, setPlatformMode } from '$lib/stores/theme';
 	import { page } from '$app/stores';
 	import { api } from '$lib/api';
+	import { t } from 'svelte-i18n';
+	import { setupI18n, detectInitialLocale, AVAILABLE_LOCALES } from '$lib/i18n';
+	import { setLocale, hydrateLocale, currentLocale } from '$lib/stores/locale';
+
+	// Initialise svelte-i18n as early as possible.
+	// detectInitialLocale safely reads localStorage (browser-only) and navigator.language.
+	setupI18n(detectInitialLocale());
 
 	let { children } = $props();
 	let mobileMenuOpen = $state(false);
@@ -13,9 +20,23 @@
 	let crisisBannerDismissed = $state(false);
 	let showUpdateBanner = $state(false);
 	let installPrompt = $state<Event | null>(null);
+	let langMenuOpen = $state(false);
 
 	function closeMobileMenu() {
 		mobileMenuOpen = false;
+	}
+
+	function toggleLangMenu() {
+		langMenuOpen = !langMenuOpen;
+	}
+
+	function closeLangMenu() {
+		langMenuOpen = false;
+	}
+
+	async function selectLanguage(code: string) {
+		await setLocale(code);
+		closeLangMenu();
 	}
 
 	onMount(async () => {
@@ -52,9 +73,13 @@
 			try {
 				const profile = await api<UserProfile>('/users/me', { auth: true });
 				user.set(profile);
+				// Apply the user's saved language preference
+				hydrateLocale(profile.language_code);
 			} catch {
 				logout();
 			}
+		} else if ($user) {
+			hydrateLocale($user.language_code);
 		}
 
 		// Fetch platform mode and apply Red Sky automatically when active
@@ -122,6 +147,10 @@
 	{/if}
 </svelte:head>
 
+{#if langMenuOpen}
+	<button class="mobile-overlay" onclick={closeLangMenu} aria-label={$t('common.close')}></button>
+{/if}
+
 <nav class="main-nav">
 	<div class="nav-inner">
 		<a href={$isLoggedIn ? '/dashboard' : '/'} class="nav-brand" onclick={closeMobileMenu}>
@@ -139,7 +168,7 @@
 			class="hamburger"
 			class:open={mobileMenuOpen}
 			onclick={() => mobileMenuOpen = !mobileMenuOpen}
-			aria-label="Toggle menu"
+			aria-label={$t('nav.toggle_menu')}
 			aria-expanded={mobileMenuOpen}
 		>
 			<span class="hamburger-line"></span>
@@ -149,27 +178,27 @@
 
 		<div class="nav-links" class:mobile-open={mobileMenuOpen}>
 			{#if $isLoggedIn}
-				<a href="/dashboard" class="nav-link" class:active={$page.url.pathname === '/dashboard'} onclick={closeMobileMenu}>Home</a>
-				<a href="/resources" class="nav-link" class:active={$page.url.pathname.startsWith('/resources') || $page.url.pathname.startsWith('/skills')} onclick={closeMobileMenu}>Browse</a>
-				<a href="/communities" class="nav-link" class:active={$page.url.pathname.startsWith('/communities') || $page.url.pathname === '/explore'} onclick={closeMobileMenu}>Communities</a>
+				<a href="/dashboard" class="nav-link" class:active={$page.url.pathname === '/dashboard'} onclick={closeMobileMenu}>{$t('nav.home')}</a>
+				<a href="/resources" class="nav-link" class:active={$page.url.pathname.startsWith('/resources') || $page.url.pathname.startsWith('/skills')} onclick={closeMobileMenu}>{$t('nav.browse')}</a>
+				<a href="/communities" class="nav-link" class:active={$page.url.pathname.startsWith('/communities') || $page.url.pathname === '/explore'} onclick={closeMobileMenu}>{$t('nav.communities')}</a>
 				<a href="/messages" class="nav-link" class:active={$page.url.pathname === '/messages'} onclick={closeMobileMenu}>
-					Messages
+					{$t('nav.messages')}
 					{#if unreadCount > 0}
 						<span class="nav-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
 					{/if}
 				</a>
 				{#if $platformMode === 'red'}
-					<a href="/triage" class="nav-link nav-link-crisis" class:active={$page.url.pathname === '/triage'} onclick={closeMobileMenu}>Emergency</a>
+					<a href="/triage" class="nav-link nav-link-crisis" class:active={$page.url.pathname === '/triage'} onclick={closeMobileMenu}>{$t('nav.emergency')}</a>
 				{/if}
 			{:else}
-				<a href="/explore" class="nav-link" class:active={$page.url.pathname === '/explore'} onclick={closeMobileMenu}>Explore</a>
+				<a href="/explore" class="nav-link" class:active={$page.url.pathname === '/explore'} onclick={closeMobileMenu}>{$t('nav.explore')}</a>
 			{/if}
 
 			<button
 				class="theme-toggle"
 				onclick={toggleTheme}
-				aria-label="Toggle dark mode"
-				title={$theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+				aria-label={$t('nav.toggle_dark_mode')}
+				title={$theme === 'light' ? $t('nav.switch_to_dark') : $t('nav.switch_to_light')}
 			>
 				{#if $theme === 'light'}
 					<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
@@ -183,8 +212,8 @@
 					class="theme-toggle bandwidth-toggle"
 					class:active={$bandwidth === 'low'}
 					onclick={toggleBandwidth}
-					aria-label="Toggle low-bandwidth mode"
-					title={$bandwidth === 'normal' ? 'Enable low-bandwidth mode' : 'Disable low-bandwidth mode (currently ON)'}
+					aria-label={$t('nav.toggle_low_bandwidth')}
+					title={$bandwidth === 'normal' ? $t('nav.enable_low_bandwidth') : $t('nav.disable_low_bandwidth')}
 				>
 					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
 						<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
@@ -192,50 +221,83 @@
 				</button>
 			{/if}
 
+			<!-- Language selector -->
+			<div class="lang-selector">
+				<button
+					class="theme-toggle lang-toggle"
+					onclick={toggleLangMenu}
+					aria-label="Select language"
+					title="Select language / Choisir la langue / Seleccionar idioma"
+					aria-expanded={langMenuOpen}
+				>
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<circle cx="12" cy="12" r="10"/>
+						<line x1="2" y1="12" x2="22" y2="12"/>
+						<path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+					</svg>
+					<span class="lang-code">{$currentLocale.toUpperCase()}</span>
+				</button>
+				{#if langMenuOpen}
+					<div class="lang-menu" role="menu">
+						{#each AVAILABLE_LOCALES as lang}
+							<button
+								class="lang-option"
+								class:active={$currentLocale === lang.code}
+								onclick={() => selectLanguage(lang.code)}
+								role="menuitem"
+								dir={lang.rtl ? 'rtl' : 'ltr'}
+							>
+								{lang.name}
+							</button>
+						{/each}
+					</div>
+				{/if}
+			</div>
+
 			{#if installPrompt}
-				<button class="nav-install-btn" onclick={installApp} title="Install NeighbourGood as an app">
+				<button class="nav-install-btn" onclick={installApp} title={$t('nav.install_app')}>
 					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v13M8 11l4 4 4-4"/><path d="M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2"/></svg>
-					Install
+					{$t('nav.install')}
 				</button>
 			{/if}
 
 			{#if $isLoggedIn}
 				<div class="nav-user-group">
-					<a href="/settings" class="nav-icon-btn" title="Settings" onclick={closeMobileMenu}>
+					<a href="/settings" class="nav-icon-btn" title={$t('nav.settings')} onclick={closeMobileMenu}>
 						<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
 					</a>
-					<span class="nav-user">{$user?.display_name ?? 'Account'}</span>
+					<span class="nav-user">{$user?.display_name ?? $t('nav.account')}</span>
 					<button class="nav-btn" onclick={() => { closeMobileMenu(); logout(); window.location.href = '/'; }}>
-						Logout
+						{$t('nav.logout')}
 					</button>
 				</div>
 			{:else}
-				<a href="/login" class="nav-link" onclick={closeMobileMenu}>Login</a>
-				<a href="/register" class="nav-btn-primary" onclick={closeMobileMenu}>Sign Up</a>
+				<a href="/login" class="nav-link" onclick={closeMobileMenu}>{$t('nav.login')}</a>
+				<a href="/register" class="nav-btn-primary" onclick={closeMobileMenu}>{$t('nav.signup')}</a>
 			{/if}
 		</div>
 	</div>
 </nav>
 
 {#if mobileMenuOpen}
-	<button class="mobile-overlay" onclick={closeMobileMenu} aria-label="Close menu"></button>
+	<button class="mobile-overlay" onclick={closeMobileMenu} aria-label={$t('nav.close_menu')}></button>
 {/if}
 
 {#if showUpdateBanner}
 	<div class="update-banner">
 		<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-		<span>A new version of NeighbourGood is available.</span>
-		<button class="update-banner-btn" onclick={() => location.reload()}>Refresh</button>
-		<button class="update-banner-dismiss" onclick={() => (showUpdateBanner = false)} aria-label="Dismiss">&times;</button>
+		<span>{$t('banner.update_available')}</span>
+		<button class="update-banner-btn" onclick={() => location.reload()}>{$t('banner.refresh')}</button>
+		<button class="update-banner-dismiss" onclick={() => (showUpdateBanner = false)} aria-label={$t('banner.dismiss')}>&times;</button>
 	</div>
 {/if}
 
 {#if $isLoggedIn && $platformMode === 'red' && !crisisBannerDismissed}
 	<div class="crisis-banner">
 		<span class="crisis-banner-dot"></span>
-		<span>A community is in crisis mode. Emergency coordination is active.</span>
-		<a href="/triage" class="crisis-banner-link">Go to Emergency</a>
-		<button class="crisis-banner-dismiss" onclick={dismissCrisisBanner} aria-label="Dismiss">&times;</button>
+		<span>{$t('banner.crisis_active')}</span>
+		<a href="/triage" class="crisis-banner-link">{$t('banner.go_to_emergency')}</a>
+		<button class="crisis-banner-dismiss" onclick={dismissCrisisBanner} aria-label={$t('banner.dismiss')}>&times;</button>
 	</div>
 {/if}
 
@@ -661,6 +723,84 @@
 	.nav-install-btn:hover {
 		background: var(--color-primary);
 		color: white;
+	}
+
+	/* ── Language selector ──────────────────────────────────────────── */
+
+	.lang-selector {
+		position: relative;
+		display: flex;
+		align-items: center;
+	}
+
+	.lang-toggle {
+		display: flex;
+		align-items: center;
+		gap: 0.3rem;
+		min-width: 58px;
+	}
+
+	.lang-code {
+		font-size: 0.72rem;
+		font-weight: 700;
+		letter-spacing: 0.03em;
+	}
+
+	.lang-menu {
+		position: absolute;
+		top: calc(100% + 6px);
+		right: 0;
+		z-index: 200;
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius);
+		box-shadow: var(--shadow-md);
+		min-width: 180px;
+		padding: 0.35rem 0;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.lang-option {
+		background: none;
+		border: none;
+		padding: 0.5rem 1rem;
+		text-align: left;
+		font-size: 0.88rem;
+		color: var(--color-text-muted);
+		cursor: pointer;
+		transition: background-color var(--transition-fast), color var(--transition-fast);
+	}
+
+	.lang-option:hover {
+		background: var(--color-primary-light);
+		color: var(--color-text);
+	}
+
+	.lang-option.active {
+		color: var(--color-primary);
+		font-weight: 600;
+	}
+
+	@media (max-width: 768px) {
+		.lang-selector {
+			margin: 0.25rem 1.5rem;
+			align-self: flex-start;
+		}
+
+		.lang-menu {
+			position: static;
+			border: none;
+			box-shadow: none;
+			background: transparent;
+			padding: 0;
+			min-width: unset;
+		}
+
+		.lang-option {
+			padding: 0.4rem 0;
+			font-size: 0.9rem;
+		}
 	}
 
 	/* ── Crisis banner ──────────────────────────────────────────── */

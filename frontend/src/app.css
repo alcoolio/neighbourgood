@@ -334,3 +334,83 @@ input:focus, textarea:focus, select:focus {
 	color: var(--color-text-muted);
 	padding: 2rem;
 }
+
+/* ── RTL (Right-to-Left) Layout Support ──────────────────────────
+   Applied when [dir='rtl'] is set on <html> (Arabic, Urdu, etc.).
+   Uses logical CSS properties where possible; explicit overrides
+   where component CSS hardcodes physical directions.               */
+
+[dir='rtl'] body {
+	font-family: var(--font-body);
+	/* Arabic/Urdu text renders better with slightly more line-height */
+	line-height: 1.8;
+}
+
+/* Navigation: flip horizontal order */
+[dir='rtl'] .nav-inner {
+	flex-direction: row-reverse;
+}
+
+[dir='rtl'] .nav-links {
+	flex-direction: row-reverse;
+}
+
+[dir='rtl'] .nav-brand {
+	flex-direction: row-reverse;
+}
+
+[dir='rtl'] .nav-user-group {
+	flex-direction: row-reverse;
+}
+
+/* Form inputs: align text right for RTL */
+[dir='rtl'] input,
+[dir='rtl'] textarea,
+[dir='rtl'] select {
+	text-align: right;
+	direction: rtl;
+}
+
+/* Page header: reverse order */
+[dir='rtl'] .page-header {
+	flex-direction: row-reverse;
+}
+
+/* Filter bars */
+[dir='rtl'] .filter-bar {
+	flex-direction: row-reverse;
+}
+
+/* Cards: reverse internal flex where needed */
+[dir='rtl'] .feature-card,
+[dir='rtl'] .resource-card {
+	text-align: right;
+}
+
+/* Alert / banner: reverse icon + text order */
+[dir='rtl'] .alert,
+[dir='rtl'] .crisis-banner,
+[dir='rtl'] .update-banner {
+	direction: rtl;
+}
+
+/* ── Arabic / Urdu font stack ───────────────────────────────────
+   System Arabic fonts render well — no web font needed.
+   Abril Fatface (headings) does not support Arabic glyphs so
+   we fall back to system serif for RTL headings.                 */
+
+[dir='rtl'] h1,
+[dir='rtl'] h2,
+[dir='rtl'] h3 {
+	font-family: 'Segoe UI', 'Noto Sans Arabic', 'Arabic Typesetting', 'Amiri', serif;
+	letter-spacing: 0;
+}
+
+[dir='rtl'] body,
+[dir='rtl'] p,
+[dir='rtl'] button,
+[dir='rtl'] a,
+[dir='rtl'] label,
+[dir='rtl'] span {
+	font-family: 'Segoe UI', 'Noto Sans Arabic', 'Noto Naskh Arabic', system-ui, sans-serif;
+}
