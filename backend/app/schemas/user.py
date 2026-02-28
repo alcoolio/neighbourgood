@@ -13,6 +13,7 @@ class UserProfile(BaseModel):
     neighbourhood: str | None
     role: str
     telegram_chat_id: str | None = None
+    language_code: str = "en"
     created_at: datetime.datetime
 
     model_config = {"from_attributes": True}
@@ -21,6 +22,7 @@ class UserProfile(BaseModel):
 class UserProfileUpdate(BaseModel):
     display_name: str | None = Field(None, min_length=1, max_length=100)
     neighbourhood: str | None = Field(None, max_length=100)
+    language_code: str | None = Field(None, max_length=10)
 
 
 class ChangePassword(BaseModel):

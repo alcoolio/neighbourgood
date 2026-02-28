@@ -17,6 +17,7 @@ class Community(Base):
     postal_code: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
     city: Mapped[str] = mapped_column(String(150), nullable=False, index=True)
     country_code: Mapped[str] = mapped_column(String(5), default="DE", nullable=False)
+    primary_language: Mapped[str | None] = mapped_column(String(10), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     mode: Mapped[str] = mapped_column(String(10), default="blue", nullable=False)  # blue (normal) / red (crisis)
     latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
