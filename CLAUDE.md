@@ -416,6 +416,8 @@ def test_not_found(client, auth_headers):
 
 | Version | Date | Highlights |
 |---------|------|-----------|
+| 1.1.0 | 2026-03-01 | Phase 5 complete: offline item browsing, request queuing, background sync, data export; Phase 6 start: multi-language support (7 languages + RTL), image upload fixes |
+| 1.0.0 | 2026-02-27 | Production release: reputation rebalancing, 3-step onboarding wizard, Telegram bot integration, community activity timeline, skills in messaging, 198+ tests |
 | 0.9.9 | 2026-02-26 | PWA support with offline-first service worker, installable web app, dashboard crisis ticket widget, design refinements, enhanced reputation system |
 | 0.9.8 | 2026-02-25 | User dashboard, ticket detail page with discussion, global Red Sky awareness, UI redesign (warm palette, Abril Fatface headings, SVG logo), navigation restructuring |
 | 0.9.5 | 2026-02-24 | Low-bandwidth mode, triage dashboard, community-filtered resources/skills, eager-loading N+1 fix, enhanced API error handling |

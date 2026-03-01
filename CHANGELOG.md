@@ -4,6 +4,43 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.1.0] - 2026-03-01
+
+### Added
+
+- **Offline item browsing and request queuing** – Full Phase 5 offline-first capabilities
+  - Browse resources and skills without internet connectivity
+  - Queue booking requests while offline, auto-sync when connection restored
+  - Service worker background sync for seamless reconnection experience
+  - Offline-aware UI indicators showing sync status
+- **Multi-language support (i18n)** – Comprehensive internationalization foundation
+  - 7 languages supported: English, French, German, Spanish, Italian, Portuguese, Dutch
+  - Right-to-left (RTL) text direction support for future language expansion
+  - Language selection interface in user settings
+  - Automatic language detection based on browser preferences
+  - All UI text translatable with centralized message catalogs
+- **Data export and backup tools** – User privacy and data portability
+  - Export personal profile data as JSON
+  - One-click community data backup
+  - Import functionality for instance migration
+- **Image upload reliability improvements** – Fixed SSR hydration issues
+  - Resolved auth token sync from localStorage after server-side rendering
+  - Disabled SvelteKit CSRF origin validation for direct API requests
+  - Improved upload success rates on first-time users
+
+### Changed
+
+- Backend version bumped to 1.1.0
+- Frontend version bumped to 1.1.0
+- Phase 5 (Offline & Resilience) now fully complete
+- Phase 6 (Advanced Features) multi-language support complete
+
+### Fixed
+
+- Image upload failing due to token not syncing after SSR hydration
+- CSRF origin check blocking legitimate image uploads
+- Language preference persistence across sessions
+
 ## [1.0.0] - 2026-02-27
 
 ### Added
