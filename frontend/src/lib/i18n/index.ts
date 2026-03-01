@@ -14,7 +14,7 @@
 
 import { register, init, getLocaleFromNavigator } from 'svelte-i18n';
 
-export const SUPPORTED_LOCALES = ['en', 'ar', 'fr', 'es', 'sw', 'id', 'uk'] as const;
+export const SUPPORTED_LOCALES = ['en', 'ar', 'fr', 'es', 'sw', 'id', 'uk', 'de', 'nl', 'el'] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 
 export const RTL_LOCALES: ReadonlySet<string> = new Set(['ar', 'ur', 'he', 'fa']);
@@ -27,7 +27,10 @@ export const AVAILABLE_LOCALES: { code: string; name: string; rtl: boolean }[] =
 	{ code: 'es', name: 'Español', rtl: false },
 	{ code: 'sw', name: 'Kiswahili', rtl: false },
 	{ code: 'id', name: 'Bahasa Indonesia', rtl: false },
-	{ code: 'uk', name: 'Українська', rtl: false }
+	{ code: 'uk', name: 'Українська', rtl: false },
+	{ code: 'de', name: 'Deutsch', rtl: false },
+	{ code: 'nl', name: 'Nederlands', rtl: false },
+	{ code: 'el', name: 'Ελληνικά', rtl: false }
 ];
 
 // Register all supported locales as lazy loaders (only fetched when needed).
@@ -38,6 +41,9 @@ register('es', () => import('./locales/es.json'));
 register('sw', () => import('./locales/sw.json'));
 register('id', () => import('./locales/id.json'));
 register('uk', () => import('./locales/uk.json'));
+register('de', () => import('./locales/de.json'));
+register('nl', () => import('./locales/nl.json'));
+register('el', () => import('./locales/el.json'));
 
 /** Normalise a BCP 47 tag to the closest supported locale, or 'en'. */
 export function resolveLocale(tag: string | null | undefined): string {
