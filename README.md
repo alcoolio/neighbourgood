@@ -1,6 +1,6 @@
 # 🏘️ NeighbourGood
 
-**v1.0.0** · A self-hostable web platform that helps communities share resources and coordinate during crises.
+**v1.1.0** · A self-hostable web platform that helps communities share resources and coordinate during crises.
 
 ## 💡 Vision
 
@@ -201,9 +201,9 @@ See [API_ENDPOINTS.md](API_ENDPOINTS.md) for the full endpoint reference. Intera
 ### Phase 5 — Offline & Resilience
 
 - [x] Full PWA with service worker caching ✅ (v0.9.9)
-- [ ] Offline item browsing and request queuing
-- [ ] Background sync when connectivity returns
-- [ ] Data export and backup tools
+- [x] Offline item browsing and request queuing ✅ (v1.1.0)
+- [x] Background sync when connectivity returns ✅ (v1.1.0)
+- [x] Data export and backup tools ✅ (v1.1.0)
 
 #### Security Phase 5a — Infrastructure
 
@@ -218,7 +218,7 @@ See [API_ENDPOINTS.md](API_ENDPOINTS.md) for the full endpoint reference. Intera
 - [ ] AI-powered resource matching and recommendations
 - [ ] Mesh networking preparation (bitchat API integration)
 - [ ] Decentralized data sync between instances
-- [ ] Multi-language support (i18n)
+- [x] Multi-language support (i18n) ✅ (v1.1.0) — 7 languages with RTL support
 - [ ] Admin dashboard with analytics
 - [x] Outbound webhook system with HMAC-SHA256 signing (generic integrations)
 - [x] Telegram bot integration (personal notifications, community group alerts, bot commands)
