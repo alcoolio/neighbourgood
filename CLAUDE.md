@@ -20,14 +20,14 @@ Token efficiency matters. Use the right model for the right task:
 
 ## Project Overview
 
-**NeighbourGood v0.9.5** — a self-hostable, federation-ready community resource-sharing platform with a **dual-state architecture**:
+**NeighbourGood v1.1.0** — a self-hostable, federation-ready community resource-sharing platform with a **dual-state architecture**:
 
 - **Blue Sky Mode** (normal operation): resource library, skill exchange, calendar bookings, reputation/trust scores, community feed, direct messaging
 - **Red Sky Mode** (crisis operation): per-community crisis toggle or 60%-threshold community vote, emergency ticketing (request / offer / ping), neighbourhood leader roles, cross-instance Red Sky alerts
 
 Each instance exposes `/instance/info` so instances can discover and federate with each other.
 
-Current test count: **198 tests** (all backend, pytest + in-memory SQLite).
+Current test count: **200+ tests** across 21 test files (all backend, pytest + in-memory SQLite).
 
 ---
 
@@ -43,6 +43,7 @@ Current test count: **198 tests** (all backend, pytest + in-memory SQLite).
 | Auth | Custom HS256 JWT (stdlib) + bcrypt via passlib | No third-party JWT library on purpose |
 | Frontend | SvelteKit 2 + Svelte 5 + TypeScript | Node adapter in Docker; static adapter option |
 | Build tool | Vite 6 | Dev proxy rewrites `/api` → backend |
+| i18n | svelte-i18n | 7 languages (en, ar, fr, es, sw, id, uk) + RTL |
 | Deployment | Docker Compose | 3 services: `db` (pg), `backend`, `frontend` |
 
 ---
@@ -53,10 +54,16 @@ Current test count: **198 tests** (all backend, pytest + in-memory SQLite).
 neighbourgood/
 ├── CLAUDE.md               # This file
 ├── README.md               # User-facing docs and quick start
-├── CHANGELOG.md            # Full version history (v0.1.0 → v0.9.0)
-├── PLAN.md                 # Security hardening roadmap (3 phases)
+├── CHANGELOG.md            # Full version history (v0.1.0 → v1.1.0)
+├── PLAN.md                 # Security hardening roadmap (phases 4a–5a)
+├── PLAN_DESIGN.md          # UI/UX redesign plan
+├── PLAN_I18N.md            # Internationalization plan
 ├── API_ENDPOINTS.md        # Full endpoint reference
+├── SECURITY.md             # Security policy and vulnerability reporting
+├── CONTRIBUTING.md         # Contribution guidelines
+├── CODE_OF_CONDUCT.md      # Community code of conduct
 ├── .env.example            # Config template — copy to .env before running
+├── .github/                # GitHub Actions workflows
 ├── docker-compose.yml      # Production-style 3-service stack
 │
 ├── backend/
@@ -66,17 +73,17 @@ neighbourgood/
 │   │   ├── env.py              # Reads NG_DATABASE_URL; imports all models
 │   │   └── versions/           # One migration file per schema change
 │   ├── app/
-│   │   ├── main.py             # FastAPI app + middleware registration
+│   │   ├── main.py             # FastAPI app + middleware registration + lifespan
 │   │   ├── config.py           # pydantic-settings (NG_ prefix); startup key validation
 │   │   ├── database.py         # Engine + SessionLocal + Base
 │   │   ├── dependencies.py     # get_current_user() auth dependency
 │   │   ├── models/             # SQLAlchemy ORM models (one file per domain)
 │   │   ├── routers/            # Route handlers (one file per domain)
 │   │   ├── schemas/            # Pydantic request/response schemas
-│   │   └── services/           # auth, notifications, activity
+│   │   └── services/           # auth, notifications, activity, telegram, webhooks
 │   └── tests/
 │       ├── conftest.py         # In-memory SQLite fixtures + auth_headers
-│       └── test_*.py           # One file per router/domain
+│       └── test_*.py           # 21 test files, one per router/domain
 │
 └── frontend/
     ├── Dockerfile
@@ -85,25 +92,36 @@ neighbourgood/
         ├── app.html            # HTML shell
         ├── app.css             # Global CSS + Blue/Red Sky CSS custom properties
         ├── hooks.server.ts     # Server-side /api proxy → backend
+        ├── service-worker.ts   # PWA offline caching + background sync
         ├── lib/
         │   ├── api.ts          # api() and apiUpload() fetch wrappers
         │   ├── types.ts        # Shared TS interfaces mirroring backend schemas
+        │   ├── i18n/           # Internationalisation
+        │   │   ├── index.ts        # svelte-i18n setup + locale detection
+        │   │   └── locales/        # en, ar, fr, es, sw, id, uk JSON files
         │   └── stores/
         │       ├── auth.ts     # token, user, isLoggedIn, logout()
-        │       └── theme.ts    # light/dark toggle, localStorage persistence
+        │       ├── theme.ts    # light/dark toggle, localStorage persistence
+        │       ├── locale.ts   # currentLocale, isRTL, setLocale(), hydrateLocale()
+        │       └── offline.ts  # isOnline, offlineQueue, enqueueRequest(), flushQueue()
         └── routes/             # SvelteKit file-based routing
             ├── +layout.svelte
-            ├── +page.svelte          # Home / dashboard
+            ├── +page.svelte          # Home / landing page
+            ├── dashboard/            # User dashboard (v1.0.0)
             ├── login/
             ├── register/
-            ├── onboarding/           # Search / join / create community
+            ├── onboarding/           # 3-step wizard (search / join / create community)
             ├── resources/[id]/
             ├── bookings/
             ├── messages/
             ├── skills/
+            │   └── [id]/             # Skill detail + messaging
             ├── communities/[id]/
             ├── explore/              # Public map (Leaflet / OSM) for guests
-            └── invites/[code]/       # Invite acceptance
+            ├── invites/[code]/       # Invite acceptance
+            ├── triage/               # Crisis dashboard (v0.9.8)
+            │   └── [id]/             # Emergency ticket detail + discussion
+            └── settings/             # User settings — theme & language (v1.1.0)
 ```
 
 ---
@@ -145,6 +163,7 @@ alembic revision --autogenerate -m "short description"
 alembic upgrade head
 
 # In Docker the app auto-creates tables via Base.metadata.create_all().
+# The lifespan handler also auto-adds missing columns on startup (for iterative dev).
 # For schema changes on a running container, exec into it and run alembic upgrade head.
 ```
 
@@ -152,7 +171,7 @@ alembic upgrade head
 
 ```bash
 cd backend
-pytest                          # full suite (198 tests, ~5 s)
+pytest                          # full suite (~200 tests, ~5 s)
 pytest tests/test_auth.py -v    # single file
 pytest --tb=short               # compact tracebacks
 ```
@@ -183,6 +202,7 @@ All prefixed `NG_`. The app reads from `.env` via pydantic-settings.
 | `NG_FRONTEND_URL` | No | `http://localhost:3800` | Used in notification email links |
 | `NG_INSTANCE_NAME/DESCRIPTION/REGION/URL` | No | — | Federation identity shown at `/instance/info` |
 | `NG_ADMIN_NAME/ADMIN_CONTACT` | No | — | Federation accountability metadata |
+| `NG_TELEGRAM_BOT_TOKEN` | No | unset | Telegram Bot API token; disables integration when unset |
 
 ---
 
@@ -238,12 +258,22 @@ def get_item(id: int, db: Session = Depends(get_db), current_user: User = Depend
 | `auth.py` | `hash_password()`, `verify_password()`, `create_access_token()`, `decode_access_token()` |
 | `notifications.py` | `send_notification()` — logs to console when SMTP unconfigured |
 | `activity.py` | `log_activity()` — call after writes to generate community feed entries |
+| `telegram.py` | `send_message()`, `is_configured()`, `set_webhook()` — Telegram Bot API client |
+| `webhooks.py` | Outbound webhook delivery, HMAC-SHA256 signature verification, event broadcasting |
 
 ### Configuration (`app/config.py`)
 
 - `settings` is a module-level singleton — import and use; do not instantiate `Settings()` again.
 - `settings.debug = True` relaxes: default secret key acceptance, HSTS header, strict CSP.
 - Startup guards (cannot be bypassed without `debug=True`): default secret key rejected, key < 32 chars rejected.
+
+### Lifespan & Auto-migration (`app/main.py`)
+
+The lifespan context manager runs at startup:
+1. Creates all tables via `Base.metadata.create_all()`.
+2. Applies additive column migrations for iterative development (adds missing columns without Alembic).
+
+Do not rely on this for production schema changes — always write a proper Alembic migration.
 
 ---
 
@@ -268,8 +298,27 @@ All paths are relative to `/api` (e.g. `/resources`, not `/api/resources`).
 
 ### Stores (`src/lib/stores/`)
 
-- **auth.ts**: `token` (JWT), `user` (profile), `isLoggedIn` (derived boolean), `logout()`. Token persists to `localStorage` under key `ng_token`.
-- **theme.ts**: `theme` (`'light' | 'dark'`), `toggleTheme()`. Persists to `localStorage` under `ng_theme`; sets `data-theme` on `<html>`.
+| Store | Exports | Persistence |
+|-------|---------|-------------|
+| `auth.ts` | `token`, `user`, `isLoggedIn`, `logout()` | `localStorage` key `ng_token` |
+| `theme.ts` | `theme` (`'light'\|'dark'`), `toggleTheme()` | `localStorage` key `ng_theme`; sets `data-theme` on `<html>` |
+| `locale.ts` | `currentLocale`, `isRTL`, `setLocale(code)`, `hydrateLocale(code)`, `AVAILABLE_LOCALES` | `localStorage`; syncs to user profile |
+| `offline.ts` | `isOnline`, `offlineQueue`, `queueCount`, `enqueueRequest(req)`, `removeFromQueue(id)`, `flushQueue()`, `initOfflineTracking()` | In-memory; replayed on reconnect |
+
+### Internationalisation (`src/lib/i18n/`)
+
+- Uses `svelte-i18n`. Setup and locale detection in `i18n/index.ts`.
+- 7 supported languages: `en`, `ar`, `fr`, `es`, `sw`, `id`, `uk`.
+- Arabic (`ar`) requires RTL layout — check `$isRTL` from `locale.ts` to apply `dir="rtl"` where needed.
+- Translation strings live in `i18n/locales/<lang>.json`; always add a key to all 7 files when adding new UI text.
+- Graceful fallback to English if a key is missing in a locale.
+
+### Offline / PWA (`src/service-worker.ts`)
+
+- Caches static assets and resource browse responses for offline access.
+- `offline.ts` tracks `navigator.onLine` and queues state-changing API calls made while offline.
+- Call `initOfflineTracking()` once in the root layout `onMount` to register event listeners.
+- When back online, `flushQueue()` replays queued requests in order.
 
 ### Types (`src/lib/types.ts`)
 
@@ -293,7 +342,7 @@ Shared TypeScript interfaces that mirror backend Pydantic schemas. Always import
 
 | Model | Key fields | Notes |
 |-------|-----------|-------|
-| `User` | id, email, hashed_password, display_name, neighbourhood, role, is_active | roles: `member`, `admin` |
+| `User` | id, email, hashed_password, display_name, neighbourhood, role, is_active, telegram_chat_id, preferred_language | roles: `member`, `admin` |
 | `Resource` | id, title, category, condition, image_url, is_available, owner_id, community_id | community_id nullable (personal items) |
 | `Booking` | id, resource_id, borrower_id, start_date, end_date, status, message | statuses: pending → approved/rejected → completed/cancelled |
 | `Message` | id, sender_id, recipient_id, booking_id, body, is_read | only between users sharing a community |
@@ -302,11 +351,14 @@ Shared TypeScript interfaces that mirror backend Pydantic schemas. Always import
 | `Skill` | id, user_id, community_id, title, category, skill_type, description | skill_type: offer/request; 10 categories |
 | `Activity` | id, community_id, user_id, action_type, object_type, object_id, summary | auto-generated feed entries |
 | `EmergencyTicket` | id, community_id, author_id, ticket_type, title, status, priority | types: request/offer/ping; ping = Red Sky only |
+| `TicketComment` | id, ticket_id, author_id, body | Discussion thread on emergency tickets |
 | `CrisisVote` | id, community_id, user_id, vote | 60% threshold auto-switches mode |
 | `Invite` | id, community_id, created_by_id, code, max_uses, uses, expires_at | URL-safe codes |
 | `Review` | id, booking_id, reviewer_id, reviewee_id, rating, comment | 1–5 stars, per completed booking |
 | `KnownInstance` | id, instance_url, name, region, last_seen_at | federation directory |
 | `RedSkyAlert` | id, source_instance_url, title, body, severity, expires_at | cross-instance crisis alerts |
+| `Webhook` | id, owner_id, url, secret, events, is_active | outbound webhook subscriptions |
+| `TelegramLinkToken` | id, user_id, token, expires_at | one-time tokens for Telegram account linking |
 
 ---
 
@@ -330,6 +382,8 @@ Full reference: `API_ENDPOINTS.md`. Interactive: `http://localhost:8300/docs`.
 | `/reviews` | reviews.py | booking reviews and user averages |
 | `/instance/info` | instance.py | public metadata for federation crawlers |
 | `/federation` | federation.py | instance directory, Red Sky alert broadcast |
+| `/webhooks` | webhooks.py | CRUD outbound webhooks + inbound handler |
+| `/users/me/telegram` | telegram.py | link/unlink Telegram account |
 
 ---
 
@@ -410,6 +464,8 @@ def test_not_found(client, auth_headers):
     assert res.status_code == 404
 ```
 
+Current test files (21): `test_activity`, `test_auth`, `test_bookings`, `test_communities`, `test_crisis`, `test_instance`, `test_inventory`, `test_invites`, `test_messages`, `test_notifications`, `test_reputation`, `test_resource_community`, `test_resources`, `test_resources_phase2`, `test_reviews`, `test_skills`, `test_status`, `test_telegram`, `test_triage`, `test_users`, `test_webhooks`.
+
 ---
 
 ## Version History Summary
@@ -450,7 +506,8 @@ def test_not_found(client, auth_headers):
 2. Import `api` from `$lib/api`, types from `$lib/types`, stores from `$lib/stores/auth`
 3. Guard with `if (!$isLoggedIn) goto('/login')` in `onMount`
 4. Use CSS variables only — no hardcoded colours
-5. Add nav link in `+layout.svelte` if needed
+5. Add translation keys for any new UI strings to all 7 locale JSON files in `src/lib/i18n/locales/`
+6. Add nav link in `+layout.svelte` if needed
 
 ### Add a new Alembic migration
 
@@ -461,6 +518,21 @@ alembic revision --autogenerate -m "add foo_column to resources"
 # Review the generated file in alembic/versions/ before applying
 alembic upgrade head
 ```
+
+### Add i18n strings
+
+```bash
+# Add the key to ALL locale files:
+frontend/src/lib/i18n/locales/en.json   # English (authoritative)
+frontend/src/lib/i18n/locales/ar.json   # Arabic (RTL)
+frontend/src/lib/i18n/locales/fr.json   # French
+frontend/src/lib/i18n/locales/es.json   # Spanish
+frontend/src/lib/i18n/locales/sw.json   # Swahili
+frontend/src/lib/i18n/locales/id.json   # Indonesian
+frontend/src/lib/i18n/locales/uk.json   # Ukrainian
+```
+
+If you only have the English string, add the key with the English value as a placeholder in the other files and note it needs translation.
 
 ---
 
@@ -476,6 +548,8 @@ alembic upgrade head
 - **Do not** add features beyond what was asked — keep changes focused
 - **Do not** create abstractions for one-off operations — three similar lines > premature abstraction
 - **Do not** add docstrings or comments to code you did not change
+- **Do not** hardcode UI strings — use `$t('key')` from svelte-i18n and add to all locale files
+- **Do not** rely on the lifespan auto-migration for production schema changes — write a proper Alembic migration
 
 ---
 
