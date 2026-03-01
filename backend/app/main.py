@@ -94,11 +94,15 @@ async def lifespan(app: FastAPI):
         with engine.begin() as conn:
             if "telegram_chat_id" not in existing_u:
                 conn.execute(text("ALTER TABLE users ADD COLUMN telegram_chat_id VARCHAR(50)"))
+            if "language_code" not in existing_u:
+                conn.execute(text("ALTER TABLE users ADD COLUMN language_code VARCHAR(10) NOT NULL DEFAULT 'en'"))
     if "communities" in inspector.get_table_names():
         existing_c = {col["name"] for col in inspector.get_columns("communities")}
         with engine.begin() as conn:
             if "telegram_group_id" not in existing_c:
                 conn.execute(text("ALTER TABLE communities ADD COLUMN telegram_group_id VARCHAR(50)"))
+            if "primary_language" not in existing_c:
+                conn.execute(text("ALTER TABLE communities ADD COLUMN primary_language VARCHAR(10)"))
     yield
 
 
