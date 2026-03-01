@@ -90,6 +90,9 @@ async function cacheFirst(request: Request, cacheName: string): Promise<Response
 /**
  * Network-first for API: try the network, cache successful responses,
  * serve stale cache on failure. Returns a 503 if nothing is cached.
+ *
+ * Cached responses carry an `X-Served-From: offline-cache` header so
+ * the application can detect that it is viewing stale data.
  */
 async function apiNetworkFirst(request: Request): Promise<Response> {
 	const cache = await caches.open(API_CACHE);
@@ -101,7 +104,16 @@ async function apiNetworkFirst(request: Request): Promise<Response> {
 		return response;
 	} catch {
 		const cached = await cache.match(request);
-		if (cached) return cached;
+		if (cached) {
+			// Re-emit with an extra header so the app knows this is stale data.
+			const headers = new Headers(cached.headers);
+			headers.set('X-Served-From', 'offline-cache');
+			return new Response(cached.body, {
+				status: cached.status,
+				statusText: cached.statusText,
+				headers
+			});
+		}
 		return new Response(JSON.stringify({ detail: 'You are offline' }), {
 			status: 503,
 			headers: { 'Content-Type': 'application/json' }
