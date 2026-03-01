@@ -118,7 +118,7 @@ See [API_ENDPOINTS.md](API_ENDPOINTS.md) for the full endpoint reference. Intera
 
 ## 🗺️ Roadmap
 
-### Phase 1 — Foundation (MVP) ✅
+### Phase 1 — Foundation (MVP)
 
 - [x] Project scaffold (FastAPI + SvelteKit + Docker)
 - [x] `/status` endpoint with dual-mode indicator
@@ -129,7 +129,7 @@ See [API_ENDPOINTS.md](API_ENDPOINTS.md) for the full endpoint reference. Intera
 - [x] Resource detail page
 - [x] SQLite database with Alembic migrations
 
-### Phase 2 — Core Sharing ✅
+### Phase 2 — Core Sharing
 
 - [x] Resource categories (tools, vehicles, electronics, furniture, food, clothing)
 - [x] Image upload for resources
@@ -139,7 +139,7 @@ See [API_ENDPOINTS.md](API_ENDPOINTS.md) for the full endpoint reference. Intera
 - [x] User messaging (in-app)
 - [x] Email notifications
 
-### Phase 3 — Community & Trust ✅
+### Phase 3 — Community & Trust
 
 - [x] Skill exchange listings (offer/request with 10 categories)
 - [x] Reputation/trust score system (computed from activity, 5 levels)
@@ -153,7 +153,7 @@ See [API_ENDPOINTS.md](API_ENDPOINTS.md) for the full endpoint reference. Intera
 - [x] Invite system for new members (code-based, with expiry/max uses)
 - [x] Rating and review system for transactions (1-5 stars, per-booking)
 
-### Phase 3.5 — Federation Preparation ✅
+### Phase 3.5 — Federation Preparation
 
 - [x] Instance metadata with admin accountability (name, region, contact)
 - [x] `/instance/info` public endpoint for directory crawling
@@ -173,7 +173,7 @@ See [API_ENDPOINTS.md](API_ENDPOINTS.md) for the full endpoint reference. Intera
 - [x] Essential resource inventory tracking (quantity-based stock management)
 - [x] Priority-based ticket triage (triage dashboard for leaders/admins)
 
-#### Security Phase 4a — Hardening ✅
+#### Security Phase 4a — Hardening
 
 - [x] Password strength validation (min 8 chars, uppercase + lowercase + digit)
 - [x] Email format validation (EmailStr)
@@ -200,10 +200,10 @@ See [API_ENDPOINTS.md](API_ENDPOINTS.md) for the full endpoint reference. Intera
 
 ### Phase 5 — Offline & Resilience
 
-- [x] Full PWA with service worker caching ✅ (v0.9.9)
-- [x] Offline item browsing and request queuing ✅ (v1.1.0)
-- [x] Background sync when connectivity returns ✅ (v1.1.0)
-- [x] Data export and backup tools ✅ (v1.1.0)
+- [x] Full PWA with service worker caching (v0.9.9)
+- [x] Offline item browsing and request queuing (v1.1.0)
+- [x] Background sync when connectivity returns (v1.1.0)
+- [x] Data export and backup tools (v1.1.0)
 
 #### Security Phase 5a — Infrastructure
 
@@ -218,7 +218,7 @@ See [API_ENDPOINTS.md](API_ENDPOINTS.md) for the full endpoint reference. Intera
 - [ ] AI-powered resource matching and recommendations
 - [ ] Mesh networking preparation (bitchat API integration)
 - [ ] Decentralized data sync between instances
-- [x] Multi-language support (i18n) ✅ (v1.1.0) — 7 languages with RTL support
+- [x] Multi-language support (i18n) (v1.1.0) — 7 languages with RTL support
 - [ ] Admin dashboard with analytics
 - [x] Outbound webhook system with HMAC-SHA256 signing (generic integrations)
 - [x] Telegram bot integration (personal notifications, community group alerts, bot commands)
@@ -284,14 +284,14 @@ Once a community group is linked, members can query the community directory:
 
 | Event | Personal | Community group |
 |-------|----------|----------------|
-| New message received | ✅ | — |
-| Booking created | ✅ (resource owner) | — |
-| Booking status changed | ✅ (borrower) | — |
-| New resource shared | — | ✅ (all modes) |
-| New skill posted | — | ✅ (all modes) |
-| Member joined | — | ✅ (all modes) |
-| Emergency ticket created | ✅ | ✅ (Red Sky only) |
-| Crisis mode changed | ✅ (all members) | — |
+| New message received | Yes | — |
+| Booking created | Yes (resource owner) | — |
+| Booking status changed | Yes (borrower) | — |
+| New resource shared | — | Yes (all modes) |
+| New skill posted | — | Yes (all modes) |
+| Member joined | — | Yes (all modes) |
+| Emergency ticket created | Yes | Yes (Red Sky only) |
+| Crisis mode changed | Yes (all members) | — |
 
 ### Webhooks (generic)
 
