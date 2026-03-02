@@ -261,6 +261,23 @@
     "used_up": "This invite link has been fully used.",
     "joined": "You've joined the community!"
   },
+  "mesh": {
+    "connect": "Connect to Mesh",
+    "disconnect": "Disconnect",
+    "scanning": "Scanning for nearby devices…",
+    "connecting": "Connecting…",
+    "connected": "Connected",
+    "disconnected": "Offline",
+    "peers_count": "{count} peer(s) nearby",
+    "not_supported": "Bluetooth mesh is not supported in this browser.",
+    "via_mesh": "via BLE mesh",
+    "connection_lost": "Mesh connection lost.",
+    "reconnecting": "Reconnecting…",
+    "broadcast_ticket": "Broadcast via Mesh",
+    "sync_messages": "Sync {count} message(s)",
+    "syncing": "Syncing…",
+    "mesh_tickets": "Mesh Tickets"
+  },
   "language_names": {
     "en": "English",
     "ar": "العربية",

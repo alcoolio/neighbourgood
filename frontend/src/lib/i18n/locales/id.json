@@ -261,6 +261,23 @@
     "used_up": "Tautan undangan ini telah habis digunakan.",
     "joined": "Anda telah bergabung dengan komunitas!"
   },
+  "mesh": {
+    "connect": "Hubungkan ke Mesh",
+    "disconnect": "Putuskan",
+    "scanning": "Mencari perangkat terdekat…",
+    "connecting": "Menghubungkan…",
+    "connected": "Terhubung",
+    "disconnected": "Offline",
+    "peers_count": "{count} perangkat terdekat",
+    "not_supported": "Bluetooth mesh tidak didukung di browser ini.",
+    "via_mesh": "via BLE mesh",
+    "connection_lost": "Koneksi mesh terputus.",
+    "reconnecting": "Menghubungkan kembali…",
+    "broadcast_ticket": "Siarkan via Mesh",
+    "sync_messages": "Sinkronkan {count} pesan",
+    "syncing": "Menyinkronkan…",
+    "mesh_tickets": "Tiket Mesh"
+  },
   "language_names": {
     "en": "English",
     "ar": "العربية",

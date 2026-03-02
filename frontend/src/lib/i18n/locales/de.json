@@ -261,6 +261,23 @@
     "used_up": "Dieser Einladungslink wurde bereits vollständig verwendet.",
     "joined": "Sie sind der Gemeinschaft beigetreten!"
   },
+  "mesh": {
+    "connect": "Mit Mesh verbinden",
+    "disconnect": "Trennen",
+    "scanning": "Suche nach Geräten in der Nähe…",
+    "connecting": "Verbindung wird hergestellt…",
+    "connected": "Verbunden",
+    "disconnected": "Offline",
+    "peers_count": "{count} Gerät(e) in der Nähe",
+    "not_supported": "Bluetooth-Mesh wird in diesem Browser nicht unterstützt.",
+    "via_mesh": "über BLE-Mesh",
+    "connection_lost": "Mesh-Verbindung verloren.",
+    "reconnecting": "Verbindung wird wiederhergestellt…",
+    "broadcast_ticket": "Über Mesh senden",
+    "sync_messages": "{count} Nachricht(en) synchronisieren",
+    "syncing": "Synchronisierung…",
+    "mesh_tickets": "Mesh-Tickets"
+  },
   "language_names": {
     "en": "English",
     "ar": "العربية",

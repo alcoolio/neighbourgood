@@ -261,6 +261,23 @@
     "used_up": "استُنفد رابط الدعوة بالكامل.",
     "joined": "لقد انضممت إلى المجتمع!"
   },
+  "mesh": {
+    "connect": "الاتصال بالشبكة",
+    "disconnect": "قطع الاتصال",
+    "scanning": "جاري البحث عن أجهزة قريبة…",
+    "connecting": "جاري الاتصال…",
+    "connected": "متصل",
+    "disconnected": "غير متصل",
+    "peers_count": "{count} جهاز(أجهزة) قريبة",
+    "not_supported": "شبكة البلوتوث غير مدعومة في هذا المتصفح.",
+    "via_mesh": "عبر شبكة BLE",
+    "connection_lost": "فقد الاتصال بالشبكة.",
+    "reconnecting": "إعادة الاتصال…",
+    "broadcast_ticket": "بث عبر الشبكة",
+    "sync_messages": "مزامنة {count} رسالة(رسائل)",
+    "syncing": "جاري المزامنة…",
+    "mesh_tickets": "تذاكر الشبكة"
+  },
   "language_names": {
     "en": "English",
     "ar": "العربية",

@@ -261,6 +261,23 @@
     "used_up": "Kiungo hiki cha mwaliko kimetumika kikamilifu.",
     "joined": "Umejiunga na jamii!"
   },
+  "mesh": {
+    "connect": "Unganisha na Mesh",
+    "disconnect": "Tenganisha",
+    "scanning": "Kutafuta vifaa vya karibu…",
+    "connecting": "Inaunganisha…",
+    "connected": "Imeunganishwa",
+    "disconnected": "Nje ya mtandao",
+    "peers_count": "Vifaa {count} vya karibu",
+    "not_supported": "Bluetooth mesh haitegemezwi katika kivinjari hiki.",
+    "via_mesh": "kupitia BLE mesh",
+    "connection_lost": "Muunganisho wa mesh umepotea.",
+    "reconnecting": "Inaunganisha tena…",
+    "broadcast_ticket": "Tangaza kupitia Mesh",
+    "sync_messages": "Sawazisha ujumbe {count}",
+    "syncing": "Inasawazisha…",
+    "mesh_tickets": "Tiketi za Mesh"
+  },
   "language_names": {
     "en": "English",
     "ar": "العربية",

@@ -3,7 +3,23 @@
 	import { goto } from '$app/navigation';
 	import { isLoggedIn, user } from '$lib/stores/auth';
 	import { api } from '$lib/api';
-	import type { CommunityOut } from '$lib/types';
+	import { isOnline, enqueueRequest } from '$lib/stores/offline';
+	import { token } from '$lib/stores/auth';
+	import { get } from 'svelte/store';
+	import {
+		meshStatus,
+		meshDeviceName,
+		meshMessages,
+		meshPeerCount,
+		meshIsSupported,
+		connectToMesh,
+		disconnectFromMesh,
+		broadcastEmergencyTicket,
+		clearMeshMessages,
+		getMeshMessages
+	} from '$lib/stores/mesh';
+	import { isBluetoothSupported } from '$lib/bluetooth/connection';
+	import type { CommunityOut, NGMeshMessage, MeshSyncResult } from '$lib/types';
 
 	interface Ticket {
 		id: number;
@@ -44,6 +60,95 @@
 	let newTicketUrgency = $state('medium');
 	let creatingTicket = $state(false);
 	let selectedCommunityMode = $state('blue');
+
+	let meshConnecting = $state(false);
+	let meshError = $state('');
+	let syncing = $state(false);
+
+	// Filter mesh messages for the selected community
+	let communityMeshTickets = $derived(
+		$meshMessages.filter(
+			(m) => m.type === 'emergency_ticket' && m.community_id === selectedCommunityId
+		)
+	);
+
+	async function handleMeshConnect() {
+		meshConnecting = true;
+		meshError = '';
+		try {
+			await connectToMesh();
+		} catch (e) {
+			meshError = e instanceof Error ? e.message : 'Failed to connect to mesh';
+		} finally {
+			meshConnecting = false;
+		}
+	}
+
+	async function handleMeshDisconnect() {
+		disconnectFromMesh();
+	}
+
+	async function createTicketViaMesh() {
+		if (!selectedCommunityId || !newTicketTitle.trim()) return;
+		creatingTicket = true;
+		error = '';
+		try {
+			const msg = await broadcastEmergencyTicket(
+				selectedCommunityId,
+				$user?.display_name ?? 'Unknown',
+				{
+					title: newTicketTitle,
+					description: newTicketDesc,
+					ticket_type: newTicketType as 'request' | 'offer' | 'emergency_ping',
+					urgency: newTicketUrgency as 'low' | 'medium' | 'high' | 'critical'
+				}
+			);
+			// Also enqueue for server sync when internet returns
+			enqueueRequest(
+				{
+					method: 'POST',
+					path: `/communities/${selectedCommunityId}/tickets`,
+					body: {
+						ticket_type: newTicketType,
+						title: newTicketTitle,
+						description: newTicketDesc,
+						urgency: newTicketUrgency
+					},
+					authToken: get(token),
+					label: `Emergency ticket: ${newTicketTitle}`
+				},
+				{ meshSent: true }
+			);
+			showNewTicketForm = false;
+			newTicketTitle = '';
+			newTicketDesc = '';
+			newTicketType = 'request';
+			newTicketUrgency = 'medium';
+		} catch (e) {
+			error = e instanceof Error ? e.message : 'Failed to broadcast ticket via mesh';
+		} finally {
+			creatingTicket = false;
+		}
+	}
+
+	async function syncMeshMessages() {
+		const msgs = getMeshMessages();
+		if (msgs.length === 0) return;
+		syncing = true;
+		try {
+			const result = await api<MeshSyncResult>('/mesh/sync', {
+				method: 'POST',
+				auth: true,
+				body: { messages: msgs }
+			});
+			clearMeshMessages();
+			await loadTickets();
+		} catch (e) {
+			error = e instanceof Error ? e.message : 'Failed to sync mesh messages';
+		} finally {
+			syncing = false;
+		}
+	}
 
 	const URGENCY_ORDER = ['critical', 'high', 'medium', 'low'];
 
@@ -247,6 +352,72 @@
 			</button>
 		</div>
 
+		{#if isBluetoothSupported() && selectedCommunityMode === 'red'}
+			<div class="mesh-panel">
+				<div class="mesh-header">
+					<div class="mesh-status-row">
+						<span class="mesh-dot" class:mesh-connected={$meshStatus === 'connected'} class:mesh-scanning={$meshStatus === 'scanning' || $meshStatus === 'connecting'}></span>
+						<span class="mesh-label">
+							{#if $meshStatus === 'connected'}
+								Mesh: connected{$meshDeviceName ? ` to ${$meshDeviceName}` : ''}
+							{:else if $meshStatus === 'scanning' || $meshStatus === 'connecting'}
+								Mesh: {$meshStatus}...
+							{:else}
+								Mesh: offline
+							{/if}
+						</span>
+						{#if $meshStatus === 'connected'}
+							<span class="mesh-peers">{$meshPeerCount} peer{$meshPeerCount !== 1 ? 's' : ''}</span>
+						{/if}
+					</div>
+					<div class="mesh-actions">
+						{#if $meshStatus === 'disconnected'}
+							<button class="btn-mesh" onclick={handleMeshConnect} disabled={meshConnecting}>
+								{meshConnecting ? 'Connecting...' : 'Connect to Mesh'}
+							</button>
+						{:else if $meshStatus === 'connected'}
+							<button class="btn-mesh btn-mesh-disconnect" onclick={handleMeshDisconnect}>Disconnect</button>
+						{/if}
+						{#if $isOnline && $meshMessages.length > 0}
+							<button class="btn-mesh btn-mesh-sync" onclick={syncMeshMessages} disabled={syncing}>
+								{syncing ? 'Syncing...' : `Sync ${$meshMessages.length} message${$meshMessages.length !== 1 ? 's' : ''}`}
+							</button>
+						{/if}
+					</div>
+				</div>
+				{#if meshError}
+					<p class="mesh-error">{meshError}</p>
+				{/if}
+			</div>
+		{/if}
+
+		{#if communityMeshTickets.length > 0}
+			<div class="mesh-tickets-section">
+				<h2>Mesh Tickets <span class="via-mesh-badge">via BLE mesh</span></h2>
+				<div class="ticket-list">
+					{#each communityMeshTickets as msg (msg.id)}
+						<div class="ticket-card mesh-ticket-card">
+							<div class="ticket-header">
+								<span class="urgency-badge" style="background: {urgencyColor(String(msg.data.urgency ?? 'medium'))}20; color: {urgencyColor(String(msg.data.urgency ?? 'medium'))}; border-color: {urgencyColor(String(msg.data.urgency ?? 'medium'))}40">
+									{String(msg.data.urgency ?? 'medium').toUpperCase()}
+								</span>
+								<span class="via-mesh-badge">mesh</span>
+								<span class="ticket-type">{String(msg.data.ticket_type ?? 'request').replace('_', ' ')}</span>
+							</div>
+							<h3 class="ticket-title">{msg.data.title ?? 'Untitled'}</h3>
+							{#if msg.data.description}
+								<p class="ticket-desc">{msg.data.description}</p>
+							{/if}
+							<div class="ticket-meta">
+								<span>By {msg.sender_name}</span>
+								<span class="ticket-id">{new Date(msg.ts).toLocaleTimeString()}</span>
+							</div>
+						</div>
+					{/each}
+				</div>
+			</div>
+		{/if}
+
 		{#if showNewTicketForm}
 			<div class="new-ticket-form">
 				<h2>New Emergency Ticket</h2>
@@ -279,9 +450,15 @@
 					<span>Description (optional)</span>
 					<textarea bind:value={newTicketDesc} rows="3" placeholder="More details..." maxlength="5000"></textarea>
 				</label>
+				{#if !$isOnline && $meshStatus === 'connected'}
+				<button class="btn-primary btn-mesh-send" onclick={createTicketViaMesh} disabled={creatingTicket || !newTicketTitle.trim()}>
+					{creatingTicket ? 'Broadcasting...' : 'Broadcast via Mesh'}
+				</button>
+			{:else}
 				<button class="btn-primary" onclick={createTicket} disabled={creatingTicket || !newTicketTitle.trim()}>
 					{creatingTicket ? 'Creating...' : 'Create Ticket'}
 				</button>
+			{/if}
 			</div>
 		{/if}
 
@@ -667,6 +844,158 @@
 		background-color: rgba(239, 68, 68, 0.1);
 		border: 1px solid rgba(239, 68, 68, 0.3);
 		color: var(--color-error);
+	}
+
+	/* ── Mesh panel ─────────────────────────────────── */
+
+	.mesh-panel {
+		padding: 0.85rem 1.25rem;
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+		margin-bottom: 1rem;
+		border-left: 3px solid var(--color-warning);
+	}
+
+	.mesh-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem;
+		flex-wrap: wrap;
+	}
+
+	.mesh-status-row {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.mesh-dot {
+		width: 10px;
+		height: 10px;
+		border-radius: 50%;
+		background: var(--color-text-muted);
+		flex-shrink: 0;
+	}
+
+	.mesh-dot.mesh-connected {
+		background: var(--color-success);
+	}
+
+	.mesh-dot.mesh-scanning {
+		background: var(--color-warning);
+		animation: pulse 1.2s infinite;
+	}
+
+	@keyframes pulse {
+		0%, 100% { opacity: 1; }
+		50% { opacity: 0.3; }
+	}
+
+	.mesh-label {
+		font-size: 0.85rem;
+		font-weight: 600;
+		color: var(--color-text);
+	}
+
+	.mesh-peers {
+		font-size: 0.78rem;
+		color: var(--color-text-muted);
+		background: var(--color-bg);
+		padding: 0.15rem 0.5rem;
+		border-radius: var(--radius-sm);
+		border: 1px solid var(--color-border);
+	}
+
+	.mesh-actions {
+		display: flex;
+		gap: 0.5rem;
+		flex-wrap: wrap;
+	}
+
+	.btn-mesh {
+		padding: 0.35rem 0.8rem;
+		font-size: 0.82rem;
+		font-weight: 600;
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-sm);
+		background: var(--color-surface);
+		color: var(--color-primary);
+		cursor: pointer;
+		transition: all var(--transition-fast);
+	}
+
+	.btn-mesh:hover:not(:disabled) {
+		border-color: var(--color-primary);
+		background: var(--color-primary);
+		color: white;
+	}
+
+	.btn-mesh:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	.btn-mesh-disconnect {
+		color: var(--color-text-muted);
+	}
+
+	.btn-mesh-disconnect:hover {
+		border-color: var(--color-error);
+		background: var(--color-error);
+		color: white;
+	}
+
+	.btn-mesh-sync {
+		color: var(--color-success);
+		border-color: var(--color-success);
+	}
+
+	.btn-mesh-sync:hover:not(:disabled) {
+		background: var(--color-success);
+		color: white;
+	}
+
+	.mesh-error {
+		font-size: 0.82rem;
+		color: var(--color-error);
+		margin: 0.5rem 0 0 0;
+	}
+
+	.via-mesh-badge {
+		display: inline-block;
+		font-size: 0.68rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		padding: 0.15rem 0.45rem;
+		border-radius: 999px;
+		background: var(--color-warning);
+		color: white;
+	}
+
+	.mesh-tickets-section {
+		margin-bottom: 1.5rem;
+	}
+
+	.mesh-tickets-section h2 {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.mesh-ticket-card {
+		border-left: 3px solid var(--color-warning);
+	}
+
+	.btn-mesh-send {
+		background: var(--color-warning);
+	}
+
+	.btn-mesh-send:hover:not(:disabled) {
+		background: var(--color-warning);
+		filter: brightness(0.9);
 	}
 
 	@media (max-width: 640px) {

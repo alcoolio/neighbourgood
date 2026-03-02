@@ -261,6 +261,23 @@
     "used_up": "Αυτός ο σύνδεσμος πρόσκλησης έχει χρησιμοποιηθεί πλήρως.",
     "joined": "Εγγραφήκατε στην κοινότητα!"
   },
+  "mesh": {
+    "connect": "Σύνδεση στο Mesh",
+    "disconnect": "Αποσύνδεση",
+    "scanning": "Αναζήτηση κοντινών συσκευών…",
+    "connecting": "Σύνδεση…",
+    "connected": "Συνδεδεμένο",
+    "disconnected": "Εκτός σύνδεσης",
+    "peers_count": "{count} συσκευή(-ές) κοντά",
+    "not_supported": "Το Bluetooth mesh δεν υποστηρίζεται σε αυτόν τον περιηγητή.",
+    "via_mesh": "μέσω BLE mesh",
+    "connection_lost": "Η σύνδεση mesh χάθηκε.",
+    "reconnecting": "Επανασύνδεση…",
+    "broadcast_ticket": "Αποστολή μέσω Mesh",
+    "sync_messages": "Συγχρονισμός {count} μηνύματος(-ων)",
+    "syncing": "Συγχρονισμός…",
+    "mesh_tickets": "Εισιτήρια Mesh"
+  },
   "language_names": {
     "en": "English",
     "ar": "العربية",

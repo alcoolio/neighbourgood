@@ -261,6 +261,23 @@
     "used_up": "Це посилання-запрошення вичерпано.",
     "joined": "Ви приєдналися до спільноти!"
   },
+  "mesh": {
+    "connect": "Підключитися до мережі",
+    "disconnect": "Відключитися",
+    "scanning": "Пошук пристроїв поблизу…",
+    "connecting": "Підключення…",
+    "connected": "Підключено",
+    "disconnected": "Офлайн",
+    "peers_count": "{count} пристрій(-ої) поблизу",
+    "not_supported": "Bluetooth mesh не підтримується в цьому браузері.",
+    "via_mesh": "через BLE mesh",
+    "connection_lost": "З'єднання з мережею втрачено.",
+    "reconnecting": "Повторне підключення…",
+    "broadcast_ticket": "Відправити через мережу",
+    "sync_messages": "Синхронізувати {count} повідомлення(-ь)",
+    "syncing": "Синхронізація…",
+    "mesh_tickets": "Тікети мережі"
+  },
   "language_names": {
     "en": "English",
     "ar": "العربية",

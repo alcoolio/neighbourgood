@@ -136,6 +136,43 @@ export interface Webhook {
 	created_at: string;
 }
 
+// ── Mesh networking types (BitChat BLE gateway) ──────────────────────────────
+
+export type NGMeshMessageType =
+	| 'emergency_ticket'
+	| 'ticket_comment'
+	| 'crisis_vote'
+	| 'crisis_status'
+	| 'direct_message'
+	| 'heartbeat';
+
+export interface NGMeshMessage {
+	ng: 1;
+	type: NGMeshMessageType;
+	community_id: number;
+	sender_name: string;
+	ts: number;
+	id: string;
+	data: Record<string, unknown>;
+}
+
+export interface MeshTicketData {
+	title: string;
+	description: string;
+	ticket_type: 'request' | 'offer' | 'emergency_ping';
+	urgency: 'low' | 'medium' | 'high' | 'critical';
+}
+
+export interface MeshVoteData {
+	vote_type: 'activate' | 'deactivate';
+}
+
+export interface MeshSyncResult {
+	synced: number;
+	duplicates: number;
+	errors: number;
+}
+
 /**
  * Status color utility – maps booking/resource status to CSS variable names.
  */

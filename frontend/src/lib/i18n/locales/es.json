@@ -261,6 +261,23 @@
     "used_up": "Este enlace de invitación se ha agotado.",
     "joined": "¡Te has unido a la comunidad!"
   },
+  "mesh": {
+    "connect": "Conectar a la red",
+    "disconnect": "Desconectar",
+    "scanning": "Buscando dispositivos cercanos…",
+    "connecting": "Conectando…",
+    "connected": "Conectado",
+    "disconnected": "Sin conexión",
+    "peers_count": "{count} dispositivo(s) cercano(s)",
+    "not_supported": "La red Bluetooth no está soportada en este navegador.",
+    "via_mesh": "vía red BLE",
+    "connection_lost": "Conexión de red perdida.",
+    "reconnecting": "Reconectando…",
+    "broadcast_ticket": "Transmitir vía red",
+    "sync_messages": "Sincronizar {count} mensaje(s)",
+    "syncing": "Sincronizando…",
+    "mesh_tickets": "Tickets de red"
+  },
   "language_names": {
     "en": "English",
     "ar": "العربية",

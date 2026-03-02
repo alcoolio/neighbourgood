@@ -8,8 +8,8 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.config import settings
 from app.database import Base, engine
-from app.models import Activity, Booking, Community, CommunityMember, CrisisVote, EmergencyTicket, Invite, KnownInstance, Message, RedSkyAlert, Resource, Review, Skill, TelegramLinkToken, User, Webhook  # noqa: F401 – ensure models are registered
-from app.routers import activity, auth, bookings, communities, crisis, federation, instance, invites, messages, resources, reviews, skills, status, users, webhooks
+from app.models import Activity, Booking, Community, CommunityMember, CrisisVote, EmergencyTicket, Invite, KnownInstance, MeshSyncedMessage, Message, RedSkyAlert, Resource, Review, Skill, TelegramLinkToken, User, Webhook  # noqa: F401 – ensure models are registered
+from app.routers import activity, auth, bookings, communities, crisis, federation, instance, invites, mesh_sync, messages, resources, reviews, skills, status, users, webhooks
 from app.routers import telegram as telegram_router
 
 
@@ -138,4 +138,5 @@ app.include_router(reviews.router)
 app.include_router(instance.router)
 app.include_router(federation.router)
 app.include_router(webhooks.router)
+app.include_router(mesh_sync.router)
 app.include_router(telegram_router.router)

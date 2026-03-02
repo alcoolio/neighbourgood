@@ -10,10 +10,12 @@ from app.models.review import Review
 from app.models.federation import KnownInstance, RedSkyAlert
 from app.models.crisis import CrisisVote, EmergencyTicket, TicketComment
 from app.models.webhook import Webhook, TelegramLinkToken
+from app.models.mesh import MeshSyncedMessage
 
 __all__ = [
     "User", "Resource", "Booking", "Message", "Community", "CommunityMember",
     "Skill", "Activity", "Invite", "Review", "KnownInstance", "RedSkyAlert",
     "CrisisVote", "EmergencyTicket", "TicketComment",
     "Webhook", "TelegramLinkToken",
+    "MeshSyncedMessage",
 ]

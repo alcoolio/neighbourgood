@@ -1,6 +1,6 @@
 # 🏘️ NeighbourGood
 
-**v1.1.0** · A self-hostable web platform that helps communities share resources and coordinate during crises.
+**v1.2.0** · A self-hostable web platform that helps communities share resources and coordinate during crises — including when the internet is gone.
 
 ## 💡 Vision
 
@@ -29,6 +29,95 @@ Activated by an admin or community vote when an emergency occurs:
 - **Emergency Ticketing** – Replace booking with Request / Offer / Emergency Ping
 - **Neighbourhood Leaders** – Pre-defined coordinators who can triage and assign
 - **Offline-First** – PWA with local caching, mesh networking preparation
+
+## 📡 Offline-First Mesh Networking
+
+When the internet goes down, NeighbourGood keeps working. In Red Sky mode the web app can connect to a nearby native [BitChat](https://github.com/permissionlesstech/bitchat) node over Bluetooth Low Energy (BLE) and relay crisis data — emergency tickets, votes, pings — through the mesh without any internet connectivity at all.
+
+### How it works
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│                         INTERNET DOWN                                │
+└──────────────────────────────────────────────────────────────────────┘
+
+  ┌─────────────────────────┐        ┌────────────────────────────────┐
+  │   NeighbourGood         │        │   NeighbourGood                │
+  │   Web App (Chrome)      │        │   Web App (Chrome)             │
+  │                         │        │                                │
+  │  [Connect to Mesh] btn  │        │  Receives mesh tickets         │
+  │  Status: ● Connected    │        │  with "via BLE mesh" badge     │
+  └──────────┬──────────────┘        └──────────────┬─────────────────┘
+             │ Web Bluetooth (1 GATT connection)     │ Web Bluetooth
+             │                                       │
+  ┌──────────▼──────────────┐        ┌──────────────▼─────────────────┐
+  │  BitChat Native Node    │        │  BitChat Native Node           │
+  │  (iOS / Android)        │        │  (iOS / Android)               │
+  │                         │        │                                │
+  │  Acts as BLE relay      ◄────────►  Acts as BLE relay             │
+  │  Handles mesh routing   │  BLE   │  Handles mesh routing          │
+  │  Multi-hop, up to 7 hops│  Mesh  │  Store-and-forward             │
+  └──────────┬──────────────┘        └──────────────┬─────────────────┘
+             │                                       │
+             └──────────────────┬────────────────────┘
+                                │
+             ┌──────────────────▼────────────────────┐
+             │  More BitChat nodes in the             │
+             │  neighbourhood — no limit on count     │
+             │  or distance (up to 7 hops / ~700m)    │
+             └───────────────────────────────────────┘
+
+  ┌──────────────────────────────────────────────────────────────────┐
+  │                    INTERNET RETURNS                              │
+  │                                                                  │
+  │  NeighbourGood shows "Sync N messages" button                   │
+  │  POST /mesh/sync  →  server deduplicates by message UUID        │
+  │  Emergency tickets and votes appear on the server               │
+  └──────────────────────────────────────────────────────────────────┘
+```
+
+### Message flow
+
+Every NeighbourGood crisis action (create ticket, cast vote) is wrapped in a small JSON envelope and encoded as a standard BitChat broadcast message:
+
+```json
+{
+  "ng": 1,
+  "type": "emergency_ticket",
+  "community_id": 42,
+  "sender_name": "Alice",
+  "ts": 1741910400000,
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "data": {
+    "title": "Need drinking water — north block",
+    "ticket_type": "request",
+    "urgency": "critical"
+  }
+}
+```
+
+Native BitChat apps relay this message through the mesh without needing to understand its contents. Other NeighbourGood web clients receive it and display it immediately with a "via BLE mesh" badge.
+
+### How to use it
+
+> **Requirements:** Chrome or Edge (desktop or Android). Web Bluetooth is not available in Firefox or Safari. A nearby device running the [native BitChat app](https://apps.apple.com/us/app/bitchat-mesh/id6748219622) is required.
+
+1. **Switch your community to Red Sky mode** — the mesh panel only appears during crises.
+2. **Open the Emergency (Triage) page** in Chrome.
+3. **Click "Connect to Mesh"** — Chrome shows a device picker listing nearby BitChat nodes.
+4. **Select a node** — the status dot turns green and peer count appears.
+5. **Create emergency tickets offline** — the form button becomes "Broadcast via Mesh". Your ticket travels through the BLE mesh to other NeighbourGood users.
+6. **When internet returns** — click "Sync N messages" to push mesh-received data to the server. The server deduplicates by message UUID so re-syncing is safe.
+
+### Architecture decisions
+
+| Decision | Rationale |
+|----------|-----------|
+| Gateway model (1 BLE connection) | Web Bluetooth supports only 1–2 simultaneous connections; native apps do the multi-hop routing |
+| Native fork unmodified | NG data is encoded as standard BitChat broadcast messages — no Swift/Kotlin changes needed |
+| JSON in bitchat body | Simple, debuggable, and relay-transparent — native nodes forward without parsing |
+| UUID deduplication on server | Safe to replay mesh sync multiple times; idempotent regardless of network partitions |
+| Chrome/Edge only | Web Bluetooth standard; Firefox/Safari do not support it as of 2026 |
 
 ## 🛠️ Tech Stack
 
@@ -204,6 +293,7 @@ See [API_ENDPOINTS.md](API_ENDPOINTS.md) for the full endpoint reference. Intera
 - [x] Offline item browsing and request queuing (v1.1.0)
 - [x] Background sync when connectivity returns (v1.1.0)
 - [x] Data export and backup tools (v1.1.0)
+- [x] BLE mesh gateway for internet-free crisis coordination (v1.2.0)
 
 #### Security Phase 5a — Infrastructure
 
@@ -216,7 +306,7 @@ See [API_ENDPOINTS.md](API_ENDPOINTS.md) for the full endpoint reference. Intera
 ### Phase 6 — Advanced Features
 
 - [ ] AI-powered resource matching and recommendations
-- [ ] Mesh networking preparation (bitchat API integration)
+- [x] Mesh networking (BitChat BLE gateway) (v1.2.0) — offline crisis comms via Bluetooth mesh
 - [ ] Decentralized data sync between instances
 - [x] Multi-language support (i18n) (v1.1.0) — 7 languages with RTL support
 - [ ] Admin dashboard with analytics

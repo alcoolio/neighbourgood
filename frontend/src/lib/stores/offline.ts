@@ -17,6 +17,8 @@ export interface QueuedRequest {
 	createdAt: string;
 	/** Human-readable description shown in the UI. */
 	label: string;
+	/** Whether this request was also broadcast via BLE mesh. */
+	meshSent?: boolean;
 }
 
 const QUEUE_KEY = 'ng_offline_queue';
@@ -50,11 +52,14 @@ export const queueCount = derived(offlineQueue, (q) => q.length);
 // ── Actions ───────────────────────────────────────────────────────────────────
 
 /** Add a request to the offline queue. Returns the generated id. */
-export function enqueueRequest(req: Omit<QueuedRequest, 'id' | 'createdAt'>): string {
+export function enqueueRequest(
+	req: Omit<QueuedRequest, 'id' | 'createdAt'>,
+	options?: { meshSent?: boolean }
+): string {
 	const id = crypto.randomUUID();
 	offlineQueue.update((q) => [
 		...q,
-		{ ...req, id, createdAt: new Date().toISOString() }
+		{ ...req, id, createdAt: new Date().toISOString(), meshSent: options?.meshSent ?? false }
 	]);
 	return id;
 }

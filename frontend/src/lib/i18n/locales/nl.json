@@ -261,6 +261,23 @@
     "used_up": "Deze uitnodigingslink is volledig gebruikt.",
     "joined": "U bent lid geworden van de gemeenschap!"
   },
+  "mesh": {
+    "connect": "Verbinden met Mesh",
+    "disconnect": "Verbinding verbreken",
+    "scanning": "Zoeken naar apparaten in de buurt…",
+    "connecting": "Verbinden…",
+    "connected": "Verbonden",
+    "disconnected": "Offline",
+    "peers_count": "{count} apparaat(-aten) in de buurt",
+    "not_supported": "Bluetooth mesh wordt niet ondersteund in deze browser.",
+    "via_mesh": "via BLE mesh",
+    "connection_lost": "Mesh-verbinding verloren.",
+    "reconnecting": "Opnieuw verbinden…",
+    "broadcast_ticket": "Verzenden via Mesh",
+    "sync_messages": "{count} bericht(en) synchroniseren",
+    "syncing": "Synchroniseren…",
+    "mesh_tickets": "Mesh-tickets"
+  },
   "language_names": {
     "en": "English",
     "ar": "العربية",
