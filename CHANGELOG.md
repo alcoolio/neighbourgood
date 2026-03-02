@@ -4,6 +4,35 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.2.0] - 2026-03-02
+
+### Added
+
+- **BitChat BLE Mesh Gateway** — offline crisis communication via Bluetooth Low Energy
+  - Web Bluetooth connection manager (`src/lib/bluetooth/connection.ts`) — scan, connect, and exchange binary data with a nearby native BitChat node using the GATT characteristic `A1B2C3D4-E5F6-4A5B-8C9D-0E1F2A3B4C5D`
+  - BitChat protocol codec (`src/lib/bluetooth/protocol.ts`) — encodes NeighbourGood crisis data as JSON inside standard BitChat broadcast messages so native nodes relay them without modification; supports `emergency_ticket`, `ticket_comment`, `crisis_vote`, `crisis_status`, `direct_message`, and `heartbeat` message types
+  - Mesh Svelte store (`src/lib/stores/mesh.ts`) — reactive stores for connection state, peer tracking, and per-community message deduplication (sliding window of last 500 IDs)
+  - `POST /mesh/sync` backend endpoint — idempotent batch sync of mesh-received messages to the server; creates emergency tickets and records crisis votes; skips duplicates by mesh message UUID
+  - `MeshSyncedMessage` SQLAlchemy model for deduplication tracking
+  - 10 new backend tests: auth, empty sync, ticket creation, deduplication, crisis vote, non-member rejection, invalid type validation, heartbeat acknowledgement, missing-title error, batch sync
+- **Triage dashboard mesh panel** (Red Sky mode only, Chrome/Edge)
+  - "Connect to Mesh" button — triggers Chrome device picker for nearby BitChat nodes
+  - Status indicator: pulsing dot (scanning), green (connected), grey (offline)
+  - Live peer count from heartbeat messages
+  - Mesh-received tickets rendered with amber "via mesh" badges
+  - Ticket form switches to "Broadcast via Mesh" when offline + mesh connected
+  - One-click sync button appears when internet returns and unsent mesh messages exist
+- **Mesh-aware offline queue** — `QueuedRequest` now tracks `meshSent` flag; mesh-broadcast tickets also enqueued for server sync when internet returns
+- **i18n strings** for mesh UI in all 10 supported locales (en, ar, de, el, es, fr, id, nl, sw, uk)
+
+### Changed
+
+- Backend version bumped to 1.2.0
+- Frontend version bumped to 1.2.0
+- `frontend/src/lib/types.ts` — added `NGMeshMessage`, `MeshTicketData`, `MeshVoteData`, `MeshSyncResult` interfaces
+- Phase 6 roadmap item "Mesh networking preparation (bitchat API integration)" marked complete
+- Total test count: 260 (up from 250)
+
 ## [1.1.0] - 2026-03-01
 
 ### Added
