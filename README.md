@@ -28,7 +28,89 @@ Activated by an admin or community vote when an emergency occurs:
 - **Essential Resources Focus** – Food stocks, water filters, generators, medical supplies
 - **Emergency Ticketing** – Replace booking with Request / Offer / Emergency Ping
 - **Neighbourhood Leaders** – Pre-defined coordinators who can triage and assign
-- **Offline-First** – PWA with local caching, mesh networking preparation
+- **Offline-First** – PWA with local caching, BLE mesh networking for internet-free crisis coordination
+
+## 🛠️ Tech Stack
+
+| Layer      | Technology                     | Why                                              |
+| ---------- | ------------------------------ | ------------------------------------------------ |
+| Backend    | Python + FastAPI               | Lightweight, async, easy to extend with AI later  |
+| Frontend   | SvelteKit                      | Fast, small bundles, good PWA/offline support     |
+| Database   | PostgreSQL (prod) / SQLite (dev) | PostgreSQL in Docker for production, SQLite for quick local dev |
+| Deployment | Docker Compose                 | Single `docker-compose up` to run everything      |
+
+## 🚀 Quick Start
+
+### With Docker (recommended)
+
+```bash
+git clone https://github.com/alcoolio/neighbourgood.git
+cd neighbourgood
+cp .env.example .env
+
+# Generate a secret key (required — the app won't start without it)
+echo "NG_SECRET_KEY=$(openssl rand -hex 32)" >> .env
+
+docker compose up --build
+```
+
+- Frontend: http://localhost:3800
+- Backend API: http://localhost:8300
+- API docs: http://localhost:8300/docs
+
+### Local Development
+
+**Backend:**
+
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
+# For local dev, enable debug mode (allows default secret key + SQLite)
+NG_DEBUG=true uvicorn app.main:app --reload
+```
+
+**Frontend:**
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+## 📁 Project Structure
+
+```
+neighbourgood/
+├── backend/
+│   ├── app/
+│   │   ├── main.py            # FastAPI application entry point
+│   │   ├── config.py           # Settings and environment config
+│   │   ├── database.py         # SQLAlchemy database setup
+│   │   ├── dependencies.py     # Auth dependencies (get_current_user)
+│   │   ├── models/             # SQLAlchemy models (User, Resource, Booking, Message, Community)
+│   │   ├── routers/            # API route handlers
+│   │   ├── schemas/            # Pydantic request/response schemas
+│   │   └── services/           # Business logic (auth, JWT, email notifications)
+│   ├── alembic/                # Database migrations
+│   ├── tests/                  # Backend tests
+│   ├── requirements.txt
+│   └── Dockerfile
+├── frontend/
+│   ├── src/
+│   │   ├── routes/             # SvelteKit pages
+│   │   ├── lib/                # Shared components, API client, stores
+│   │   └── app.css             # Global styles (Blue/Red Sky themes)
+│   ├── static/                 # Static assets and PWA manifest
+│   ├── package.json
+│   └── Dockerfile
+├── docker-compose.yml          # One-command deployment
+├── .env.example                # Configuration template
+├── CHANGELOG.md
+└── README.md
+```
 
 ## 📡 Offline-First Mesh Networking
 
@@ -118,88 +200,6 @@ Native BitChat apps relay this message through the mesh without needing to under
 | JSON in bitchat body | Simple, debuggable, and relay-transparent — native nodes forward without parsing |
 | UUID deduplication on server | Safe to replay mesh sync multiple times; idempotent regardless of network partitions |
 | Chrome/Edge only | Web Bluetooth standard; Firefox/Safari do not support it as of 2026 |
-
-## 🛠️ Tech Stack
-
-| Layer      | Technology                     | Why                                              |
-| ---------- | ------------------------------ | ------------------------------------------------ |
-| Backend    | Python + FastAPI               | Lightweight, async, easy to extend with AI later  |
-| Frontend   | SvelteKit                      | Fast, small bundles, good PWA/offline support     |
-| Database   | PostgreSQL (prod) / SQLite (dev) | PostgreSQL in Docker for production, SQLite for quick local dev |
-| Deployment | Docker Compose                 | Single `docker-compose up` to run everything      |
-
-## 🚀 Quick Start
-
-### With Docker (recommended)
-
-```bash
-git clone https://github.com/alcoolio/neighbourgood.git
-cd neighbourgood
-cp .env.example .env
-
-# Generate a secret key (required — the app won't start without it)
-echo "NG_SECRET_KEY=$(openssl rand -hex 32)" >> .env
-
-docker compose up --build
-```
-
-- Frontend: http://localhost:3800
-- Backend API: http://localhost:8300
-- API docs: http://localhost:8300/docs
-
-### Local Development
-
-**Backend:**
-
-```bash
-cd backend
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-
-# For local dev, enable debug mode (allows default secret key + SQLite)
-NG_DEBUG=true uvicorn app.main:app --reload
-```
-
-**Frontend:**
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-## 📁 Project Structure
-
-```
-neighbourgood/
-├── backend/
-│   ├── app/
-│   │   ├── main.py            # FastAPI application entry point
-│   │   ├── config.py           # Settings and environment config
-│   │   ├── database.py         # SQLAlchemy database setup
-│   │   ├── dependencies.py     # Auth dependencies (get_current_user)
-│   │   ├── models/             # SQLAlchemy models (User, Resource, Booking, Message, Community)
-│   │   ├── routers/            # API route handlers
-│   │   ├── schemas/            # Pydantic request/response schemas
-│   │   └── services/           # Business logic (auth, JWT, email notifications)
-│   ├── alembic/                # Database migrations
-│   ├── tests/                  # Backend tests
-│   ├── requirements.txt
-│   └── Dockerfile
-├── frontend/
-│   ├── src/
-│   │   ├── routes/             # SvelteKit pages
-│   │   ├── lib/                # Shared components, API client, stores
-│   │   └── app.css             # Global styles (Blue/Red Sky themes)
-│   ├── static/                 # Static assets and PWA manifest
-│   ├── package.json
-│   └── Dockerfile
-├── docker-compose.yml          # One-command deployment
-├── .env.example                # Configuration template
-├── CHANGELOG.md
-└── README.md
-```
 
 ## 📡 API
 
