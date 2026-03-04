@@ -466,13 +466,13 @@
 		{#if error}
 			<div class="alert alert-error">{error}</div>
 		{:else if loading}
-			<p class="loading-text">Loading tickets…</p>
+			<p class="loading-text">{$t('crisis.loading_tickets')}</p>
 		{:else if filtered.length === 0}
 			<div class="empty-state">
-				<p>{tickets.length === 0 ? 'No tickets in this community yet.' : 'No tickets match the current filters.'}</p>
+				<p>{tickets.length === 0 ? $t('crisis.no_tickets_yet') : $t('crisis.no_tickets')}</p>
 			</div>
 		{:else}
-			<p class="count-label">{filtered.length} ticket{filtered.length !== 1 ? 's' : ''}</p>
+			<p class="count-label">{filtered.length !== 1 ? $t('common.results', { values: { count: filtered.length } }) : $t('common.result', { values: { count: filtered.length } })}</p>
 			<div class="ticket-list">
 				{#each filtered as ticket (ticket.id)}
 					<a href="/triage/{ticket.id}?community={selectedCommunityId}" class="ticket-card" class:overdue={isOverdue(ticket.due_at)}>
@@ -481,7 +481,7 @@
 								{ticket.urgency.toUpperCase()}
 							</span>
 							{#if isAdminOrLeader && ticket.triage_score !== undefined}
-								<span class="score-badge" title="Triage score">Score {ticket.triage_score}</span>
+								<span class="score-badge" title="Triage score">{$t('crisis.score', { values: { n: ticket.triage_score } })}</span>
 							{/if}
 							<span class="status-chip" style="color: {statusColor(ticket.status)}">
 								{ticket.status.replace('_', ' ')}
@@ -497,20 +497,20 @@
 
 						<div class="ticket-footer">
 							<div class="ticket-meta">
-								<span>By {ticket.author.display_name}</span>
+								<span>{$t('crisis.by_author', { values: { author: ticket.author.display_name } })}</span>
 								{#if ticket.assigned_to}
 									<span class="assigned">→ {ticket.assigned_to.display_name}</span>
 								{:else}
-									<span class="unassigned">Unassigned</span>
+									<span class="unassigned">{$t('crisis.unassigned')}</span>
 								{/if}
 								<span class="ticket-id">#{ticket.id}</span>
 							</div>
 							{#if ticket.status !== 'resolved' && (isAdminOrLeader || ticket.author.id === $user?.id)}
 								<div class="ticket-actions">
 									{#if ticket.status === 'open'}
-										<button class="btn-tiny" onclick={(e) => { e.preventDefault(); e.stopPropagation(); updateTicketStatus(ticket.id, 'in_progress'); }}>Start</button>
+										<button class="btn-tiny" onclick={(e) => { e.preventDefault(); e.stopPropagation(); updateTicketStatus(ticket.id, 'in_progress'); }}>{$t('crisis.start_ticket')}</button>
 									{/if}
-									<button class="btn-tiny btn-tiny-success" onclick={(e) => { e.preventDefault(); e.stopPropagation(); updateTicketStatus(ticket.id, 'resolved'); }}>Resolve</button>
+									<button class="btn-tiny btn-tiny-success" onclick={(e) => { e.preventDefault(); e.stopPropagation(); updateTicketStatus(ticket.id, 'resolved'); }}>{$t('crisis.resolve_ticket')}</button>
 								</div>
 							{/if}
 						</div>
