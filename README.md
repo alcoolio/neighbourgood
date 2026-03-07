@@ -305,7 +305,7 @@ See [API_ENDPOINTS.md](API_ENDPOINTS.md) for the full endpoint reference. Intera
 
 ### Phase 6 — Advanced Features
 
-- [ ] AI-powered resource matching and recommendations
+- [x] Smart matching with AI enhancement (v1.5.0) — rule-based skill/resource matching + optional Ollama/OpenAI re-ranking
 - [x] Mesh networking (BitChat BLE gateway) (v1.2.0) — offline crisis comms via Bluetooth mesh
 - [x] Decentralized data sync between instances (v1.4.0) — pull-based federation sync with public snapshot endpoint, incremental cursors, and federated resource/skill browsing
 - [x] Multi-language support (i18n) (v1.1.0) — 7 languages with RTL support

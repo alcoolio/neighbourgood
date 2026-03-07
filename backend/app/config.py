@@ -54,6 +54,12 @@ class Settings(BaseSettings):
     telegram_bot_name: str = ""        # Username without @, e.g. "NeighbourGoodBot"
     telegram_webhook_secret: str = ""  # Random string to validate inbound callbacks
 
+    # AI / LLM integration (optional — matching works rule-based when unset)
+    ai_provider: str | None = None      # "ollama" or "openai" (any OpenAI-compatible API)
+    ai_base_url: str = "http://localhost:11434"  # Ollama default
+    ai_model: str = "llama3.2"
+    ai_api_key: str | None = None       # Required for OpenAI, optional for Ollama
+
     model_config = {"env_prefix": "NG_", "env_file": ".env"}
 
 
