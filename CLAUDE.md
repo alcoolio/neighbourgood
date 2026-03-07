@@ -20,7 +20,7 @@ Token efficiency matters. Use the right model for the right task:
 
 ## Project Overview
 
-**NeighbourGood v1.2.0** — a self-hostable, federation-ready community resource-sharing platform with a **dual-state architecture**:
+**NeighbourGood v1.3.0** — a self-hostable, federation-ready community resource-sharing platform with a **dual-state architecture**:
 
 - **Blue Sky Mode** (normal operation): resource library, skill exchange, calendar bookings, reputation/trust scores, community feed, direct messaging
 - **Red Sky Mode** (crisis operation): per-community crisis toggle or 60%-threshold community vote, emergency ticketing (request / offer / ping), neighbourhood leader roles, cross-instance Red Sky alerts
@@ -472,6 +472,7 @@ Current test files (21): `test_activity`, `test_auth`, `test_bookings`, `test_co
 
 | Version | Date | Highlights |
 |---------|------|-----------|
+| 1.3.0 | 2026-03-07 | Frontend refactor: extract CrisisModePanel, MembersList, InviteLinks sub-components; shared ErrorMessage/LoadingSpinner; backend utils (authorization.py, db.py, file_upload.py); remove lifespan auto-migration; lighter desktop heading font weights |
 | 1.2.0 | 2026-03-02 | BitChat BLE mesh gateway integration: offline crisis communication via Bluetooth Low Energy, Web Bluetooth connection manager, mesh Svelte store, POST /mesh/sync endpoint, 260 tests |
 | 1.1.0 | 2026-03-01 | Phase 5 complete: offline item browsing, request queuing, background sync, data export; Phase 6 start: multi-language support (7 languages + RTL), image upload fixes |
 | 1.0.0 | 2026-02-27 | Production release: reputation rebalancing, 3-step onboarding wizard, Telegram bot integration, community activity timeline, skills in messaging, 198+ tests |
