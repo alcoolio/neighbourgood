@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.3.0] - 2026-03-07
+
+### Changed
+
+- **Frontend refactor** — reduce `communities/[id]/+page.svelte` from ~1,730 to ~600 LOC by extracting three dedicated sub-components:
+  - `CrisisModePanel.svelte` — crisis toggle, voting UI, and Red Sky status
+  - `MembersList.svelte` — member roster with role badges and leader management actions
+  - `InviteLinks.svelte` — invite code generation and display
+- **Shared UI components** — added `ErrorMessage.svelte` and `LoadingSpinner.svelte` to `src/lib/components/` for consistent error and loading states across pages
+- **Shared types** — added `CrisisStatus`, `InviteOut`, `TicketList`, and `ResourceItem` interfaces to `src/lib/types.ts`; removed local redefinitions
+- **Backend utilities** — added `app/utils/authorization.py` (ownership/membership guards) and `app/utils/db.py` (common query helpers) to reduce router boilerplate
+- **File upload service** — extracted image magic-byte + extension validation from `routers/resources.py` into `app/services/file_upload.py`; no behaviour change
+- **Removed lifespan auto-migration** — deleted the additive column-migration code from `app/main.py`; schema changes must now use proper Alembic migrations
+- **Heading font weights** — reduced desktop heading weights to match the lighter mobile feel:
+  - `h2` section headings: 600 → 500
+  - `h3` card headings: 600–700 → 500
+  - `h1` on explore and onboarding pages: 700 → 400
+  - Global `h3`–`h6` baseline (500) added to `app.css`
+- Backend and frontend versions bumped to 1.3.0
+
 ## [1.2.0] - 2026-03-02
 
 ### Added
