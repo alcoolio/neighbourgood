@@ -45,7 +45,7 @@ def _seed_known_instance(db, url="https://remote.example.com", name="Remote NG")
         name=name,
         description="A remote instance",
         region="EU",
-        version="1.3.0",
+        version="1.4.0",
         platform_mode="blue",
         admin_contact="admin@remote.example.com",
         community_count=2,

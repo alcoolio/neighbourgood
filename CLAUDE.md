@@ -20,7 +20,7 @@ Token efficiency matters. Use the right model for the right task:
 
 ## Project Overview
 
-**NeighbourGood v1.3.0** — a self-hostable, federation-ready community resource-sharing platform with a **dual-state architecture**:
+**NeighbourGood v1.4.0** — a self-hostable, federation-ready community resource-sharing platform with a **dual-state architecture**:
 
 - **Blue Sky Mode** (normal operation): resource library, skill exchange, calendar bookings, reputation/trust scores, community feed, direct messaging
 - **Red Sky Mode** (crisis operation): per-community crisis toggle or 60%-threshold community vote, emergency ticketing (request / offer / ping), neighbourhood leader roles, cross-instance Red Sky alerts
