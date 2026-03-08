@@ -80,6 +80,37 @@ npm install
 npm run dev
 ```
 
+## 🖥️ System Requirements
+
+### Minimum (VPS / Self-hosting)
+
+| Resource | Minimum | Recommended |
+|----------|---------|-------------|
+| CPU | 1 vCPU | 2 vCPU |
+| RAM | 512 MB | 1 GB |
+| Disk | 5 GB | 20 GB |
+| OS | Linux (any modern distro) | Ubuntu 22.04 LTS |
+| Docker | 24+ | latest |
+| Docker Compose | v2 plugin | latest |
+| Open ports | 80, 443 (or 3800/8300 direct) | + 22 for SSH |
+
+A $5–6/month VPS (e.g. Hetzner CX11, DigitalOcean Basic) is sufficient for a small community (< 200 users). PostgreSQL runs inside Docker — no separate DB server needed.
+
+### Advanced: Local AI features
+
+The smart matching engine and Telegram AI assistant support an optional LLM backend (Ollama or any OpenAI-compatible API). If you want to run AI **locally**:
+
+| Resource | Minimum | Notes |
+|----------|---------|-------|
+| CPU | 4+ cores | Inference is slow on < 4 cores |
+| RAM | 8 GB | 16 GB recommended for 7B models |
+| Disk | 10 GB extra | Per model (e.g. `llama3.2:3b` ≈ 2 GB, `mistral:7b` ≈ 4 GB) |
+| GPU (optional) | CUDA / ROCm / Apple Metal | Dramatically faster; not required |
+
+Recommended model for low-resource hosts: `llama3.2:3b` via [Ollama](https://ollama.com). See [TELEGRAM_SETUP.md](TELEGRAM_SETUP.md) for configuration. Without a local LLM configured, all features remain available — AI re-ranking simply falls back to rule-based matching.
+
+---
+
 ## 📁 Project Structure
 
 ```
