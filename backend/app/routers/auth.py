@@ -1,14 +1,32 @@
 """Authentication endpoints – register and login."""
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.middleware.csrf import generate_csrf_token
 from app.models.user import User
 from app.schemas.auth import Token, UserLogin, UserRegister
 from app.services.auth import create_access_token, hash_password, verify_password
+from app.services.lockout import check_lockout, clear_failures, record_failure
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+class CsrfTokenOut(BaseModel):
+    csrf_token: str
+
+
+@router.get("/csrf-token", response_model=CsrfTokenOut)
+def get_csrf_token():
+    """Issue a CSRF token for use in the ``X-CSRF-Token`` request header.
+
+    Browser clients that perform state-changing requests without a Bearer token
+    (e.g. login/register forms) must obtain a token here and include it as the
+    ``X-CSRF-Token`` header on every POST / PUT / PATCH / DELETE request.
+    """
+    return CsrfTokenOut(csrf_token=generate_csrf_token())
 
 
 @router.post("/register", response_model=Token, status_code=status.HTTP_201_CREATED)
@@ -33,11 +51,33 @@ def register(body: UserRegister, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=Token)
 def login(body: UserLogin, db: Session = Depends(get_db)):
-    """Authenticate with email + password and return a JWT token."""
+    """Authenticate with email + password and return a JWT token.
+
+    Returns a generic error for both unknown email and wrong password to
+    prevent user-enumeration attacks (Phase 4b hardening).
+    """
+    # Check lockout before touching the DB
+    is_locked, retry_after = check_lockout(body.email)
+    if is_locked:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Account temporarily locked due to too many failed login attempts. "
+                   f"Try again in {retry_after} seconds.",
+            headers={"Retry-After": str(retry_after)},
+        )
+
     user = db.query(User).filter(User.email == body.email).first()
+
+    # Unified failure path — do not distinguish "no such user" from "wrong password"
     if not user or not verify_password(body.password, user.hashed_password):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+        record_failure(body.email)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials",
+        )
+
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account disabled")
 
+    clear_failures(body.email)
     return Token(access_token=create_access_token(user.id))

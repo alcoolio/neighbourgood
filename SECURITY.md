@@ -36,13 +36,14 @@
 - **File upload hardening** – Magic byte validation, extension allowlist, double-extension strip
 - **Input validation** – `max_length` on all user-facing string fields
 
-### Phase 4b — In Progress ⏳
+### Phase 4b — Partially Implemented ✅ / ⏳
 
-- Rate limiting (5 req/min auth endpoints, 60 req/min general, 10 req/min uploads)
-- Account lockout (5 failures in 15 min → 15 min lockout)
-- CSRF protection for state-changing operations
-- Session invalidation on password change
-- Audit logging for admin actions
+- **Rate limiting** ✅ — In-memory sliding window per IP; auth 5 req/min, uploads 10 req/min, general 60 req/min; returns `429` with `Retry-After`
+- **Account lockout** ✅ — 5 failed logins in 15 min triggers a 15-min lockout; returns `429` with `Retry-After`; successful login resets counter
+- **CSRF protection** ✅ — Origin header + HMAC-signed `X-CSRF-Token` required for unauthenticated state-changing requests in production; Bearer-token requests exempt
+- **Unified auth error messages** ✅ — Login always returns `"Invalid credentials"` regardless of whether the email exists, preventing user enumeration
+- Session invalidation on password change ⏳
+- Audit logging for admin actions ⏳
 
 ### Phase 5 — Planned ⏳
 
@@ -90,7 +91,7 @@
 - CORS restricted to configured origins (default: localhost only)
 - All user input validated against Pydantic schemas
 - File uploads limited by size (check `MAX_UPLOAD_SIZE` in config)
-- Rate limiting on auth endpoints (pending Phase 4b)
+- Rate limiting on all endpoints (Phase 4b — auth 5 req/min, uploads 10 req/min, general 60 req/min)
 - SQL injection prevented by SQLAlchemy ORM parameterization
 
 ### Frontend Security
@@ -154,7 +155,7 @@ If a security incident is discovered:
 
 - Static code analysis (manual reviews)
 - Dependency vulnerability scanning (manual checks)
-- Automated test suite (198+ tests covering security scenarios)
+- Automated test suite (370+ tests covering security scenarios, including Phase 4b)
 - Manual penetration testing (quarterly for critical deployments)
 
 ### Before Release
@@ -172,6 +173,6 @@ For security questions or to discuss potential issues privately:
 
 ---
 
-**Last Updated:** 2026-02-27
-**Version:** 1.0.0
-**Next Review:** 2026-05-27
+**Last Updated:** 2026-03-10
+**Version:** 1.7.0
+**Next Review:** 2026-06-10

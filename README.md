@@ -1,6 +1,6 @@
 # 🏘️ NeighbourGood
 
-**v1.6.0** · A self-hostable web platform that helps communities share resources and coordinate during crises — including when the internet is gone.
+**v1.7.0** · A self-hostable web platform that helps communities share resources and coordinate during crises — including when the internet is gone.
 
 ## 💡 Vision
 
@@ -304,9 +304,9 @@ See [API_ENDPOINTS.md](API_ENDPOINTS.md) for the full endpoint reference. Intera
 
 #### Security Phase 4b — Access Control
 
-- [ ] Rate limiting on auth endpoints (login, register)
-- [ ] Account lockout after repeated failed login attempts
-- [ ] CSRF protection for state-changing operations
+- [x] Rate limiting on auth endpoints (login, register) — 5 req/min; general 60 req/min; uploads 10 req/min (v1.7.0)
+- [x] Account lockout after repeated failed login attempts — 5 failures in 15 min → 15-min lockout (v1.7.0)
+- [x] CSRF protection for state-changing operations — Origin + X-CSRF-Token validation (v1.7.0)
 - [ ] Session invalidation on password change
 - [ ] Audit logging for admin actions
 
