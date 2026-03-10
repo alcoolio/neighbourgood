@@ -4,6 +4,36 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.7.0] - 2026-03-10
+
+### Added
+
+- **Security Phase 4b — Rate limiting** (`app/middleware/rate_limit.py`)
+  - In-memory sliding-window rate limiter with no external dependencies
+  - Auth endpoints (`/auth/login`, `/auth/register`): 5 requests / 60 s per IP
+  - Upload endpoints (paths ending with `/image`): 10 requests / 60 s per IP
+  - All other API paths: 60 requests / 60 s per IP
+  - Returns HTTP `429 Too Many Requests` with a `Retry-After` header
+  - Middleware is bypassed in debug mode so the test suite is unaffected
+- **Security Phase 4b — Account lockout** (`app/services/lockout.py`)
+  - In-memory per-email failure tracker with a 15-minute sliding window
+  - After 5 failed login attempts the account is locked for 15 minutes
+  - Successful login clears the failure counter
+  - Returns HTTP `429` with a `Retry-After` header and a clear message when locked
+  - Email matching is case-insensitive
+- **Security Phase 4b — CSRF protection** (`app/middleware/csrf.py`)
+  - Double-submit token + Origin header validation for state-changing requests
+  - Bearer-authenticated requests are exempt (browsers cannot forge the `Authorization` header cross-origin without a CORS preflight)
+  - Machine-to-machine endpoints (Telegram webhook, federation receive, mesh sync) are explicitly exempt
+  - `GET /auth/csrf-token` endpoint issues HMAC-SHA256-signed tokens valid for 24 hours
+  - Middleware is bypassed in debug mode; enforced in production
+- **Hardened login error message** — `POST /auth/login` now always returns `"Invalid credentials"` for both unknown email and wrong password, preventing user enumeration (Phase 4b item)
+- 22 new tests in `tests/test_security_phase4b.py` covering rate-limit store logic, account lockout (unit + integration), CSRF token generation/validation, and CSRF middleware enforcement in production mode
+
+### Changed
+
+- Backend version bumped to 1.7.0
+
 ## [1.6.0] - 2026-03-08
 
 ### Added
