@@ -5,17 +5,34 @@
 
 import { get } from 'svelte/store';
 import { token } from '$lib/stores/auth';
+import { isOnline, enqueueRequest } from '$lib/stores/offline';
 
 const BASE = '/api';
+
+interface OfflineOptions {
+	/** Human-readable label shown in the offline queue UI. */
+	label: string;
+	/** Value to return immediately when the request is queued. Defaults to undefined. */
+	fallback?: unknown;
+}
 
 interface RequestOptions {
 	method?: string;
 	body?: unknown;
 	auth?: boolean;
+	/** If provided, queues the request when offline instead of throwing. */
+	offline?: OfflineOptions;
 }
 
 export async function api<T = unknown>(path: string, opts: RequestOptions = {}): Promise<T> {
-	const { method = 'GET', body, auth = false } = opts;
+	const { method = 'GET', body, auth = false, offline } = opts;
+
+	// Queue the request if offline and the caller opted in
+	if (offline && !get(isOnline)) {
+		const authToken = auth ? get(token) : null;
+		enqueueRequest({ method, path, body, authToken, label: offline.label });
+		return offline.fallback as T;
+	}
 
 	const headers: Record<string, string> = {};
 

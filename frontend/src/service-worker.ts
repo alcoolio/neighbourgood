@@ -133,3 +133,90 @@ async function navigationNetworkFirst(request: Request): Promise<Response> {
 		return offline ?? new Response('Offline', { status: 503 });
 	}
 }
+
+// ── Background Sync: flush offline queue when connectivity returns ────────────
+
+const QUEUE_CACHE = 'ng-offline-queue';
+const QUEUE_CACHE_KEY = '/_internal/offline-queue';
+const MAX_RETRIES = 5;
+
+self.addEventListener('sync', (event: ExtendableEvent) => {
+	if ((event as any).tag === 'ng-flush-queue') {
+		event.waitUntil(flushOfflineQueue());
+	}
+});
+
+async function flushOfflineQueue(): Promise<void> {
+	const cache = await caches.open(QUEUE_CACHE);
+	const response = await cache.match(QUEUE_CACHE_KEY);
+	if (!response) return;
+
+	let queue: Array<{
+		id: string;
+		method: string;
+		path: string;
+		body: unknown;
+		authToken: string | null;
+		label: string;
+		retryCount?: number;
+	}>;
+	try {
+		queue = await response.json();
+	} catch {
+		return;
+	}
+	if (!queue || queue.length === 0) return;
+
+	const remaining: typeof queue = [];
+
+	for (const req of queue) {
+		try {
+			const headers: Record<string, string> = {};
+			if (req.method !== 'DELETE') {
+				headers['Content-Type'] = 'application/json';
+			}
+			if (req.authToken) {
+				headers['Authorization'] = `Bearer ${req.authToken}`;
+			}
+			const res = await fetch(`/api${req.path}`, {
+				method: req.method,
+				headers,
+				body: req.method !== 'DELETE' ? JSON.stringify(req.body) : undefined
+			});
+
+			if (res.ok) {
+				// Success — drop from queue
+			} else if (res.status >= 400 && res.status < 500) {
+				// Client error — drop (retrying won't help)
+			} else {
+				const retries = (req.retryCount ?? 0) + 1;
+				if (retries < MAX_RETRIES) {
+					remaining.push({ ...req, retryCount: retries });
+				}
+			}
+		} catch {
+			const retries = (req.retryCount ?? 0) + 1;
+			if (retries < MAX_RETRIES) {
+				remaining.push({ ...req, retryCount: retries });
+			}
+		}
+	}
+
+	// Write back remaining items (or delete cache entry if empty)
+	if (remaining.length > 0) {
+		await cache.put(
+			QUEUE_CACHE_KEY,
+			new Response(JSON.stringify(remaining), {
+				headers: { 'Content-Type': 'application/json' }
+			})
+		);
+	} else {
+		await cache.delete(QUEUE_CACHE_KEY);
+	}
+
+	// Notify all clients to refresh their queue store
+	const clients = await self.clients.matchAll();
+	for (const client of clients) {
+		client.postMessage({ type: 'ng-queue-flushed', remaining: remaining.length });
+	}
+}

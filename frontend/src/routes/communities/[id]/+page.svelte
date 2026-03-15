@@ -4,6 +4,7 @@
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import { isLoggedIn, user } from '$lib/stores/auth';
+	import { isOnline } from '$lib/stores/offline';
 	import { bandwidth, setPlatformMode } from '$lib/stores/theme';
 	import type { ActivityOut, ActivityList, CommunityOut, CrisisStatus, EmergencyTicket as TicketOut, TicketList, CommunityMember as MemberOut, MergeSuggestion, InviteOut, Resource as ResourceItem } from '$lib/types';
 	import CrisisModePanel from '$lib/components/community/CrisisModePanel.svelte';
@@ -138,9 +139,12 @@
 		joiningOrLeaving = true;
 		error = '';
 		try {
-			await api(`/communities/${communityId}/join`, { method: 'POST', auth: true });
-			actionMsg = 'Joined!';
-			await loadData();
+			await api(`/communities/${communityId}/join`, {
+				method: 'POST', auth: true,
+				offline: { label: `Join community: ${community?.name ?? communityId}` }
+			});
+			actionMsg = $isOnline ? 'Joined!' : 'Join request queued — will complete when back online.';
+			if ($isOnline) await loadData();
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Could not join';
 		} finally {
@@ -205,12 +209,14 @@
 		error = '';
 		try {
 			await api(`/communities/${communityId}/crisis/vote`, {
-				method: 'POST', auth: true, body: { vote_type: voteType }
+				method: 'POST', auth: true, body: { vote_type: voteType },
+				offline: { label: `Crisis vote: ${voteType}` }
 			});
-			crisisStatus = await api<CrisisStatus>(`/communities/${communityId}/crisis/status`);
-			actionMsg = `Vote recorded: ${voteType}`;
-			// Reload in case mode switched
-			await loadData();
+			if ($isOnline) {
+				crisisStatus = await api<CrisisStatus>(`/communities/${communityId}/crisis/status`);
+				await loadData();
+			}
+			actionMsg = $isOnline ? `Vote recorded: ${voteType}` : 'Vote queued — will be submitted when back online.';
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to cast vote';
 		} finally {

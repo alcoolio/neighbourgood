@@ -9,7 +9,7 @@
 	import { t } from 'svelte-i18n';
 	import { setupI18n, detectInitialLocale, AVAILABLE_LOCALES } from '$lib/i18n';
 	import { setLocale, hydrateLocale, currentLocale } from '$lib/stores/locale';
-	import { isOnline, queueCount, flushQueue, initOfflineTracking } from '$lib/stores/offline';
+	import { isOnline, offlineQueue, queueCount, flushQueue, initOfflineTracking } from '$lib/stores/offline';
 
 	// Initialise svelte-i18n as early as possible.
 	// detectInitialLocale safely reads localStorage (browser-only) and navigator.language.
@@ -162,7 +162,7 @@
 	onMount(() => {
 		initOfflineTracking();
 		let prevOnline = navigator.onLine;
-		const unsub = isOnline.subscribe((online) => {
+		const unsub = isOnline.subscribe(async (online) => {
 			if (online && !prevOnline && $queueCount > 0) {
 				flushQueue().then(({ succeeded }) => {
 					if (succeeded > 0) {
@@ -171,9 +171,38 @@
 					}
 				});
 			}
+			// Register Background Sync when going offline with a non-empty queue
+			if (!online && $queueCount > 0 && 'serviceWorker' in navigator) {
+				try {
+					const reg = await navigator.serviceWorker.ready;
+					if ('sync' in reg) {
+						await (reg as any).sync.register('ng-flush-queue');
+					}
+				} catch { /* Background Sync not supported — will flush on next open */ }
+			}
 			prevOnline = online;
 		});
-		return () => unsub();
+
+		// Listen for service worker messages (e.g. queue flushed via Background Sync)
+		const handleSWMessage = (event: MessageEvent) => {
+			if (event.data?.type === 'ng-queue-flushed') {
+				// Reload queue from localStorage to stay in sync
+				const stored = localStorage.getItem('ng_offline_queue');
+				if (stored) {
+					try { offlineQueue.set(JSON.parse(stored)); } catch { /* ignore */ }
+				}
+				if (event.data.remaining === 0) {
+					syncMessage = 'Queued requests sent via background sync';
+					setTimeout(() => { syncMessage = ''; }, 5000);
+				}
+			}
+		};
+		navigator.serviceWorker?.addEventListener('message', handleSWMessage);
+
+		return () => {
+			unsub();
+			navigator.serviceWorker?.removeEventListener('message', handleSWMessage);
+		};
 	});
 
 	async function installApp() {
