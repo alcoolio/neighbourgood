@@ -43,7 +43,7 @@ class ChangePassword(BaseModel):
 
 class ChangeEmail(BaseModel):
     new_email: EmailStr
-    password: str
+    password: str = Field(..., max_length=128)
 
 
 class DashboardOverview(BaseModel):

@@ -21,6 +21,8 @@ _LOCKOUT_SECONDS = 15 * 60  # lock duration after threshold is reached
 _lock = Lock()
 # email (lowercased) → list of monotonic timestamps of failed attempts
 _failures: dict[str, list[float]] = defaultdict(list)
+_last_cleanup = time.monotonic()
+_CLEANUP_INTERVAL = 300  # purge stale keys every 5 minutes
 
 
 def record_failure(email: str) -> None:
@@ -29,6 +31,14 @@ def record_failure(email: str) -> None:
     email = email.lower()
     with _lock:
         _failures[email].append(now)
+        # Periodic cleanup of stale entries to prevent unbounded memory growth
+        global _last_cleanup
+        if now - _last_cleanup > _CLEANUP_INTERVAL:
+            cutoff = now - _WINDOW_SECONDS
+            stale = [k for k, v in _failures.items() if not v or v[-1] <= cutoff]
+            for k in stale:
+                del _failures[k]
+            _last_cleanup = now
 
 
 def clear_failures(email: str) -> None:

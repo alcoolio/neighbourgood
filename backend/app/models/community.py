@@ -2,7 +2,7 @@
 
 import datetime
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -38,10 +38,13 @@ class Community(Base):
 
 class CommunityMember(Base):
     __tablename__ = "community_members"
+    __table_args__ = (
+        UniqueConstraint("community_id", "user_id", name="uq_community_member"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    community_id: Mapped[int] = mapped_column(Integer, ForeignKey("communities.id"), nullable=False)
-    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    community_id: Mapped[int] = mapped_column(Integer, ForeignKey("communities.id"), nullable=False, index=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     role: Mapped[str] = mapped_column(String(20), default="member", nullable=False)  # member, leader, admin
     joined_at: Mapped[datetime.datetime] = mapped_column(
         DateTime, server_default=func.now(), nullable=False

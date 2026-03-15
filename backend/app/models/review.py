@@ -2,7 +2,7 @@
 
 import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, Text, func
+from sqlalchemy import DateTime, ForeignKey, Integer, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -10,6 +10,9 @@ from app.database import Base
 
 class Review(Base):
     __tablename__ = "reviews"
+    __table_args__ = (
+        UniqueConstraint("booking_id", "reviewer_id", name="uq_review_booking_reviewer"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     booking_id: Mapped[int] = mapped_column(

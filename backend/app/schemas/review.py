@@ -10,7 +10,7 @@ from app.schemas.user import UserProfile
 class ReviewCreate(BaseModel):
     booking_id: int
     rating: int = Field(ge=1, le=5)
-    comment: str | None = None
+    comment: str | None = Field(None, max_length=5000)
 
 
 class ReviewOut(BaseModel):

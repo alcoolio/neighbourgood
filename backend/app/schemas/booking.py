@@ -2,7 +2,7 @@
 
 import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.schemas.user import UserProfile
 
@@ -13,11 +13,18 @@ class BookingCreate(BaseModel):
     resource_id: int
     start_date: datetime.date
     end_date: datetime.date
-    message: str | None = Field(None, max_length=2000)
+    message: str | None = Field(None, max_length=5000)
 
 
 class BookingStatusUpdate(BaseModel):
-    status: str
+    status: str = Field(..., max_length=20)
+
+    @field_validator("status")
+    @classmethod
+    def validate_status(cls, v: str) -> str:
+        if v not in VALID_BOOKING_STATUSES:
+            raise ValueError(f"Invalid status '{v}'. Must be one of: {VALID_BOOKING_STATUSES}")
+        return v
 
 
 class BookingOut(BaseModel):
