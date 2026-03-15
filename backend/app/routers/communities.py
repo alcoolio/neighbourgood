@@ -233,6 +233,86 @@ def update_community(
     return _community_to_out(community)
 
 
+# ── My memberships (must be before /{community_id} to avoid path conflict) ──
+
+
+@router.get("/my/memberships", response_model=list[CommunityOut])
+def my_communities(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """List communities the current user belongs to."""
+    memberships = (
+        db.query(CommunityMember)
+        .filter(CommunityMember.user_id == current_user.id)
+        .all()
+    )
+    community_ids = [m.community_id for m in memberships]
+    if not community_ids:
+        return []
+
+    communities = (
+        db.query(Community)
+        .options(joinedload(Community.created_by), joinedload(Community.members))
+        .filter(Community.id.in_(community_ids))
+        .all()
+    )
+    return [_community_to_out(c) for c in communities]
+
+
+# ── Merge suggestions (must be before /{community_id} to avoid path conflict) ──
+
+
+@router.get("/merge/suggestions", response_model=list[MergeSuggestion])
+def get_merge_suggestions(
+    community_id: int = Query(..., description="Community to find merge candidates for"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get automatic merge suggestions based on proximity (same postal code or city)."""
+    community = (
+        db.query(Community)
+        .options(joinedload(Community.created_by), joinedload(Community.members))
+        .filter(Community.id == community_id)
+        .first()
+    )
+    if not community:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Community not found")
+
+    # Find communities with same postal code or city, excluding self and merged ones
+    candidates = (
+        db.query(Community)
+        .options(joinedload(Community.created_by), joinedload(Community.members))
+        .filter(
+            Community.id != community_id,
+            Community.is_active == True,  # noqa: E712
+            Community.merged_into_id == None,  # noqa: E711
+            or_(
+                Community.postal_code == community.postal_code,
+                Community.city == community.city,
+            ),
+        )
+        .all()
+    )
+
+    suggestions = []
+    for candidate in candidates:
+        if candidate.postal_code == community.postal_code:
+            reason = f"Same postal code ({community.postal_code})"
+        else:
+            reason = f"Same city ({community.city})"
+
+        suggestions.append(
+            MergeSuggestion(
+                source=_community_to_out(community),
+                target=_community_to_out(candidate),
+                reason=reason,
+            )
+        )
+
+    return suggestions
+
+
 # ── Membership ───────────────────────────────────────────────────────
 
 
@@ -327,30 +407,6 @@ def list_members(community_id: int, db: Session = Depends(get_db)):
     return members
 
 
-@router.get("/my/memberships", response_model=list[CommunityOut])
-def my_communities(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    """List communities the current user belongs to."""
-    memberships = (
-        db.query(CommunityMember)
-        .filter(CommunityMember.user_id == current_user.id)
-        .all()
-    )
-    community_ids = [m.community_id for m in memberships]
-    if not community_ids:
-        return []
-
-    communities = (
-        db.query(Community)
-        .options(joinedload(Community.created_by), joinedload(Community.members))
-        .filter(Community.id.in_(community_ids))
-        .all()
-    )
-    return [_community_to_out(c) for c in communities]
-
-
 # ── Merge ────────────────────────────────────────────────────────────
 
 
@@ -408,53 +464,3 @@ def merge_communities(
     db.commit()
     db.refresh(target)
     return _community_to_out(target)
-
-
-@router.get("/merge/suggestions", response_model=list[MergeSuggestion])
-def get_merge_suggestions(
-    community_id: int = Query(..., description="Community to find merge candidates for"),
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    """Get automatic merge suggestions based on proximity (same postal code or city)."""
-    community = (
-        db.query(Community)
-        .options(joinedload(Community.created_by), joinedload(Community.members))
-        .filter(Community.id == community_id)
-        .first()
-    )
-    if not community:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Community not found")
-
-    # Find communities with same postal code or city, excluding self and merged ones
-    candidates = (
-        db.query(Community)
-        .options(joinedload(Community.created_by), joinedload(Community.members))
-        .filter(
-            Community.id != community_id,
-            Community.is_active == True,  # noqa: E712
-            Community.merged_into_id == None,  # noqa: E711
-            or_(
-                Community.postal_code == community.postal_code,
-                Community.city == community.city,
-            ),
-        )
-        .all()
-    )
-
-    suggestions = []
-    for candidate in candidates:
-        if candidate.postal_code == community.postal_code:
-            reason = f"Same postal code ({community.postal_code})"
-        else:
-            reason = f"Same city ({community.city})"
-
-        suggestions.append(
-            MergeSuggestion(
-                source=_community_to_out(community),
-                target=_community_to_out(candidate),
-                reason=reason,
-            )
-        )
-
-    return suggestions

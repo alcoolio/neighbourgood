@@ -1,8 +1,10 @@
 """Federation endpoints – instance directory, Red Sky alerts, data export/import."""
 
 import datetime
+import ipaddress
 import json
 import logging
+from urllib.parse import urlparse
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -197,8 +199,29 @@ def refresh_directory(
     return instances
 
 
+def _is_safe_url(url: str) -> bool:
+    """Reject URLs that resolve to private/internal IP ranges to prevent SSRF."""
+    try:
+        parsed = urlparse(url)
+        hostname = parsed.hostname
+        if not hostname:
+            return False
+        import socket
+        resolved = socket.getaddrinfo(hostname, None)
+        for _, _, _, _, addr in resolved:
+            ip = ipaddress.ip_address(addr[0])
+            if ip.is_private or ip.is_loopback or ip.is_reserved or ip.is_link_local:
+                return False
+        return True
+    except Exception:
+        return False
+
+
 def _fetch_instance_info(base_url: str) -> dict | None:
     """Fetch /instance/info from a remote NeighbourGood instance."""
+    if not _is_safe_url(base_url):
+        logger.warning("Blocked SSRF attempt to internal URL: %s", base_url)
+        return None
     try:
         resp = httpx.get(f"{base_url}/instance/info", timeout=10)
         if resp.status_code == 200:
@@ -259,12 +282,24 @@ def broadcast_alert(
 
 @router.post("/alerts/receive", response_model=AlertOut, status_code=status.HTTP_201_CREATED)
 def receive_alert(body: AlertReceive, db: Session = Depends(get_db)):
-    """Receive a Red Sky alert from a remote instance. Public endpoint for federation."""
+    """Receive a Red Sky alert from a remote instance. Only accepts alerts from known instances."""
+    source_url = body.source_instance_url.rstrip("/")
+    known = db.query(KnownInstance).filter(KnownInstance.url == source_url).first()
+    if not known:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Alerts only accepted from known instances",
+        )
+    if body.severity not in ("info", "warning", "critical"):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="severity must be one of: info, warning, critical",
+        )
     alert = RedSkyAlert(
-        source_instance_url=body.source_instance_url,
-        source_instance_name=body.source_instance_name,
-        title=body.title,
-        description=body.description,
+        source_instance_url=source_url,
+        source_instance_name=body.source_instance_name[:200],
+        title=body.title[:300],
+        description=body.description[:5000] if body.description else "",
         severity=body.severity,
     )
     db.add(alert)

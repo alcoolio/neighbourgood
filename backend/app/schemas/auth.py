@@ -9,7 +9,7 @@ class UserRegister(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=8, max_length=128)
     display_name: str = Field(..., min_length=1, max_length=100)
-    neighbourhood: str | None = Field(None, max_length=200)
+    neighbourhood: str | None = Field(None, max_length=100)
     language_code: str = Field("en", max_length=10)
 
     @field_validator("password")
@@ -26,7 +26,7 @@ class UserRegister(BaseModel):
 
 class UserLogin(BaseModel):
     email: EmailStr
-    password: str
+    password: str = Field(..., max_length=128)
 
 
 class Token(BaseModel):

@@ -48,11 +48,15 @@ def send_email(to: str, subject: str, body_text: str, body_html: str | None = No
 
     try:
         smtp.sendmail(settings.smtp_from, [to], msg.as_string())
-        smtp.quit()
         return True
     except Exception as e:
         logger.warning("Failed to send email to %s: %s", to, e)
         return False
+    finally:
+        try:
+            smtp.quit()
+        except Exception:
+            pass
 
 
 # ── Notification helpers ────────────────────────────────────────────

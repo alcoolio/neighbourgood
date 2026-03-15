@@ -2,7 +2,7 @@
 
 import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.schemas.user import UserProfile
 
@@ -38,16 +38,44 @@ VALID_SKILL_TYPES = ["offer", "request"]
 class SkillCreate(BaseModel):
     title: str = Field(..., min_length=1, max_length=200)
     description: str | None = Field(None, max_length=5000)
-    category: str
-    skill_type: str  # "offer" or "request"
+    category: str = Field(..., max_length=50)
+    skill_type: str = Field(..., max_length=10)
     community_id: int
+
+    @field_validator("category")
+    @classmethod
+    def validate_category(cls, v: str) -> str:
+        if v not in VALID_SKILL_CATEGORIES:
+            raise ValueError(f"Invalid category '{v}'. Must be one of: {VALID_SKILL_CATEGORIES}")
+        return v
+
+    @field_validator("skill_type")
+    @classmethod
+    def validate_skill_type(cls, v: str) -> str:
+        if v not in VALID_SKILL_TYPES:
+            raise ValueError(f"Invalid skill_type '{v}'. Must be one of: {VALID_SKILL_TYPES}")
+        return v
 
 
 class SkillUpdate(BaseModel):
     title: str | None = Field(None, min_length=1, max_length=200)
     description: str | None = Field(None, max_length=5000)
-    category: str | None = None
-    skill_type: str | None = None
+    category: str | None = Field(None, max_length=50)
+    skill_type: str | None = Field(None, max_length=10)
+
+    @field_validator("category")
+    @classmethod
+    def validate_category(cls, v: str | None) -> str | None:
+        if v is not None and v not in VALID_SKILL_CATEGORIES:
+            raise ValueError(f"Invalid category '{v}'. Must be one of: {VALID_SKILL_CATEGORIES}")
+        return v
+
+    @field_validator("skill_type")
+    @classmethod
+    def validate_skill_type(cls, v: str | None) -> str | None:
+        if v is not None and v not in VALID_SKILL_TYPES:
+            raise ValueError(f"Invalid skill_type '{v}'. Must be one of: {VALID_SKILL_TYPES}")
+        return v
 
 
 class SkillOut(BaseModel):

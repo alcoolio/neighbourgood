@@ -61,6 +61,11 @@ def decode_access_token(token: str) -> int | None:
             return None
         header, payload, signature = parts
 
+        # Verify algorithm header to prevent algorithm confusion attacks
+        header_data = json.loads(_b64url_decode(header))
+        if header_data.get("alg") != "HS256":
+            return None
+
         expected = _b64url_encode(
             hmac.new(
                 settings.secret_key.encode(),

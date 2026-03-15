@@ -2,7 +2,7 @@
 
 import datetime
 
-from sqlalchemy import DateTime, Integer, String, func
+from sqlalchemy import DateTime, ForeignKey, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -18,8 +18,8 @@ class MeshSyncedMessage(Base):
         String(100), nullable=False, unique=True, index=True
     )
     message_type: Mapped[str] = mapped_column(String(30), nullable=False)
-    community_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
-    synced_by_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    community_id: Mapped[int] = mapped_column(Integer, ForeignKey("communities.id"), nullable=False, index=True)
+    synced_by_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     synced_at: Mapped[datetime.datetime] = mapped_column(
         DateTime, server_default=func.now(), nullable=False
     )

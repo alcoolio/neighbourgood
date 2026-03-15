@@ -2,7 +2,7 @@
 
 import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 WEBHOOK_EVENTS = [
@@ -23,11 +23,22 @@ class WebhookCreate(BaseModel):
     secret: str = Field(..., min_length=8, max_length=64)
     event_types: list[str]
 
-    def validate_events(self) -> list[str]:
-        invalid = [e for e in self.event_types if e not in WEBHOOK_EVENTS]
+    @field_validator("event_types")
+    @classmethod
+    def validate_events(cls, v: list[str]) -> list[str]:
+        if not v:
+            raise ValueError("event_types must not be empty")
+        invalid = [e for e in v if e not in WEBHOOK_EVENTS]
         if invalid:
             raise ValueError(f"Unknown event types: {invalid}. Valid: {WEBHOOK_EVENTS}")
-        return self.event_types
+        return v
+
+    @field_validator("url")
+    @classmethod
+    def validate_url(cls, v: str) -> str:
+        if not v.startswith(("http://", "https://")):
+            raise ValueError("Webhook URL must start with http:// or https://")
+        return v
 
 
 class WebhookOut(BaseModel):

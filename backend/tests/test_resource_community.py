@@ -35,14 +35,15 @@ def test_create_resource_with_community(client, auth_headers):
     assert res.json()["community_id"] == cid
 
 
-def test_create_resource_requires_community(client, auth_headers):
-    """Resource without community_id is rejected (community_id is required)."""
+def test_create_resource_without_community(client, auth_headers):
+    """Resource without community_id is allowed (personal item)."""
     res = client.post(
         "/resources",
         json={"title": "Saw", "category": "tool"},
         headers=auth_headers,
     )
-    assert res.status_code == 422
+    assert res.status_code == 201
+    assert res.json()["community_id"] is None
 
 
 def test_filter_resources_by_community(client, auth_headers):

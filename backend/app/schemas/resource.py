@@ -2,7 +2,7 @@
 
 import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.schemas.user import UserProfile
 
@@ -28,20 +28,48 @@ CATEGORY_META = {
 class ResourceCreate(BaseModel):
     title: str = Field(..., min_length=1, max_length=200)
     description: str | None = Field(None, max_length=5000)
-    category: str
-    condition: str | None = None
-    community_id: int
+    category: str = Field(..., max_length=50)
+    condition: str | None = Field(None, max_length=20)
+    community_id: int | None = None
     quantity_total: int = Field(1, ge=1, description="Total units of this resource")
     reorder_threshold: int | None = Field(None, ge=0, description="Warn when available stock falls to or below this")
+
+    @field_validator("category")
+    @classmethod
+    def validate_category(cls, v: str) -> str:
+        if v not in VALID_CATEGORIES:
+            raise ValueError(f"Invalid category '{v}'. Must be one of: {VALID_CATEGORIES}")
+        return v
+
+    @field_validator("condition")
+    @classmethod
+    def validate_condition(cls, v: str | None) -> str | None:
+        if v is not None and v not in VALID_CONDITIONS:
+            raise ValueError(f"Invalid condition '{v}'. Must be one of: {VALID_CONDITIONS}")
+        return v
 
 
 class ResourceUpdate(BaseModel):
     title: str | None = Field(None, min_length=1, max_length=200)
     description: str | None = Field(None, max_length=5000)
-    category: str | None = None
-    condition: str | None = None
+    category: str | None = Field(None, max_length=50)
+    condition: str | None = Field(None, max_length=20)
     is_available: bool | None = None
     reorder_threshold: int | None = Field(None, ge=0)
+
+    @field_validator("category")
+    @classmethod
+    def validate_category(cls, v: str | None) -> str | None:
+        if v is not None and v not in VALID_CATEGORIES:
+            raise ValueError(f"Invalid category '{v}'. Must be one of: {VALID_CATEGORIES}")
+        return v
+
+    @field_validator("condition")
+    @classmethod
+    def validate_condition(cls, v: str | None) -> str | None:
+        if v is not None and v not in VALID_CONDITIONS:
+            raise ValueError(f"Invalid condition '{v}'. Must be one of: {VALID_CONDITIONS}")
+        return v
 
 
 class InventoryUpdate(BaseModel):

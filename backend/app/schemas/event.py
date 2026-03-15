@@ -2,7 +2,7 @@
 
 import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.schemas.user import UserProfile
 
@@ -34,22 +34,36 @@ EVENT_CATEGORY_META = {
 class EventCreate(BaseModel):
     title: str = Field(..., min_length=1, max_length=200)
     description: str | None = Field(None, max_length=5000)
-    category: str
+    category: str = Field(..., max_length=50)
     start_at: datetime.datetime
     end_at: datetime.datetime | None = None
     location: str | None = Field(None, max_length=300)
     max_attendees: int | None = Field(None, ge=1, le=10000)
     community_id: int
 
+    @field_validator("category")
+    @classmethod
+    def validate_category(cls, v: str) -> str:
+        if v not in VALID_EVENT_CATEGORIES:
+            raise ValueError(f"Invalid category '{v}'. Must be one of: {VALID_EVENT_CATEGORIES}")
+        return v
+
 
 class EventUpdate(BaseModel):
     title: str | None = Field(None, min_length=1, max_length=200)
     description: str | None = Field(None, max_length=5000)
-    category: str | None = None
+    category: str | None = Field(None, max_length=50)
     start_at: datetime.datetime | None = None
     end_at: datetime.datetime | None = None
     location: str | None = Field(None, max_length=300)
     max_attendees: int | None = Field(None, ge=1, le=10000)
+
+    @field_validator("category")
+    @classmethod
+    def validate_category(cls, v: str | None) -> str | None:
+        if v is not None and v not in VALID_EVENT_CATEGORIES:
+            raise ValueError(f"Invalid category '{v}'. Must be one of: {VALID_EVENT_CATEGORIES}")
+        return v
 
 
 class EventOut(BaseModel):

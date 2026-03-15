@@ -2,7 +2,7 @@
 
 import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -10,13 +10,16 @@ from app.database import Base
 
 class CrisisVote(Base):
     __tablename__ = "crisis_votes"
+    __table_args__ = (
+        UniqueConstraint("community_id", "user_id", name="uq_crisis_vote_community_user"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     community_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("communities.id"), nullable=False, index=True
     )
     user_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("users.id"), nullable=False
+        Integer, ForeignKey("users.id"), nullable=False, index=True
     )
     vote_type: Mapped[str] = mapped_column(
         String(20), nullable=False
@@ -51,7 +54,7 @@ class EmergencyTicket(Base):
         String(20), default="medium", nullable=False
     )  # low, medium, high, critical
     assigned_to_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("users.id"), nullable=True
+        Integer, ForeignKey("users.id"), nullable=True, index=True
     )
     # Optional deadline for SLA tracking; drives triage score age bonus
     due_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
@@ -59,7 +62,7 @@ class EmergencyTicket(Base):
         DateTime, server_default=func.now(), nullable=False
     )
     updated_at: Mapped[datetime.datetime] = mapped_column(
-        DateTime, server_default=func.now(), nullable=False
+        DateTime, server_default=func.now(), onupdate=func.now(), nullable=False
     )
 
     community: Mapped["Community"] = relationship()  # noqa: F821
@@ -82,7 +85,7 @@ class TicketComment(Base):
         DateTime, server_default=func.now(), nullable=False
     )
     updated_at: Mapped[datetime.datetime] = mapped_column(
-        DateTime, server_default=func.now(), nullable=False
+        DateTime, server_default=func.now(), onupdate=func.now(), nullable=False
     )
 
     ticket: Mapped["EmergencyTicket"] = relationship()

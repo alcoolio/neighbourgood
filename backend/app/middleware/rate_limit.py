@@ -39,10 +39,13 @@ def _limit_for_bucket(b: str) -> int:
 class RateLimitStore:
     """Thread-safe in-memory sliding-window store."""
 
+    _CLEANUP_INTERVAL = 300  # purge stale keys every 5 minutes
+
     def __init__(self) -> None:
         self._lock = Lock()
         # key: (ip, bucket) → list of monotonic timestamps
         self._windows: dict[tuple[str, str], list[float]] = defaultdict(list)
+        self._last_cleanup = time.monotonic()
 
     def check_and_record(self, ip: str, path: str) -> tuple[bool, int]:
         """Return ``(allowed, retry_after_seconds)``.
@@ -56,6 +59,13 @@ class RateLimitStore:
         cutoff = now - _WINDOW_SECONDS
 
         with self._lock:
+            # Periodic full cleanup of stale keys to prevent memory growth
+            if now - self._last_cleanup > self._CLEANUP_INTERVAL:
+                stale_keys = [k for k, v in self._windows.items() if not v or v[-1] <= cutoff]
+                for k in stale_keys:
+                    del self._windows[k]
+                self._last_cleanup = now
+
             timestamps = self._windows[key]
             # Evict timestamps outside the sliding window
             self._windows[key] = [t for t in timestamps if t > cutoff]
