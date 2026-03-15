@@ -365,5 +365,13 @@
       "cultural": "Culturel",
       "other": "Autre"
     }
+  },
+  "offline": {
+    "banner": "Vous êtes hors ligne — navigation en cache",
+    "queued": "{count, plural, one {# requête en attente} other {# requêtes en attente}}",
+    "sync_success": "{count, plural, one {# requête envoyée} other {# requêtes envoyées}} avec succès",
+    "queued_confirmation": "En file d'attente — sera envoyé à la reconnexion",
+    "requires_connection": "Cette action nécessite une connexion internet",
+    "queue_action": "File d'attente"
   }
 }

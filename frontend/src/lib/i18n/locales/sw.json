@@ -365,5 +365,13 @@
       "cultural": "Utamaduni",
       "other": "Nyingine"
     }
+  },
+  "offline": {
+    "banner": "Huna mtandaoni — unavinjari maudhui yaliyohifadhiwa",
+    "queued": "{count, plural, one {ombi # linalosubiri} other {maombi # yanayosubiri}}",
+    "sync_success": "{count, plural, one {ombi # limetumwa} other {maombi # yametumwa}} kwa mafanikio",
+    "queued_confirmation": "Imewekwa foleni — itatumwa unapounganishwa tena",
+    "requires_connection": "Kitendo hiki kinahitaji muunganisho wa mtandao",
+    "queue_action": "Foleni"
   }
 }

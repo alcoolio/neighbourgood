@@ -670,5 +670,13 @@
       "cultural": "Cultural",
       "other": "Other"
     }
+  },
+  "offline": {
+    "banner": "You're offline — browsing cached content",
+    "queued": "{count, plural, one {# queued request} other {# queued requests}}",
+    "sync_success": "{count, plural, one {# queued request} other {# queued requests}} sent successfully",
+    "queued_confirmation": "Queued — will send when reconnected",
+    "requires_connection": "This action requires an internet connection",
+    "queue_action": "Queue"
   }
 }

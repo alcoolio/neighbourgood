@@ -4,6 +4,7 @@
 	import { t } from 'svelte-i18n';
 	import { api } from '$lib/api';
 	import { isLoggedIn } from '$lib/stores/auth';
+	import { isOnline } from '$lib/stores/offline';
 
 	interface SkillOwner {
 		display_name: string;
@@ -114,12 +115,15 @@
 					category: newCategory,
 					skill_type: newSkillType,
 					community_id: Number(newCommunityId)
-				}
+				},
+				offline: { label: `New skill: ${newTitle}` }
 			});
 			showCreateForm = false;
 			newTitle = '';
 			newDescription = '';
-			await loadSkills();
+			if (get(isOnline)) {
+				await loadSkills();
+			}
 		} catch (err) {
 			createError = err instanceof Error ? err.message : 'Failed to create skill listing';
 		}

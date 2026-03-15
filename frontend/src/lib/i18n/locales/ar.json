@@ -365,5 +365,13 @@
       "cultural": "ثقافي",
       "other": "أخرى"
     }
+  },
+  "offline": {
+    "banner": "أنت غير متصل — تتصفح المحتوى المخزن مؤقتاً",
+    "queued": "{count, plural, one {# طلب في الانتظار} other {# طلبات في الانتظار}}",
+    "sync_success": "{count, plural, one {تم إرسال # طلب} other {تم إرسال # طلبات}} بنجاح",
+    "queued_confirmation": "في قائمة الانتظار — سيتم الإرسال عند الاتصال",
+    "requires_connection": "يتطلب هذا الإجراء اتصالاً بالإنترنت",
+    "queue_action": "انتظار"
   }
 }

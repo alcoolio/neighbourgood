@@ -4,6 +4,7 @@
 	import { t } from 'svelte-i18n';
 	import { api } from '$lib/api';
 	import { isLoggedIn, user } from '$lib/stores/auth';
+	import { isOnline } from '$lib/stores/offline';
 
 	interface UserInfo {
 		id: number;
@@ -44,6 +45,7 @@
 	let loading = $state(true);
 	let newMessage = $state('');
 	let sending = $state(false);
+	let messageQueued = $state(false);
 
 	// New message modal state
 	let showNewMessage = $state(false);
@@ -138,6 +140,7 @@
 	async function sendMessage() {
 		if (!newMessage.trim() || !selectedPartner || sending) return;
 		sending = true;
+		messageQueued = false;
 		// Attach skill context to the first message in a skill-initiated thread
 		const isFirstMessage = messages.length === 0;
 		try {
@@ -148,11 +151,18 @@
 					recipient_id: selectedPartner.id,
 					body: newMessage.trim(),
 					...(isFirstMessage && skillContext ? { skill_id: skillContext.id } : {})
-				}
+				},
+				offline: { label: `Message to ${selectedPartner.display_name}` }
 			});
-			messages = [...messages, msg];
+			if (msg) {
+				messages = [...messages, msg];
+				await loadConversations();
+			} else {
+				// Request was queued for offline
+				messageQueued = true;
+				setTimeout(() => { messageQueued = false; }, 5000);
+			}
 			newMessage = '';
-			await loadConversations();
 		} catch (err) {
 			alert(err instanceof Error ? err.message : 'Failed to send');
 		} finally {
@@ -284,6 +294,9 @@
 							</div>
 						{/each}
 					</div>
+					{#if messageQueued}
+						<div class="queued-notice">{$t('offline.queued_confirmation')}</div>
+					{/if}
 					<div class="thread-input">
 						<textarea
 							bind:value={newMessage}
@@ -296,7 +309,7 @@
 							onclick={sendMessage}
 							disabled={sending || !newMessage.trim()}
 						>
-							{$t("messages.send")}
+							{$isOnline ? $t("messages.send") : $t('offline.queue_action')}
 						</button>
 					</div>
 				{/if}
@@ -589,6 +602,14 @@
 
 	.send-btn:not(:disabled):hover {
 		background: var(--color-primary-hover);
+	}
+
+	.queued-notice {
+		padding: 0.4rem 1rem;
+		font-size: 0.82rem;
+		color: var(--color-success);
+		background: var(--color-success-bg, rgba(34, 197, 94, 0.1));
+		text-align: center;
 	}
 
 	.loading, .empty-text {

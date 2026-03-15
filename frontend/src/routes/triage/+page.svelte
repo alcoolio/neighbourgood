@@ -253,14 +253,17 @@
 					title: newTicketTitle,
 					description: newTicketDesc,
 					urgency: newTicketUrgency
-				}
+				},
+				offline: { label: `Emergency ticket: ${newTicketTitle}` }
 			});
 			showNewTicketForm = false;
 			newTicketTitle = '';
 			newTicketDesc = '';
 			newTicketType = 'request';
 			newTicketUrgency = 'medium';
-			await loadTickets();
+			if (get(isOnline)) {
+				await loadTickets();
+			}
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'Failed to create ticket';
 		} finally {

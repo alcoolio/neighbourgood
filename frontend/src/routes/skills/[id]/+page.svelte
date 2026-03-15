@@ -52,7 +52,10 @@
 	async function deleteSkill() {
 		if (!skill || !confirm('Delete this skill listing?')) return;
 		try {
-			await api(`/skills/${skill.id}`, { method: 'DELETE', auth: true });
+			await api(`/skills/${skill.id}`, {
+				method: 'DELETE', auth: true,
+				offline: { label: `Delete skill: ${skill.title}` }
+			});
 			goto('/skills');
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Delete failed';

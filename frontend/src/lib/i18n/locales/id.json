@@ -365,5 +365,13 @@
       "cultural": "Budaya",
       "other": "Lainnya"
     }
+  },
+  "offline": {
+    "banner": "Anda offline — menjelajahi konten tersimpan",
+    "queued": "{count, plural, one {# permintaan dalam antrean} other {# permintaan dalam antrean}}",
+    "sync_success": "{count, plural, one {# permintaan terkirim} other {# permintaan terkirim}} berhasil",
+    "queued_confirmation": "Dalam antrean — akan dikirim saat terhubung kembali",
+    "requires_connection": "Tindakan ini memerlukan koneksi internet",
+    "queue_action": "Antrean"
   }
 }
