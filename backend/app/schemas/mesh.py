@@ -9,7 +9,7 @@ class MeshMessageIn(BaseModel):
     ng: int = Field(1, description="Protocol version, must be 1")
     type: str = Field(
         ...,
-        pattern="^(emergency_ticket|ticket_comment|crisis_vote|crisis_status|direct_message|heartbeat|resource_request|resource_offer|location_checkin)$",
+        pattern="^(emergency_ticket|ticket_comment|crisis_vote|crisis_status|direct_message|heartbeat|resource_request|resource_offer|location_checkin|ack)$",
         max_length=30,
     )
     community_id: int

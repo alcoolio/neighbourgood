@@ -18,6 +18,7 @@
 		broadcastHeartbeat,
 		meshRelayEnabled,
 		meshRelayCount,
+		meshAckStatus,
 		toggleRelay
 	} from '$lib/stores/mesh';
 	import { api } from '$lib/api';
@@ -39,6 +40,7 @@
 	let peers: Set<string> = $derived($meshPeers);
 	let relayEnabled: boolean = $derived($meshRelayEnabled);
 	let relayCount: number = $derived($meshRelayCount);
+	let ackStatus: Map<string, 'pending' | 'acked'> = $derived($meshAckStatus);
 
 	onMount(() => {
 		if (!$isLoggedIn) {
@@ -261,7 +263,14 @@
 									<span class="msg-detail">{$t('mesh.vote')}: {msg.data.vote_type}</span>
 								{/if}
 							</div>
-							<span class="msg-time">{formatTime(msg.ts)}</span>
+							<div class="msg-meta">
+								{#if ackStatus.get(msg.id) === 'acked'}
+									<span class="ack-badge acked" title="Delivered">✓</span>
+								{:else if ackStatus.get(msg.id) === 'pending'}
+									<span class="ack-badge pending" title="Pending">○</span>
+								{/if}
+								<span class="msg-time">{formatTime(msg.ts)}</span>
+							</div>
 						</div>
 					{/each}
 				</div>
@@ -615,11 +624,31 @@
 		white-space: nowrap;
 	}
 
+	.msg-meta {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+		gap: 0.2rem;
+		flex-shrink: 0;
+	}
+
 	.msg-time {
 		font-size: 0.75rem;
 		color: var(--color-text-muted);
 		white-space: nowrap;
-		flex-shrink: 0;
+	}
+
+	.ack-badge {
+		font-size: 0.7rem;
+		font-weight: 700;
+	}
+
+	.ack-badge.acked {
+		color: var(--color-success);
+	}
+
+	.ack-badge.pending {
+		color: var(--color-text-muted);
 	}
 
 	.sync-controls {

@@ -39,7 +39,8 @@ export type NGMeshMessageType =
 	| 'heartbeat'
 	| 'resource_request'
 	| 'resource_offer'
-	| 'location_checkin';
+	| 'location_checkin'
+	| 'ack';
 
 export interface NGMeshMessage {
 	ng: 1;
@@ -88,6 +89,11 @@ export interface MeshCheckinData {
 	lng: number;
 	status: 'safe' | 'need_help' | 'evacuating';
 	note?: string;
+}
+
+export interface MeshAckData {
+	/** The message ID being acknowledged. */
+	ack_for: string;
 }
 
 const encoder = new TextEncoder();

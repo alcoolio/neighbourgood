@@ -48,6 +48,11 @@ export const meshRelayEnabled = writable<boolean>(false);
 /** Count of messages relayed in this session. */
 export const meshRelayCount = writable<number>(0);
 
+/** Ack status for sent messages: message ID → 'pending' | 'acked' */
+export const meshAckStatus = writable<Map<string, 'pending' | 'acked'>>(new Map());
+
+const ACK_TIMEOUT_MS = 30_000;
+
 // Deduplication: track seen message IDs (sliding window of last 500)
 const seenIds = new Set<string>();
 const MAX_SEEN = 500;
@@ -113,6 +118,24 @@ export async function sendViaMesh(msg: NGMeshMessage): Promise<void> {
 	await sendMessage(packet);
 	// Track our own message to avoid processing it as incoming
 	addSeenId(msg.id);
+
+	// Track ack status for non-heartbeat, non-ack messages
+	if (msg.type !== 'heartbeat' && msg.type !== 'ack') {
+		meshAckStatus.update((m) => {
+			const next = new Map(m);
+			next.set(msg.id, 'pending');
+			return next;
+		});
+		// Timeout: mark as unacknowledged after 30s
+		setTimeout(() => {
+			meshAckStatus.update((m) => {
+				if (m.get(msg.id) === 'pending') {
+					// Leave as pending — UI can show it
+				}
+				return m;
+			});
+		}, ACK_TIMEOUT_MS);
+	}
 }
 
 /** Broadcast an emergency ticket through the mesh. */
@@ -216,7 +239,20 @@ function subscribeToEvents(): void {
 		if (seenIds.has(msg.id)) return;
 		addSeenId(msg.id);
 
-		if (msg.type === 'heartbeat') {
+		if (msg.type === 'ack') {
+			// Process incoming ack — mark our sent message as acknowledged
+			const ackFor = msg.data?.ack_for as string;
+			if (ackFor) {
+				meshAckStatus.update((m) => {
+					if (m.has(ackFor)) {
+						const next = new Map(m);
+						next.set(ackFor, 'acked');
+						return next;
+					}
+					return m;
+				});
+			}
+		} else if (msg.type === 'heartbeat') {
 			meshPeers.update((peers) => {
 				const next = new Set(peers);
 				next.add(msg.sender_name);
@@ -230,10 +266,13 @@ function subscribeToEvents(): void {
 				notifyServiceWorker();
 				return updated;
 			});
+
+			// Auto-send ack for non-heartbeat messages
+			sendAck(msg.community_id, msg.id);
 		}
 
-		// Multi-hop relay: re-broadcast with decremented TTL if enabled
-		if (get(meshRelayEnabled) && ttl > 1) {
+		// Multi-hop relay: re-broadcast with decremented TTL if enabled (skip acks)
+		if (get(meshRelayEnabled) && ttl > 1 && msg.type !== 'ack') {
 			relayMessage(msg, ttl - 1);
 		}
 	});
@@ -297,6 +336,18 @@ function cleanup(): void {
 	if (unsubDisconnect) {
 		unsubDisconnect();
 		unsubDisconnect = null;
+	}
+}
+
+/** Send an acknowledgment for a received message. */
+async function sendAck(communityId: number, ackForId: string): Promise<void> {
+	try {
+		const ackMsg = createNGMessage('ack', communityId, 'system', { ack_for: ackForId });
+		const packet = encodeNGMessage(ackMsg);
+		await sendMessage(packet);
+		addSeenId(ackMsg.id);
+	} catch {
+		// Ack send failed — not critical
 	}
 }
 
