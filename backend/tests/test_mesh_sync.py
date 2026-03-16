@@ -520,3 +520,35 @@ def test_get_checkins_requires_membership(client, auth_headers, register_user):
         "/mesh/checkins/1", headers=user2_headers
     )
     assert res.status_code == 403
+
+
+# ── Mesh key exchange ────────────────────────────────────────
+
+
+def test_set_and_get_mesh_key(client, auth_headers):
+    """Set and retrieve mesh encryption public key."""
+    key_data = "eyJrdHkiOiJFQyIsImNydiI6IlAtMjU2IiwieCI6InRlc3QiLCJ5IjoidGVzdCJ9"
+    res = client.put(
+        "/mesh/keys/me",
+        json={"public_key": key_data},
+        headers=auth_headers,
+    )
+    assert res.status_code == 200
+
+    # Get own key via user ID
+    me_res = client.get("/users/me", headers=auth_headers)
+    user_id = me_res.json()["id"]
+
+    get_res = client.get(f"/mesh/keys/{user_id}", headers=auth_headers)
+    assert get_res.status_code == 200
+    assert get_res.json()["public_key"] == key_data
+
+
+def test_get_mesh_key_not_set(client, auth_headers, register_user):
+    """Getting key for user without one returns 404."""
+    user2_headers = register_user(5)
+    me_res = client.get("/users/me", headers=user2_headers)
+    user2_id = me_res.json()["id"]
+
+    res = client.get(f"/mesh/keys/{user2_id}", headers=auth_headers)
+    assert res.status_code == 404

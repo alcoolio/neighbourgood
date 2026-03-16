@@ -1,6 +1,6 @@
 """Mesh sync endpoint — ingests messages received via BLE mesh when internet returns."""
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -472,6 +472,33 @@ def get_community_checkins(
         )
         for c in checkins
     ]
+
+
+@router.put("/keys/me", response_model=dict)
+def set_my_mesh_key(
+    public_key: str = Body(..., max_length=2000, embed=True),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Store the current user's mesh encryption public key."""
+    current_user.mesh_public_key = public_key
+    db.commit()
+    return {"status": "ok"}
+
+
+@router.get("/keys/{user_id}", response_model=dict)
+def get_user_mesh_key(
+    user_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get a user's mesh encryption public key."""
+    target = db.query(User).filter(User.id == user_id).first()
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+    if not target.mesh_public_key:
+        raise HTTPException(status_code=404, detail="User has no mesh key")
+    return {"user_id": user_id, "public_key": target.mesh_public_key}
 
 
 def _sync_crisis_vote(
