@@ -7,6 +7,7 @@ from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.community import Community, CommunityMember
 from app.models.crisis import CrisisVote, EmergencyTicket, TicketComment
+from app.models.message import Message
 from app.models.mesh import MeshSyncedMessage
 from app.models.user import User
 from app.schemas.mesh import MeshMessageIn, MeshSyncRequest, MeshSyncResponse
@@ -25,7 +26,7 @@ def sync_mesh_messages(
 
     Each message is deduplicated by its unique mesh ID. Already-synced
     messages are skipped. Supported types: emergency_ticket, ticket_comment,
-    crisis_vote. Other types (heartbeat, crisis_status, direct_message)
+    crisis_vote, crisis_status, direct_message. Other types (heartbeat)
     are acknowledged but not persisted.
     """
     synced = 0
@@ -44,7 +45,7 @@ def sync_mesh_messages(
             continue
 
         try:
-            _process_mesh_message(db, msg, current_user)
+            server_object_id = _process_mesh_message(db, msg, current_user)
             # Record as synced
             db.add(
                 MeshSyncedMessage(
@@ -52,6 +53,7 @@ def sync_mesh_messages(
                     message_type=msg.type,
                     community_id=msg.community_id,
                     synced_by_id=current_user.id,
+                    server_object_id=server_object_id,
                 )
             )
             db.commit()
@@ -68,8 +70,8 @@ def sync_mesh_messages(
 
 def _process_mesh_message(
     db: Session, msg: MeshMessageIn, current_user: User
-) -> None:
-    """Process a single mesh message based on its type."""
+) -> int | None:
+    """Process a single mesh message based on its type. Returns server_object_id if applicable."""
     # Verify community exists
     community = db.query(Community).filter(Community.id == msg.community_id).first()
     if not community or not community.is_active:
@@ -92,18 +94,25 @@ def _process_mesh_message(
         )
 
     if msg.type == "emergency_ticket":
-        _sync_emergency_ticket(db, msg, current_user, community)
+        return _sync_emergency_ticket(db, msg, current_user, community)
     elif msg.type == "ticket_comment":
-        _sync_ticket_comment(db, msg, current_user)
+        return _sync_ticket_comment(db, msg, current_user)
     elif msg.type == "crisis_vote":
         _sync_crisis_vote(db, msg, current_user)
-    # heartbeat, crisis_status, direct_message: acknowledged but not persisted
+        return None
+    elif msg.type == "direct_message":
+        return _sync_direct_message(db, msg, current_user)
+    elif msg.type == "crisis_status":
+        _sync_crisis_status(db, msg, current_user, community, membership)
+        return None
+    # heartbeat: acknowledged but not persisted
+    return None
 
 
 def _sync_emergency_ticket(
     db: Session, msg: MeshMessageIn, user: User, community: Community
-) -> None:
-    """Create an emergency ticket from a mesh message."""
+) -> int:
+    """Create an emergency ticket from a mesh message. Returns the ticket ID."""
     data = msg.data
     ticket_type = data.get("ticket_type", "request")
     title = data.get("title", "")
@@ -145,11 +154,13 @@ def _sync_emergency_ticket(
         community_id=msg.community_id,
     )
 
+    return ticket.id
+
 
 def _sync_ticket_comment(
     db: Session, msg: MeshMessageIn, user: User
-) -> None:
-    """Create a ticket comment from a mesh message."""
+) -> int:
+    """Create a ticket comment from a mesh message. Returns the comment ID."""
     data = msg.data
     body = data.get("body", "")
     ticket_mesh_id = data.get("ticket_mesh_id", "")
@@ -160,11 +171,149 @@ def _sync_ticket_comment(
             detail="Comment body required",
         )
 
-    # For mesh comments, we don't have the server ticket ID.
-    # The comment is recorded as a standalone entry associated with the community.
-    # A more sophisticated implementation could map mesh IDs to server IDs.
-    # For now, skip comments that reference mesh-only tickets.
-    pass
+    if not ticket_mesh_id:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="ticket_mesh_id required",
+        )
+
+    # Look up the server-side ticket via the mesh message that created it
+    synced_ticket = (
+        db.query(MeshSyncedMessage)
+        .filter(
+            MeshSyncedMessage.mesh_message_id == ticket_mesh_id,
+            MeshSyncedMessage.message_type == "emergency_ticket",
+        )
+        .first()
+    )
+    if not synced_ticket or not synced_ticket.server_object_id:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Referenced ticket not yet synced",
+        )
+
+    # Verify the ticket still exists
+    ticket = (
+        db.query(EmergencyTicket)
+        .filter(EmergencyTicket.id == synced_ticket.server_object_id)
+        .first()
+    )
+    if not ticket:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Referenced ticket no longer exists",
+        )
+
+    comment = TicketComment(
+        ticket_id=ticket.id,
+        author_id=user.id,
+        body=str(body)[:5000],
+    )
+    db.add(comment)
+    db.flush()
+
+    record_activity(
+        db,
+        event_type="comment_created",
+        summary=f"commented on ticket \"{ticket.title}\" (via mesh sync)",
+        actor_id=user.id,
+        community_id=msg.community_id,
+    )
+
+    return comment.id
+
+
+def _sync_direct_message(
+    db: Session, msg: MeshMessageIn, user: User
+) -> int:
+    """Create a direct message from a mesh message. Returns the message ID."""
+    data = msg.data
+    body = data.get("body", "")
+    recipient_id = data.get("recipient_id")
+
+    if not body:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Message body required",
+        )
+
+    if not recipient_id:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="recipient_id required",
+        )
+
+    # Verify recipient exists
+    recipient = db.query(User).filter(User.id == recipient_id).first()
+    if not recipient:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Recipient not found",
+        )
+
+    # Verify sender and recipient share at least one community
+    sender_communities = {
+        m.community_id
+        for m in db.query(CommunityMember).filter(
+            CommunityMember.user_id == user.id
+        ).all()
+    }
+    recipient_communities = {
+        m.community_id
+        for m in db.query(CommunityMember).filter(
+            CommunityMember.user_id == recipient_id
+        ).all()
+    }
+    if not sender_communities & recipient_communities:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Recipient not in a shared community",
+        )
+
+    message = Message(
+        sender_id=user.id,
+        recipient_id=recipient_id,
+        body=str(body)[:5000],
+    )
+    db.add(message)
+    db.flush()
+
+    return message.id
+
+
+def _sync_crisis_status(
+    db: Session, msg: MeshMessageIn, user: User, community: Community,
+    membership: CommunityMember,
+) -> None:
+    """Update community crisis mode from a mesh message. Leader/admin only."""
+    data = msg.data
+    new_mode = data.get("new_mode", "")
+
+    if new_mode not in ("blue", "red"):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Invalid mode, must be 'blue' or 'red'",
+        )
+
+    if membership.role not in ("leader", "admin"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only leaders and admins can change crisis mode",
+        )
+
+    if community.mode == new_mode:
+        return  # Already in requested mode, no-op
+
+    community.mode = new_mode
+    db.flush()
+
+    record_activity(
+        db,
+        event_type="crisis_mode_changed",
+        summary=f"switched community to {new_mode} sky mode (via mesh sync)",
+        actor_id=user.id,
+        community_id=msg.community_id,
+    )
 
 
 def _sync_crisis_vote(

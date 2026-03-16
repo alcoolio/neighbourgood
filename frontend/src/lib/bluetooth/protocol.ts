@@ -10,11 +10,25 @@
  *
  * We use type 0x01 = broadcast message.
  * Payload is UTF-8 encoded JSON prefixed with "ng:" to identify NeighbourGood messages.
+ *
+ * Fragment packet format (type 0x02):
+ *   Standard 8-byte header, then payload:
+ *   [4 bytes original msgId] [1 byte fragmentIndex] [1 byte totalFragments] [N bytes fragment data]
  */
 
 const PACKET_TYPE_BROADCAST = 0x01;
+const PACKET_TYPE_FRAGMENT = 0x02;
 const DEFAULT_TTL = 7;
 const NG_PREFIX = 'ng:';
+
+/** Default BLE MTU minus ATT header (3 bytes) minus BitChat header (8 bytes). */
+const DEFAULT_MAX_PAYLOAD = 174;
+
+/** Fragment overhead: originalMsgId(4) + index(1) + total(1) = 6 bytes. */
+const FRAGMENT_HEADER_SIZE = 6;
+
+/** Stale fragment timeout in milliseconds. */
+const FRAGMENT_TIMEOUT_MS = 10_000;
 
 export type NGMeshMessageType =
 	| 'emergency_ticket'
@@ -52,6 +66,11 @@ export interface MeshVoteData {
 
 export interface MeshCrisisStatusData {
 	new_mode: 'blue' | 'red';
+}
+
+export interface MeshDirectMessageData {
+	recipient_id: number;
+	body: string;
 }
 
 const encoder = new TextEncoder();
@@ -135,4 +154,150 @@ export function parseBitchatPacket(
 
 	const payload = new Uint8Array(raw.buffer, raw.byteOffset + 8, payloadLength);
 	return { type, ttl, payload };
+}
+
+// ── Fragmentation ─────────────────────────────────────────────────────────────
+
+/**
+ * Split a packet into MTU-sized fragments if needed.
+ * Returns an array of 1+ packets. If the packet fits in a single write,
+ * returns the original packet in a single-element array.
+ */
+export function fragmentPacket(
+	packet: Uint8Array,
+	maxPayload: number = DEFAULT_MAX_PAYLOAD
+): Uint8Array[] {
+	if (packet.length <= maxPayload + 8) {
+		// Fits in a single packet (maxPayload is for the payload portion)
+		return [packet];
+	}
+
+	// Extract the original message ID from the packet header (bytes 2-5)
+	const originalMsgId = packet.slice(2, 6);
+	// The full data to fragment is the entire original packet
+	const dataPerFragment = maxPayload - FRAGMENT_HEADER_SIZE;
+	const totalFragments = Math.ceil(packet.length / dataPerFragment);
+
+	if (totalFragments > 255) {
+		throw new Error('Message too large to fragment (> 255 fragments)');
+	}
+
+	const fragments: Uint8Array[] = [];
+
+	for (let i = 0; i < totalFragments; i++) {
+		const start = i * dataPerFragment;
+		const end = Math.min(start + dataPerFragment, packet.length);
+		const chunk = packet.slice(start, end);
+
+		// Build fragment payload: originalMsgId(4) + index(1) + total(1) + chunk
+		const fragPayload = new Uint8Array(FRAGMENT_HEADER_SIZE + chunk.length);
+		fragPayload.set(originalMsgId, 0);
+		fragPayload[4] = i;
+		fragPayload[5] = totalFragments;
+		fragPayload.set(chunk, FRAGMENT_HEADER_SIZE);
+
+		// Wrap in a BitChat packet with type = FRAGMENT
+		const fragMsgId = new Uint8Array(4);
+		crypto.getRandomValues(fragMsgId);
+
+		const header = new Uint8Array(8);
+		header[0] = PACKET_TYPE_FRAGMENT;
+		header[1] = DEFAULT_TTL;
+		header.set(fragMsgId, 2);
+		header[6] = (fragPayload.length >> 8) & 0xff;
+		header[7] = fragPayload.length & 0xff;
+
+		const fragPacket = new Uint8Array(8 + fragPayload.length);
+		fragPacket.set(header, 0);
+		fragPacket.set(fragPayload, 8);
+		fragments.push(fragPacket);
+	}
+
+	return fragments;
+}
+
+interface FragmentBuffer {
+	fragments: (Uint8Array | null)[];
+	total: number;
+	received: number;
+	createdAt: number;
+}
+
+const reassemblyBuffers = new Map<string, FragmentBuffer>();
+
+/**
+ * Process an incoming fragment packet. Returns the reassembled complete
+ * packet when all fragments are received, or null if still waiting.
+ */
+export function defragmentPacket(raw: DataView): Uint8Array | null {
+	const parsed = parseBitchatPacket(raw);
+	if (!parsed) return null;
+
+	// Only handle fragment packets
+	if (parsed.type !== PACKET_TYPE_FRAGMENT) return null;
+
+	if (parsed.payload.length < FRAGMENT_HEADER_SIZE) return null;
+
+	// Extract fragment header
+	const originalMsgId = Array.from(parsed.payload.slice(0, 4))
+		.map((b) => b.toString(16).padStart(2, '0'))
+		.join('');
+	const fragmentIndex = parsed.payload[4];
+	const totalFragments = parsed.payload[5];
+	const chunk = parsed.payload.slice(FRAGMENT_HEADER_SIZE);
+
+	if (fragmentIndex >= totalFragments || totalFragments === 0) return null;
+
+	// Clean up stale buffers
+	const now = Date.now();
+	for (const [key, buf] of reassemblyBuffers) {
+		if (now - buf.createdAt > FRAGMENT_TIMEOUT_MS) {
+			reassemblyBuffers.delete(key);
+		}
+	}
+
+	// Get or create buffer
+	let buffer = reassemblyBuffers.get(originalMsgId);
+	if (!buffer) {
+		buffer = {
+			fragments: new Array(totalFragments).fill(null),
+			total: totalFragments,
+			received: 0,
+			createdAt: now
+		};
+		reassemblyBuffers.set(originalMsgId, buffer);
+	}
+
+	// Store fragment (ignore duplicates)
+	if (buffer.fragments[fragmentIndex] === null) {
+		buffer.fragments[fragmentIndex] = chunk;
+		buffer.received++;
+	}
+
+	// Check if complete
+	if (buffer.received === buffer.total) {
+		reassemblyBuffers.delete(originalMsgId);
+
+		// Concatenate all fragments
+		const totalLength = buffer.fragments.reduce((sum, f) => sum + (f?.length ?? 0), 0);
+		const result = new Uint8Array(totalLength);
+		let offset = 0;
+		for (const frag of buffer.fragments) {
+			if (frag) {
+				result.set(frag, offset);
+				offset += frag.length;
+			}
+		}
+		return result;
+	}
+
+	return null;
+}
+
+/**
+ * Check if a raw BLE packet is a fragment (type 0x02).
+ * Used by the connection manager to route packets correctly.
+ */
+export function isFragmentPacket(raw: DataView): boolean {
+	return raw.byteLength >= 1 && raw.getUint8(0) === PACKET_TYPE_FRAGMENT;
 }

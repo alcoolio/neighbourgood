@@ -20,6 +20,7 @@ class MeshSyncedMessage(Base):
     message_type: Mapped[str] = mapped_column(String(30), nullable=False)
     community_id: Mapped[int] = mapped_column(Integer, ForeignKey("communities.id"), nullable=False, index=True)
     synced_by_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    server_object_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     synced_at: Mapped[datetime.datetime] = mapped_column(
         DateTime, server_default=func.now(), nullable=False
     )

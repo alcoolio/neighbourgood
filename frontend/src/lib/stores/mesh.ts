@@ -9,6 +9,9 @@ import {
 	scanForBitchatNode,
 	connectToNode,
 	disconnect as bleDisconnect,
+	forgetDevice,
+	hasLastDevice,
+	reconnectToLastDevice,
 	sendMessage,
 	onMessage,
 	onDisconnect,
@@ -23,8 +26,9 @@ import {
 	type MeshTicketData,
 	type MeshVoteData
 } from '$lib/bluetooth/protocol';
+import { persistMessages, loadMessages, clearMessages } from '$lib/mesh-db';
 
-export type MeshStatus = 'disconnected' | 'scanning' | 'connecting' | 'connected';
+export type MeshStatus = 'disconnected' | 'scanning' | 'connecting' | 'connected' | 'reconnecting';
 
 // ── Stores ────────────────────────────────────────────────────────────────────
 
@@ -42,6 +46,9 @@ const MAX_SEEN = 500;
 
 let unsubMessage: (() => void) | null = null;
 let unsubDisconnect: (() => void) | null = null;
+
+const MAX_RECONNECT_ATTEMPTS = 3;
+const RECONNECT_BASE_DELAY_MS = 1000;
 
 // ── Actions ───────────────────────────────────────────────────────────────────
 
@@ -61,32 +68,21 @@ export async function connectToMesh(): Promise<void> {
 		meshDeviceName.set(getDeviceName());
 		meshStatus.set('connected');
 
-		// Subscribe to incoming BLE messages
-		unsubMessage = onMessage((data: DataView) => {
-			const msg = decodeNGMessage(data);
-			if (!msg) return; // Not an NG message, ignore
-
-			// Deduplicate
-			if (seenIds.has(msg.id)) return;
-			addSeenId(msg.id);
-
-			if (msg.type === 'heartbeat') {
-				meshPeers.update((peers) => {
-					const next = new Set(peers);
-					next.add(msg.sender_name);
-					return next;
+		// Recover any persisted messages from a previous session
+		try {
+			const persisted = await loadMessages();
+			if (persisted.length > 0) {
+				meshMessages.update((msgs) => {
+					const existingIds = new Set(msgs.map((m) => m.id));
+					const newMsgs = persisted.filter((m) => !existingIds.has(m.id));
+					return [...msgs, ...newMsgs];
 				});
-			} else {
-				meshMessages.update((msgs) => [...msgs, msg]);
 			}
-		});
+		} catch {
+			// IndexedDB unavailable — continue without recovery
+		}
 
-		// Handle unexpected disconnection
-		unsubDisconnect = onDisconnect(() => {
-			meshStatus.set('disconnected');
-			meshDeviceName.set(null);
-			cleanup();
-		});
+		subscribeToEvents();
 	} catch (err) {
 		meshStatus.set('disconnected');
 		meshDeviceName.set(null);
@@ -95,9 +91,9 @@ export async function connectToMesh(): Promise<void> {
 	}
 }
 
-/** Disconnect from the current BitChat node. */
+/** Disconnect from the current BitChat node (manual — prevents auto-reconnect). */
 export function disconnectFromMesh(): void {
-	bleDisconnect();
+	forgetDevice();
 	meshStatus.set('disconnected');
 	meshDeviceName.set(null);
 	cleanup();
@@ -145,6 +141,9 @@ export async function broadcastHeartbeat(
 /** Clear all stored mesh messages (e.g. after syncing to server). */
 export function clearMeshMessages(): void {
 	meshMessages.set([]);
+	clearMessages().catch(() => {});
+	// Notify service worker that the queue is now empty
+	notifyServiceWorker();
 }
 
 /** Get current mesh messages snapshot. */
@@ -153,6 +152,72 @@ export function getMeshMessages(): NGMeshMessage[] {
 }
 
 // ── Internals ─────────────────────────────────────────────────────────────────
+
+function subscribeToEvents(): void {
+	// Subscribe to incoming BLE messages
+	unsubMessage = onMessage((data: DataView) => {
+		const msg = decodeNGMessage(data);
+		if (!msg) return; // Not an NG message, ignore
+
+		// Deduplicate
+		if (seenIds.has(msg.id)) return;
+		addSeenId(msg.id);
+
+		if (msg.type === 'heartbeat') {
+			meshPeers.update((peers) => {
+				const next = new Set(peers);
+				next.add(msg.sender_name);
+				return next;
+			});
+		} else {
+			meshMessages.update((msgs) => {
+				const updated = [...msgs, msg];
+				// Persist to IndexedDB (fire-and-forget)
+				persistMessages(updated).catch(() => {});
+				notifyServiceWorker();
+				return updated;
+			});
+		}
+	});
+
+	// Handle unexpected disconnection — attempt auto-reconnect
+	unsubDisconnect = onDisconnect(() => {
+		cleanup();
+		attemptReconnect();
+	});
+}
+
+async function attemptReconnect(): Promise<void> {
+	if (!hasLastDevice()) {
+		meshStatus.set('disconnected');
+		meshDeviceName.set(null);
+		return;
+	}
+
+	meshStatus.set('reconnecting');
+
+	for (let attempt = 0; attempt < MAX_RECONNECT_ATTEMPTS; attempt++) {
+		const delay = RECONNECT_BASE_DELAY_MS * Math.pow(2, attempt);
+		await sleep(delay);
+
+		const success = await reconnectToLastDevice();
+		if (success) {
+			meshDeviceName.set(getDeviceName());
+			meshStatus.set('connected');
+			subscribeToEvents();
+			return;
+		}
+	}
+
+	// All retries failed
+	forgetDevice();
+	meshStatus.set('disconnected');
+	meshDeviceName.set(null);
+}
+
+function sleep(ms: number): Promise<void> {
+	return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 function addSeenId(id: string): void {
 	if (seenIds.size >= MAX_SEEN) {
@@ -174,5 +239,13 @@ function cleanup(): void {
 	if (unsubDisconnect) {
 		unsubDisconnect();
 		unsubDisconnect = null;
+	}
+}
+
+function notifyServiceWorker(): void {
+	try {
+		navigator.serviceWorker?.controller?.postMessage({ type: 'mesh-queue-updated' });
+	} catch {
+		// SW not available
 	}
 }

@@ -71,6 +71,42 @@ export function disconnect(): void {
 	device = null;
 }
 
+/**
+ * Explicitly forget the device reference, preventing auto-reconnect.
+ * Call this on manual disconnect.
+ */
+export function forgetDevice(): void {
+	disconnect();
+	device = null;
+}
+
+/** Check if there is a previously paired device that can be reconnected. */
+export function hasLastDevice(): boolean {
+	return device !== null && device.gatt !== undefined;
+}
+
+/**
+ * Attempt to reconnect to the last paired device without a new user prompt.
+ * Returns true on success, false on failure.
+ */
+export async function reconnectToLastDevice(): Promise<boolean> {
+	if (!device || !device.gatt) return false;
+
+	try {
+		const server = await device.gatt.connect();
+		const service = await server.getPrimaryService(BITCHAT_SERVICE_UUID);
+		characteristic = await service.getCharacteristic(BITCHAT_CHARACTERISTIC_UUID);
+
+		await characteristic.startNotifications();
+		characteristic.addEventListener('characteristicvaluechanged', handleNotification);
+
+		return true;
+	} catch {
+		characteristic = null;
+		return false;
+	}
+}
+
 /** Send raw bytes to the connected BitChat node. */
 export async function sendMessage(data: Uint8Array): Promise<void> {
 	if (!characteristic) {
@@ -105,7 +141,7 @@ export function isConnected(): boolean {
 	return device?.gatt?.connected === true && characteristic !== null;
 }
 
-// ── Internal handlers ───────────────────────────────────────────────
+// ── Internal handlers ───────────────────────────────────────────
 
 function handleNotification(event: Event): void {
 	const target = event.target as BluetoothRemoteGATTCharacteristic;

@@ -360,10 +360,12 @@
 			<div class="mesh-panel">
 				<div class="mesh-header">
 					<div class="mesh-status-row">
-						<span class="mesh-dot" class:mesh-connected={$meshStatus === 'connected'} class:mesh-scanning={$meshStatus === 'scanning' || $meshStatus === 'connecting'}></span>
+						<span class="mesh-dot" class:mesh-connected={$meshStatus === 'connected'} class:mesh-scanning={$meshStatus === 'scanning' || $meshStatus === 'connecting'} class:mesh-reconnecting={$meshStatus === 'reconnecting'}></span>
 						<span class="mesh-label">
 							{#if $meshStatus === 'connected'}
 								{$t('mesh.connected')}{$meshDeviceName ? ` to ${$meshDeviceName}` : ''}
+							{:else if $meshStatus === 'reconnecting'}
+								{$t('mesh.reconnecting')}
 							{:else if $meshStatus === 'scanning' || $meshStatus === 'connecting'}
 								{$t('mesh.scanning')}
 							{:else}
@@ -379,6 +381,8 @@
 							<button class="btn-mesh" onclick={handleMeshConnect} disabled={meshConnecting}>
 								{meshConnecting ? $t('mesh.connecting') : $t('mesh.connect')}
 							</button>
+						{:else if $meshStatus === 'reconnecting'}
+							<button class="btn-mesh" disabled>{$t('mesh.reconnecting')}</button>
 						{:else if $meshStatus === 'connected'}
 							<button class="btn-mesh btn-mesh-disconnect" onclick={handleMeshDisconnect}>{$t('mesh.disconnect')}</button>
 						{/if}
@@ -890,6 +894,11 @@
 	.mesh-dot.mesh-scanning {
 		background: var(--color-warning);
 		animation: pulse 1.2s infinite;
+	}
+
+	.mesh-dot.mesh-reconnecting {
+		background: var(--color-warning);
+		animation: pulse 0.8s infinite;
 	}
 
 	@keyframes pulse {
