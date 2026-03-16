@@ -7,6 +7,7 @@
 	import { page } from '$app/stores';
 	import { api } from '$lib/api';
 	import { t } from 'svelte-i18n';
+	import { get } from 'svelte/store';
 	import { setupI18n, detectInitialLocale, AVAILABLE_LOCALES } from '$lib/i18n';
 	import { setLocale, hydrateLocale, currentLocale } from '$lib/stores/locale';
 	import { isOnline, offlineQueue, queueCount, flushQueue, initOfflineTracking } from '$lib/stores/offline';
@@ -168,7 +169,7 @@
 				if ($queueCount > 0) {
 					flushQueue().then(({ succeeded }) => {
 						if (succeeded > 0) {
-							syncMessage = `${succeeded} queued request${succeeded !== 1 ? 's' : ''} sent successfully`;
+							syncMessage = get(t)('offline.sync_success', { values: { count: succeeded } });
 							setTimeout(() => { syncMessage = ''; }, 5000);
 						}
 					});
@@ -185,7 +186,7 @@
 						}
 						const total = result.synced + result.duplicates;
 						if (total > 0) {
-							syncMessage = `${result.synced} mesh message${result.synced !== 1 ? 's' : ''} synced`;
+							syncMessage = get(t)('mesh.sync_result', { values: { synced: result.synced, duplicates: result.duplicates, errors: result.errors } });
 							setTimeout(() => { syncMessage = ''; }, 5000);
 						}
 					}).catch(() => {
@@ -214,13 +215,13 @@
 					try { offlineQueue.set(JSON.parse(stored)); } catch { /* ignore */ }
 				}
 				if (event.data.remaining === 0) {
-					syncMessage = 'Queued requests sent via background sync';
+					syncMessage = get(t)('offline.sync_success', { values: { count: 0 } });
 					setTimeout(() => { syncMessage = ''; }, 5000);
 				}
 			} else if (event.data?.type === 'ng-mesh-synced') {
 				// Service worker synced mesh messages in the background
 				clearMeshMessages();
-				syncMessage = 'Mesh messages synced via background sync';
+				syncMessage = get(t)('offline.sync_success', { values: { count: 0 } });
 				setTimeout(() => { syncMessage = ''; }, 5000);
 			}
 		};
@@ -408,9 +409,9 @@
 			<path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
 			<line x1="12" y1="20" x2="12.01" y2="20"/>
 		</svg>
-		<span>You're offline — browsing cached content</span>
+		<span>{$t('offline.banner')}</span>
 		{#if $queueCount > 0}
-			<span class="offline-queue-chip">{$queueCount} request{$queueCount !== 1 ? 's' : ''} queued</span>
+			<span class="offline-queue-chip">{$t('offline.queued', { values: { count: $queueCount } })}</span>
 		{/if}
 	</div>
 {/if}
