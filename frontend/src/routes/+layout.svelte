@@ -10,6 +10,7 @@
 	import { setupI18n, detectInitialLocale, AVAILABLE_LOCALES } from '$lib/i18n';
 	import { setLocale, hydrateLocale, currentLocale } from '$lib/stores/locale';
 	import { isOnline, offlineQueue, queueCount, flushQueue, initOfflineTracking } from '$lib/stores/offline';
+	import { meshMessages, clearMeshMessages, getMeshMessages } from '$lib/stores/mesh';
 
 	// Initialise svelte-i18n as early as possible.
 	// detectInitialLocale safely reads localStorage (browser-only) and navigator.language.
@@ -163,13 +164,34 @@
 		initOfflineTracking();
 		let prevOnline = navigator.onLine;
 		const unsub = isOnline.subscribe(async (online) => {
-			if (online && !prevOnline && $queueCount > 0) {
-				flushQueue().then(({ succeeded }) => {
-					if (succeeded > 0) {
-						syncMessage = `${succeeded} queued request${succeeded !== 1 ? 's' : ''} sent successfully`;
-						setTimeout(() => { syncMessage = ''; }, 5000);
-					}
-				});
+			if (online && !prevOnline) {
+				if ($queueCount > 0) {
+					flushQueue().then(({ succeeded }) => {
+						if (succeeded > 0) {
+							syncMessage = `${succeeded} queued request${succeeded !== 1 ? 's' : ''} sent successfully`;
+							setTimeout(() => { syncMessage = ''; }, 5000);
+						}
+					});
+				}
+				// Auto-sync mesh messages when coming back online
+				const meshMsgs = getMeshMessages();
+				if (meshMsgs.length > 0) {
+					api<{ synced: number; duplicates: number; errors: number }>(
+						'/mesh/sync',
+						{ method: 'POST', body: { messages: meshMsgs }, auth: true }
+					).then((result) => {
+						if (result.errors === 0) {
+							clearMeshMessages();
+						}
+						const total = result.synced + result.duplicates;
+						if (total > 0) {
+							syncMessage = `${result.synced} mesh message${result.synced !== 1 ? 's' : ''} synced`;
+							setTimeout(() => { syncMessage = ''; }, 5000);
+						}
+					}).catch(() => {
+						// Mesh sync failed — messages stay in queue for manual sync
+					});
+				}
 			}
 			// Register Background Sync when going offline with a non-empty queue
 			if (!online && $queueCount > 0 && 'serviceWorker' in navigator) {
@@ -195,6 +217,11 @@
 					syncMessage = 'Queued requests sent via background sync';
 					setTimeout(() => { syncMessage = ''; }, 5000);
 				}
+			} else if (event.data?.type === 'ng-mesh-synced') {
+				// Service worker synced mesh messages in the background
+				clearMeshMessages();
+				syncMessage = 'Mesh messages synced via background sync';
+				setTimeout(() => { syncMessage = ''; }, 5000);
 			}
 		};
 		navigator.serviceWorker?.addEventListener('message', handleSWMessage);
