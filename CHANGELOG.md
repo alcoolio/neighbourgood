@@ -4,6 +4,33 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.9.5] - 2026-03-16
+
+### Added
+
+- **Enhanced BLE mesh networking** — 10-phase overhaul of the BitChat BLE mesh system for robust offline crisis coordination
+  - **Mesh dashboard page** (`/mesh`) — real-time connection status, message log, and mesh controls
+  - **Mesh-to-server auto-sync** — queued mesh messages automatically sync to the server when internet connectivity returns
+  - **Resource sharing over BLE mesh** — share and discover resources via mesh when offline
+  - **Location/safety check-ins** — broadcast location and safety status over BLE mesh during crises
+  - **Multi-hop phone-to-phone relay** — messages relay through multiple BLE mesh nodes to extend range
+  - **Message acknowledgments** — delivery confirmation for mesh messages with retry logic
+  - **Offline-first triage view** — browse and create emergency tickets without server connectivity
+  - **E2E encryption for mesh DMs** — end-to-end encrypted direct messages over BLE mesh
+  - **Multi-device BLE connection manager** — connect to and manage multiple BLE mesh nodes simultaneously
+  - **Mesh analytics & diagnostics** — network topology visualization, message delivery metrics, and `/mesh/metrics` endpoint
+- **Improved offline functionality** — fixed queue flush, added offline-aware API wrapper, expanded offline route coverage
+- **BLE mesh core improvements** — finished sync stubs, auto-reconnect on disconnect, IndexedDB persistence for mesh state, message fragmentation for large payloads
+- **i18n** — offline banner and sync messages now use svelte-i18n translation keys
+- **20 new tests** — mesh sync, mesh metrics, and offline endpoint coverage (418 tests total across 28 test files)
+
+### Changed
+
+- Backend version bumped to 1.9.5
+- Frontend version bumped to 1.9.5
+
+---
+
 ## [1.9.0] - 2026-03-15
 
 ### Added
