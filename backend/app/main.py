@@ -1,13 +1,17 @@
 """NeighbourGood API – main application entry point."""
 
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import inspect, text
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.config import settings
 from app.database import Base, engine
+
+logger = logging.getLogger(__name__)
 from app.middleware.csrf import CsrfMiddleware
 from app.middleware.rate_limit import RateLimitMiddleware
 from app.models import Activity, Booking, Community, CommunityMember, CrisisVote, EmergencyTicket, Event, EventAttendee, FederatedResource, FederatedSkill, InstanceSyncLog, Invite, KnownInstance, MeshCheckin, MeshSyncedMessage, Message, RedSkyAlert, Resource, Review, Skill, TelegramLinkToken, User, Webhook  # noqa: F401 – ensure models are registered
@@ -39,9 +43,36 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 # ── Application setup ──────────────────────────────────────────────
 
 
+def _add_missing_columns() -> None:
+    """Inspect every ORM table and ADD columns that the DB is missing.
+
+    This is a safety net so that existing databases pick up new nullable
+    columns without requiring a manual ``alembic upgrade head``.  Only
+    additive — never drops or renames columns.
+    """
+    inspector = inspect(engine)
+    with engine.connect() as conn:
+        for table_name, table in Base.metadata.tables.items():
+            if not inspector.has_table(table_name):
+                continue
+            existing = {c["name"] for c in inspector.get_columns(table_name)}
+            for col in table.columns:
+                if col.name not in existing:
+                    col_type = col.type.compile(engine.dialect)
+                    sql = f'ALTER TABLE {table_name} ADD COLUMN {col.name} {col_type}'
+                    if col.default is not None:
+                        sql += f" DEFAULT {col.default.arg!r}"
+                    if col.server_default is not None:
+                        sql += f" DEFAULT {col.server_default.arg.text}"
+                    conn.execute(text(sql))
+                    logger.info("Added missing column %s.%s", table_name, col.name)
+        conn.commit()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    _add_missing_columns()
     yield
 
 
