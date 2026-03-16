@@ -1,13 +1,17 @@
 """NeighbourGood API – main application entry point."""
 
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import inspect, text
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.config import settings
 from app.database import Base, engine
+
+logger = logging.getLogger(__name__)
 from app.middleware.csrf import CsrfMiddleware
 from app.middleware.rate_limit import RateLimitMiddleware
 from app.models import Activity, Booking, Community, CommunityMember, CrisisVote, EmergencyTicket, Event, EventAttendee, FederatedResource, FederatedSkill, InstanceSyncLog, Invite, KnownInstance, MeshSyncedMessage, Message, RedSkyAlert, Resource, Review, Skill, TelegramLinkToken, User, Webhook  # noqa: F401 – ensure models are registered
@@ -39,9 +43,44 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 # ── Application setup ──────────────────────────────────────────────
 
 
+def _add_missing_columns() -> None:
+    """Add columns that exist in ORM models but not yet in the database.
+
+    This handles the case where new columns are added to models but Alembic
+    migrations have not been run (common in development with SQLite).
+    """
+    insp = inspect(engine)
+    with engine.begin() as conn:
+        for table_name, table in Base.metadata.tables.items():
+            if not insp.has_table(table_name):
+                continue
+            existing = {c["name"] for c in insp.get_columns(table_name)}
+            for col in table.columns:
+                if col.name not in existing:
+                    col_type = col.type.compile(engine.dialect)
+                    nullable = "NULL" if col.nullable else "NOT NULL"
+                    default = ""
+                    if col.server_default is not None:
+                        default = f" DEFAULT {col.server_default.arg}"
+                    elif col.default is not None and col.default.is_scalar:
+                        default = f" DEFAULT '{col.default.arg}'"
+                    elif not col.nullable and col.default is None and col.server_default is None:
+                        # Non-nullable with no default — use empty string for strings, 0 for numbers
+                        if "INT" in col_type.upper():
+                            default = " DEFAULT 0"
+                        elif "FLOAT" in col_type.upper() or "REAL" in col_type.upper():
+                            default = " DEFAULT 0.0"
+                        else:
+                            default = " DEFAULT ''"
+                    stmt = f"ALTER TABLE {table_name} ADD COLUMN {col.name} {col_type} {nullable}{default}"
+                    conn.execute(text(stmt))
+                    logger.info("Added missing column %s.%s", table_name, col.name)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    _add_missing_columns()
     yield
 
 
