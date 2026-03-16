@@ -194,3 +194,156 @@ def test_sync_batch_messages(client, auth_headers, community_id):
     assert data["synced"] == 5
     assert data["duplicates"] == 0
     assert data["errors"] == 0
+
+
+# ── Ticket comment sync ────────────────────────────────────────
+
+
+def test_sync_ticket_comment(client, auth_headers, community_id):
+    """Sync a ticket via mesh, then sync a comment referencing it."""
+    ticket_msg = _mesh_msg(
+        community_id=community_id,
+        data={
+            "title": "Need blankets",
+            "ticket_type": "request",
+            "urgency": "high",
+        },
+    )
+    # Sync the ticket first
+    res = client.post(
+        "/mesh/sync", json={"messages": [ticket_msg]}, headers=auth_headers
+    )
+    assert res.json()["synced"] == 1
+
+    # Now sync a comment referencing the ticket's mesh ID
+    comment_msg = _mesh_msg(
+        msg_type="ticket_comment",
+        community_id=community_id,
+        data={
+            "ticket_mesh_id": ticket_msg["id"],
+            "body": "I have 10 blankets available",
+        },
+    )
+    res = client.post(
+        "/mesh/sync", json={"messages": [comment_msg]}, headers=auth_headers
+    )
+    assert res.status_code == 200
+    assert res.json()["synced"] == 1
+    assert res.json()["errors"] == 0
+
+
+def test_sync_ticket_comment_missing_ticket(client, auth_headers, community_id):
+    """Comment referencing non-existent ticket mesh ID should error."""
+    comment_msg = _mesh_msg(
+        msg_type="ticket_comment",
+        community_id=community_id,
+        data={
+            "ticket_mesh_id": "nonexistent-mesh-id",
+            "body": "Some comment",
+        },
+    )
+    res = client.post(
+        "/mesh/sync", json={"messages": [comment_msg]}, headers=auth_headers
+    )
+    assert res.status_code == 200
+    assert res.json()["errors"] == 1
+    assert res.json()["synced"] == 0
+
+
+def test_sync_ticket_comment_empty_body(client, auth_headers, community_id):
+    """Comment with empty body should error."""
+    comment_msg = _mesh_msg(
+        msg_type="ticket_comment",
+        community_id=community_id,
+        data={"ticket_mesh_id": "some-id", "body": ""},
+    )
+    res = client.post(
+        "/mesh/sync", json={"messages": [comment_msg]}, headers=auth_headers
+    )
+    assert res.status_code == 200
+    assert res.json()["errors"] == 1
+
+
+# ── Direct message sync ────────────────────────────────────────
+
+
+def test_sync_direct_message(client, auth_headers, community_id, register_user):
+    """Sync a direct message to a user in the same community."""
+    # Register second user and join the community
+    user2_headers = register_user(2)
+    join_res = client.post(
+        f"/communities/{community_id}/join", headers=user2_headers
+    )
+    assert join_res.status_code in (200, 201), join_res.text
+
+    # Get user2 ID
+    me_res = client.get("/users/me", headers=user2_headers)
+    user2_id = me_res.json()["id"]
+
+    msg = _mesh_msg(
+        msg_type="direct_message",
+        community_id=community_id,
+        data={"recipient_id": user2_id, "body": "Stay safe!"},
+    )
+    res = client.post(
+        "/mesh/sync", json={"messages": [msg]}, headers=auth_headers
+    )
+    assert res.status_code == 200
+    assert res.json()["synced"] == 1
+    assert res.json()["errors"] == 0
+
+
+def test_sync_direct_message_invalid_recipient(client, auth_headers, community_id):
+    """Message to non-existent user should error."""
+    msg = _mesh_msg(
+        msg_type="direct_message",
+        community_id=community_id,
+        data={"recipient_id": 99999, "body": "Hello?"},
+    )
+    res = client.post(
+        "/mesh/sync", json={"messages": [msg]}, headers=auth_headers
+    )
+    assert res.status_code == 200
+    assert res.json()["errors"] == 1
+    assert res.json()["synced"] == 0
+
+
+# ── Crisis status sync ─────────────────────────────────────────
+
+
+def test_sync_crisis_status_as_admin(client, auth_headers, community_id):
+    """Admin (community creator) can change crisis mode via mesh."""
+    msg = _mesh_msg(
+        msg_type="crisis_status",
+        community_id=community_id,
+        data={"new_mode": "red"},
+    )
+    res = client.post(
+        "/mesh/sync", json={"messages": [msg]}, headers=auth_headers
+    )
+    assert res.status_code == 200
+    assert res.json()["synced"] == 1
+
+    # Verify mode changed
+    community_res = client.get(
+        f"/communities/{community_id}", headers=auth_headers
+    )
+    assert community_res.json()["mode"] == "red"
+
+
+def test_sync_crisis_status_as_member(client, auth_headers, community_id, register_user):
+    """Regular member cannot change crisis mode via mesh."""
+    user2_headers = register_user(3)
+    client.post(f"/communities/{community_id}/join", headers=user2_headers)
+
+    msg = _mesh_msg(
+        msg_type="crisis_status",
+        community_id=community_id,
+        data={"new_mode": "red"},
+    )
+    res = client.post(
+        "/mesh/sync", json={"messages": [msg]}, headers=user2_headers
+    )
+    assert res.status_code == 200
+    assert res.json()["errors"] == 1
+    assert res.json()["synced"] == 0

@@ -140,9 +140,23 @@ const QUEUE_CACHE = 'ng-offline-queue';
 const QUEUE_CACHE_KEY = '/_internal/offline-queue';
 const MAX_RETRIES = 5;
 
+// Mesh sync constants
+const MESH_DB_NAME = 'ng-mesh';
+const MESH_STORE_NAME = 'messages';
+
+self.addEventListener('message', (event) => {
+	if (event.data?.type === 'mesh-queue-updated') {
+		// Register a Background Sync so mesh messages get flushed even if tab closes
+		(self.registration as any).sync?.register?.('ng-mesh-sync').catch(() => {});
+	}
+});
+
 self.addEventListener('sync', (event: ExtendableEvent) => {
-	if ((event as any).tag === 'ng-flush-queue') {
+	const tag = (event as any).tag;
+	if (tag === 'ng-flush-queue') {
 		event.waitUntil(flushOfflineQueue());
+	} else if (tag === 'ng-mesh-sync') {
+		event.waitUntil(flushMeshQueue());
 	}
 });
 
@@ -219,4 +233,113 @@ async function flushOfflineQueue(): Promise<void> {
 	for (const client of clients) {
 		client.postMessage({ type: 'ng-queue-flushed', remaining: remaining.length });
 	}
+}
+
+// ── Mesh Background Sync ──────────────────────────────────────────────────────
+
+async function flushMeshQueue(): Promise<void> {
+	// Read mesh messages from IndexedDB
+	let messages: unknown[];
+	try {
+		messages = await readMeshMessagesFromIDB();
+	} catch {
+		return;
+	}
+	if (!messages || messages.length === 0) return;
+
+	// Get auth token from the offline queue cache (piggybacking on existing pattern)
+	// or from any queued request that has one
+	let authToken: string | null = null;
+	try {
+		const queueCache = await caches.open(QUEUE_CACHE);
+		const queueResp = await queueCache.match(QUEUE_CACHE_KEY);
+		if (queueResp) {
+			const queue = await queueResp.json();
+			authToken = queue?.[0]?.authToken ?? null;
+		}
+	} catch {
+		// No token available — can't sync without auth
+	}
+
+	if (!authToken) return;
+
+	try {
+		const res = await fetch('/api/mesh/sync', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				Authorization: `Bearer ${authToken}`
+			},
+			body: JSON.stringify({ messages })
+		});
+
+		if (res.ok) {
+			// Clear IndexedDB on success
+			await clearMeshMessagesFromIDB();
+			// Notify clients
+			const clients = await self.clients.matchAll();
+			for (const client of clients) {
+				client.postMessage({ type: 'ng-mesh-synced' });
+			}
+		}
+	} catch {
+		// Network still unavailable — Background Sync will retry
+	}
+}
+
+function readMeshMessagesFromIDB(): Promise<unknown[]> {
+	return new Promise((resolve, reject) => {
+		const request = indexedDB.open(MESH_DB_NAME, 1);
+		request.onupgradeneeded = () => {
+			const db = request.result;
+			if (!db.objectStoreNames.contains(MESH_STORE_NAME)) {
+				db.createObjectStore(MESH_STORE_NAME, { keyPath: 'id' });
+			}
+		};
+		request.onsuccess = () => {
+			const db = request.result;
+			try {
+				const tx = db.transaction(MESH_STORE_NAME, 'readonly');
+				const store = tx.objectStore(MESH_STORE_NAME);
+				const getAll = store.getAll();
+				getAll.onsuccess = () => {
+					db.close();
+					resolve(getAll.result);
+				};
+				getAll.onerror = () => {
+					db.close();
+					reject(getAll.error);
+				};
+			} catch {
+				db.close();
+				resolve([]);
+			}
+		};
+		request.onerror = () => reject(request.error);
+	});
+}
+
+function clearMeshMessagesFromIDB(): Promise<void> {
+	return new Promise((resolve, reject) => {
+		const request = indexedDB.open(MESH_DB_NAME, 1);
+		request.onsuccess = () => {
+			const db = request.result;
+			try {
+				const tx = db.transaction(MESH_STORE_NAME, 'readwrite');
+				tx.objectStore(MESH_STORE_NAME).clear();
+				tx.oncomplete = () => {
+					db.close();
+					resolve();
+				};
+				tx.onerror = () => {
+					db.close();
+					reject(tx.error);
+				};
+			} catch {
+				db.close();
+				resolve();
+			}
+		};
+		request.onerror = () => reject(request.error);
+	});
 }
