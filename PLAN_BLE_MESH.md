@@ -4,7 +4,7 @@
 
 ---
 
-## Phase 1 — Mesh Status UI & Dashboard ⏳
+## Phase 1 — Mesh Status UI & Dashboard ✅
 
 **Goal**: Give users visibility into mesh connectivity and queued messages.
 
@@ -18,7 +18,7 @@
 
 ---
 
-## Phase 2 — Mesh-to-Server Auto-Sync ⏳
+## Phase 2 — Mesh-to-Server Auto-Sync ✅
 
 **Goal**: Seamlessly sync mesh messages to the server when connectivity returns.
 
@@ -31,7 +31,7 @@
 
 ---
 
-## Phase 3 — Resource Sharing Over Mesh ⏳
+## Phase 3 — Resource Sharing Over Mesh ✅
 
 **Goal**: Let neighbours share physical resources over BLE during outages.
 
@@ -45,7 +45,7 @@
 
 ---
 
-## Phase 4 — Location / Safety Check-ins ⏳
+## Phase 4 — Location / Safety Check-ins ✅
 
 **Goal**: Crisis situational awareness via BLE-broadcast location pins.
 
@@ -60,7 +60,7 @@
 
 ---
 
-## Phase 5 — Multi-Hop Phone-to-Phone Relay ⏳
+## Phase 5 — Multi-Hop Phone-to-Phone Relay ✅
 
 **Goal**: Create a true ad-hoc mesh — phones re-broadcast received messages to expand range.
 
@@ -73,7 +73,7 @@
 
 ---
 
-## Phase 6 — Mesh Message Acknowledgments ⏳
+## Phase 6 — Mesh Message Acknowledgments ✅
 
 **Goal**: Confirm delivery of critical messages to at least one peer.
 
@@ -86,7 +86,7 @@
 
 ---
 
-## Phase 7 — Offline-First Triage View ⏳
+## Phase 7 — Offline-First Triage View ✅
 
 **Goal**: View crisis tickets received over mesh without any server connectivity.
 
@@ -99,7 +99,7 @@
 
 ---
 
-## Phase 8 — End-to-End Encryption for Direct Messages ⏳
+## Phase 8 — End-to-End Encryption for Direct Messages ✅
 
 **Goal**: Protect private mesh messages from relay nodes reading content.
 
@@ -114,7 +114,7 @@
 
 ---
 
-## Phase 9 — Multi-Device Connections ⏳
+## Phase 9 — Multi-Device Connections ✅
 
 **Goal**: Connect to multiple BLE gateways simultaneously for redundancy.
 
@@ -127,7 +127,7 @@
 
 ---
 
-## Phase 10 — Mesh Analytics & Diagnostics ⏳
+## Phase 10 — Mesh Analytics & Diagnostics ✅
 
 **Goal**: Understand real-world mesh network health.
 

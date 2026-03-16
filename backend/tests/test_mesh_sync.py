@@ -552,3 +552,34 @@ def test_get_mesh_key_not_set(client, auth_headers, register_user):
 
     res = client.get(f"/mesh/keys/{user2_id}", headers=auth_headers)
     assert res.status_code == 404
+
+
+# ── Mesh metrics ─────────────────────────────────────────────
+
+
+def test_submit_mesh_metrics(client, auth_headers):
+    """Submit mesh session metrics."""
+    res = client.post(
+        "/mesh/metrics",
+        json={
+            "messages_sent": 10,
+            "messages_received": 15,
+            "messages_relayed": 5,
+            "reconnect_attempts": 2,
+            "reconnect_successes": 1,
+            "peak_peer_count": 3,
+            "acks_sent": 8,
+            "acks_received": 6,
+            "errors": 1,
+            "session_duration_ms": 300000,
+        },
+        headers=auth_headers,
+    )
+    assert res.status_code == 200
+    assert res.json()["status"] == "ok"
+
+
+def test_submit_mesh_metrics_requires_auth(client):
+    """Metrics endpoint requires authentication."""
+    res = client.post("/mesh/metrics", json={})
+    assert res.status_code == 403

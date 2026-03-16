@@ -12,7 +12,7 @@ from app.models.mesh import MeshSyncedMessage
 from app.models.mesh_checkin import MeshCheckin
 from app.models.resource import Resource
 from app.models.user import User
-from app.schemas.mesh import MeshCheckinOut, MeshMessageIn, MeshSyncRequest, MeshSyncResponse
+from app.schemas.mesh import MeshCheckinOut, MeshMessageIn, MeshMetricsIn, MeshSyncRequest, MeshSyncResponse
 from app.services.activity import record_activity
 
 router = APIRouter(prefix="/mesh", tags=["mesh"])
@@ -472,6 +472,33 @@ def get_community_checkins(
         )
         for c in checkins
     ]
+
+
+@router.post("/metrics", response_model=dict)
+def submit_mesh_metrics(
+    body: MeshMetricsIn,
+    current_user: User = Depends(get_current_user),
+):
+    """Accept client-side mesh session metrics for aggregate reporting.
+
+    Currently logs metrics server-side. Future: persist to analytics DB.
+    """
+    import logging
+
+    logger = logging.getLogger("mesh.metrics")
+    logger.info(
+        "Mesh metrics from user=%d: sent=%d recv=%d relayed=%d peers=%d acks=%d/%d errors=%d duration=%dms",
+        current_user.id,
+        body.messages_sent,
+        body.messages_received,
+        body.messages_relayed,
+        body.peak_peer_count,
+        body.acks_sent,
+        body.acks_received,
+        body.errors,
+        body.session_duration_ms,
+    )
+    return {"status": "ok"}
 
 
 @router.put("/keys/me", response_model=dict)
