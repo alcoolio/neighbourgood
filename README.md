@@ -80,6 +80,9 @@ Once you see `Application startup complete` in the backend logs, the stack is re
 
 > **First time?** Navigate to http://localhost:3800, click **Sign Up**, create an account, then go through the onboarding flow to create or join a community.
 
+<img width="1103" height="854" alt="grafik" src="https://github.com/user-attachments/assets/0d6556ea-68db-47d8-978e-e65353ef8770" />
+Frontend User Onboarding
+
 #### Useful Docker commands
 
 ```bash
@@ -151,9 +154,6 @@ The Vite dev server automatically proxies `/api/*` requests to the backend at `:
 | Web app (dev) | http://localhost:5173 |
 | Backend API | http://localhost:8300 |
 | API docs | http://localhost:8300/docs |
-
-<img width="1103" height="854" alt="grafik" src="https://github.com/user-attachments/assets/0d6556ea-68db-47d8-978e-e65353ef8770" />
-Frontend User Onboarding
 
 <a id="system-requirements"></a>
 ## 🖥️ System Requirements
